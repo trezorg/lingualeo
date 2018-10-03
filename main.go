@@ -34,15 +34,16 @@ type lingualeoResult struct {
 }
 
 type lingualeoArgs struct {
-	Email    string
-	Password string
-	Config   string
-	Player   string
-	Words    []string
-	Force    bool
-	Add      bool
-	Sound    bool
-	Debug    bool
+	Email     string
+	Password  string
+	Config    string
+	Player    string
+	Words     []string
+	Translate []string
+	Force     bool
+	Add       bool
+	Sound     bool
+	Debug     bool
 }
 
 func failIfError(err error) {
@@ -127,6 +128,10 @@ func main() {
 			urls = append(urls, res.Result.SoundURL)
 		}
 		if args.Add && (!bool(res.Result.Exists) || args.Force) {
+			if len(args.Translate) > 0 {
+				// Custom translation
+				res.Result.Words = args.Translate
+			}
 			resultsToAdd = append(resultsToAdd, *res.Result)
 		}
 	}

@@ -57,15 +57,13 @@ func sanitizeWords(result *lingualeoWordResult) []string {
 }
 
 func printTranslate(result *lingualeoResult) {
-	color.Printf(
-		"@{r}Found %s word:\n",
-		func() string {
-			if result.Exists {
-				return "existing"
-			}
-			return "new"
-		}(),
-	)
+	var strTitle string
+	if result.Exists {
+		strTitle = "existing"
+	} else {
+		strTitle = "new"
+	}
+	color.Printf("@{r}Found %s word:\n", strTitle)
 	color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
 	for _, word := range result.Words {
 		printColorString("y", word)

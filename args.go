@@ -25,7 +25,7 @@ func (s *arrayFlags) Set(value string) error {
 }
 
 func prepareArgs() lingualeoArgs {
-	//var wordsFlag arrayFlags
+	var translateFlag arrayFlags
 	emailPtr := flag.String("e", "", "Lingualeo email")
 	passwordPtr := flag.String("p", "", "Lingualeo password")
 	configPtr := flag.String("c", "", "Config file")
@@ -34,7 +34,7 @@ func prepareArgs() lingualeoArgs {
 	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
 	soundPtr := flag.Bool("s", false, "Play words pronounciation")
 	debugPtr := flag.Bool("d", false, "Debug mode")
-	// flag.Var(&wordsFlag, "w", "Words to translate")
+	flag.Var(&translateFlag, "t", "Custom translation")
 	flag.Parse()
 	words := flag.Args()
 	return lingualeoArgs{
@@ -43,6 +43,7 @@ func prepareArgs() lingualeoArgs {
 		*configPtr,
 		*playerPtr,
 		words,
+		translateFlag,
 		*forcePtr,
 		*addPtr,
 		*soundPtr,
@@ -112,7 +113,7 @@ func readConfigs(filename string) (*lingualeoArgs, error) {
 		argsConfig, _ := filepath.Abs(filename)
 		configs = append(configs, argsConfig)
 	}
-	args := &lingualeoArgs{"", "", "", "", []string{}, false, false, false, false}
+	args := &lingualeoArgs{"", "", "", "", []string{}, []string{}, false, false, false, false}
 	for _, name := range configs {
 		readConfig(args, name)
 	}
