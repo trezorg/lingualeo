@@ -4,75 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 )
-
-type lingualeoWordResult struct {
-	Votes int    `json:"votes"`
-	Value string `json:"value"`
-}
-
-type result struct {
-	Error  error
-	Result *lingualeoResult
-}
-
-type resultFile struct {
-	Error    error
-	Filename string
-	Index    int
-}
-
-type lingualeoResult struct {
-	Word          string                `json:"-"`
-	Words         []string              `json:"-"`
-	Exists        convertibleBoolean    `json:"is_user"`
-	SoundURL      string                `json:"sound_url"`
-	Transcription string                `json:"transcription"`
-	Translate     []lingualeoWordResult `json:"translate"`
-	ErrorMsg      string                `json:"error_msg"`
-}
-
-type lingualeoArgs struct {
-	Email     string
-	Password  string
-	Config    string
-	Player    string
-	Words     []string
-	Translate []string
-	Force     bool
-	Add       bool
-	Sound     bool
-	Debug     bool
-}
-
-func failIfError(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func playSound(player string, url string) error {
-	cmd := exec.Command(player, url)
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func isCommandAvailable(name string) bool {
-	cmd := exec.Command("/bin/sh", "-c", "command -v "+name)
-	if err := cmd.Run(); err != nil {
-		return false
-	}
-	return true
-}
 
 func prepareParams() (*lingualeoArgs, error) {
 	args := prepareArgs()
@@ -119,7 +51,6 @@ func main() {
 			fmt.Println(res.Error)
 			continue
 		}
-		parseAndSortTranslate(res.Result)
 		if len(res.Result.Words) == 0 {
 			continue
 		}

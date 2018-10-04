@@ -65,20 +65,6 @@ func prepareClient() (*http.Client, error) {
 	return client, nil
 }
 
-func readBody(resp *http.Response) (string, error) {
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-func getJSON(resp *http.Response, target interface{}) error {
-	defer resp.Body.Close()
-	return json.NewDecoder(resp.Body).Decode(target)
-}
-
 func auth(args *lingualeoArgs, client *http.Client) error {
 	values := map[string]string{
 		"email":    args.Email,
@@ -143,7 +129,7 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 		}
 	}
 	res := &lingualeoResult{Word: word}
-	err = getJSON(resp, res)
+	err = getJSON(resp.Body, res)
 	if err != nil {
 		out <- result{Error: err}
 		return
@@ -152,6 +138,7 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 		out <- result{Error: fmt.Errorf(res.ErrorMsg)}
 		return
 	}
+	res.parseAndSortTranslate()
 	out <- result{Result: res}
 }
 
@@ -193,7 +180,7 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 		}
 	}
 	lingRes := &lingualeoResult{Word: res.Word}
-	err = getJSON(resp, lingRes)
+	err = getJSON(resp.Body, lingRes)
 	if err != nil {
 		out <- result{Error: err}
 		return
