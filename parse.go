@@ -70,6 +70,17 @@ func printTranslate(result *lingualeoResult) {
 	}
 }
 
+func printAddTranslate(result *lingualeoResult) {
+	var strTitle string
+	if result.Exists {
+		strTitle = "Updated existing"
+	} else {
+		strTitle = "Added new"
+	}
+	color.Printf("@{r}%s word: ", strTitle)
+	color.Printf("@{g}['%s']\n", result.Word)
+}
+
 func printColorString(clr string, text string) {
 	str := fmt.Sprintf("@{%s}%s\n", clr, text)
 	color.Printf(str)

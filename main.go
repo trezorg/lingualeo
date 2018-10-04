@@ -169,15 +169,7 @@ func main() {
 				fmt.Println(res.Error)
 				continue
 			}
-
-			var subTitle string
-			if res.Result.Exists {
-				subTitle = "Updated existing"
-			} else {
-				subTitle = "Added new"
-			}
-
-			printColorString("r", fmt.Sprintf("%s word %s", subTitle, res.Result.Word))
+			printAddTranslate(res.Result)
 		}
 	}
 }
