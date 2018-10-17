@@ -24,7 +24,7 @@ func sanitizeWords(result *lingualeoWordResult) []string {
 	words := splitRegex.Split(strings.TrimSpace(result.Value), -1)
 	for _, word := range words {
 		word = fixTranslateString(strings.TrimSpace(removeSymbols(word)))
-		if len(word) > 0 {
+		if len(word) > 1 {
 			results = append(results, word)
 		}
 	}
