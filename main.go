@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+
+	"github.com/wsxiaoys/terminal/color"
 )
 
 func prepareParams() (*lingualeoArgs, error) {
@@ -52,6 +54,7 @@ func main() {
 			continue
 		}
 		if len(res.Result.Words) == 0 {
+			color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
 			continue
 		}
 		printTranslate(res.Result)
