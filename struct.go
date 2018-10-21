@@ -1,6 +1,9 @@
 package main
 
-import "sort"
+import (
+	"io"
+	"sort"
+)
 
 type lingualeoWordResult struct {
 	Votes int    `json:"votes"`
@@ -38,6 +41,10 @@ func (result *lingualeoResult) parseAndSortTranslate() {
 		}
 	}
 	result.Words = unique(result.Words)
+}
+
+func (result *lingualeoResult) fillObjectFromJSON(body io.ReadCloser) error {
+	return getJSON(body, result)
 }
 
 type lingualeoArgs struct {

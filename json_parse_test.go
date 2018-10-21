@@ -28,7 +28,7 @@ func TestParseResponseJson(t *testing.T) {
 	reader := ioutil.NopCloser(bytes.NewReader([]byte(data)))
 	res := &lingualeoResult{Word: searchWord}
 	expected := []string{"размещение", "жильё", "проживание", "помещение"}
-	getJSON(reader, res)
+	res.fillObjectFromJSON(reader)
 	res.parseAndSortTranslate()
 	if res.Word != searchWord {
 		t.Errorf("Incorrect search word: %s", searchWord)
