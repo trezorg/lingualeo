@@ -34,7 +34,7 @@ func TestParseResponseJson(t *testing.T) {
 		t.Errorf("Incorrect search word: %s", searchWord)
 	}
 	if len(res.Words) != 4 {
-		t.Errorf("Incorrect number of translated words: %d. Expected: 4", len(res.Words))
+		t.Errorf("Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
 	}
 	if !reflect.DeepEqual(res.Words, expected) {
 		t.Errorf(

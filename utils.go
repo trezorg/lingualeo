@@ -45,7 +45,7 @@ func printColorString(clr string, text string) {
 
 func failIfError(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		printColorString("r", fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
 }
