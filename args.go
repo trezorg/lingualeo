@@ -33,7 +33,6 @@ func prepareArgs() lingualeoArgs {
 	forcePtr := flag.Bool("f", false, "Force add to lingualeo dictionary")
 	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
 	soundPtr := flag.Bool("s", false, "Play words pronounciation")
-	debugPtr := flag.Bool("d", false, "Debug mode")
 	flag.Var(&translateFlag, "t", "Custom translation")
 	flag.Parse()
 	words := flag.Args()
@@ -47,7 +46,6 @@ func prepareArgs() lingualeoArgs {
 		*forcePtr,
 		*addPtr,
 		*soundPtr,
-		*debugPtr,
 	}
 }
 
@@ -91,7 +89,7 @@ func readConfig(args *lingualeoArgs, filename string) error {
 	for _, flag := range []string{"Email", "Password", "Player"} {
 		setStringOption(args, flag, options)
 	}
-	for _, flag := range []string{"Force", "Add", "Sound", "Debug"} {
+	for _, flag := range []string{"Force", "Add", "Sound"} {
 		err := setBoolOption(args, flag, options)
 		if err != nil {
 			return err
@@ -113,7 +111,7 @@ func readConfigs(filename string) (*lingualeoArgs, error) {
 		argsConfig, _ := filepath.Abs(filename)
 		configs = append(configs, argsConfig)
 	}
-	args := &lingualeoArgs{"", "", "", "", []string{}, []string{}, false, false, false, false}
+	args := &lingualeoArgs{"", "", "", "", []string{}, []string{}, false, false, false}
 	for _, name := range configs {
 		readConfig(args, name)
 	}
@@ -161,9 +159,6 @@ func mergeConfigs(args *lingualeoArgs, configArgs *lingualeoArgs) *lingualeoArgs
 	}
 	if configArgs.Sound {
 		args.Sound = configArgs.Sound
-	}
-	if configArgs.Debug {
-		args.Debug = configArgs.Debug
 	}
 	return args
 }

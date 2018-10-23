@@ -57,5 +57,4 @@ type lingualeoArgs struct {
 	Force     bool
 	Add       bool
 	Sound     bool
-	Debug     bool
 }
