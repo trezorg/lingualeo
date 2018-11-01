@@ -94,12 +94,10 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 	return nil
 }
 
-func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.WaitGroup) {
-	defer wg.Done()
+func getWordResponseBody(word string, client *http.Client) (string, error) {
 	req, err := http.NewRequest("POST", translateURL, nil)
 	if err != nil {
-		out <- result{Error: err}
-		return
+		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	for key, values := range agentHeaders {
@@ -112,24 +110,59 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 	req.URL.RawQuery = q.Encode()
 	resp, err := client.Do(req)
 	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, _ := readBody(resp)
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf(
+			"Response status code: %d\nword: %s\nbody:\n%s",
+			resp.StatusCode,
+			word,
+			body,
+		)
+	}
+	return body, err
+}
+
+func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
+	defer wg.Done()
+	file, err := ioutil.TempFile("/tmp", "lingualeo")
+	if err != nil {
+		return resultFile{Error: err, Index: idx}
+	}
+	fd, err := os.Create(file.Name())
+	if err != nil {
+		return resultFile{Error: err, Index: idx}
+	}
+	defer fd.Close()
+	resp, err := http.Get(url)
+	if err != nil {
+		return resultFile{Error: err, Index: idx}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return resultFile{Error: fmt.Errorf("bad status: %s", resp.Status), Index: idx}
+	}
+	_, err = io.Copy(fd, resp.Body)
+	if err != nil {
+		return resultFile{Error: err, Index: idx}
+	}
+	return resultFile{Filename: file.Name(), Index: idx}
+}
+
+var getWordResponseString = getWordResponseBody
+var getWordFilePath = getFileContent
+
+func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	body, err := getWordResponseString(word, client)
+	if err != nil {
 		out <- result{Error: err}
 		return
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		body, _ := readBody(resp)
-		if err != nil {
-			out <- result{Error: fmt.Errorf(
-				"Response status code: %d\nword: %s\nbody:\n%s",
-				resp.StatusCode,
-				word,
-				body,
-			)}
-			return
-		}
-	}
 	res := &lingualeoResult{Word: word}
-	err = getJSON(resp.Body, res)
+	err = getJSONFromString(body, res)
 	if err != nil {
 		out <- result{Error: err}
 		return
@@ -228,31 +261,7 @@ func downloadFiles(urls ...string) <-chan interface{} {
 	var wg sync.WaitGroup
 	wg.Add(count)
 	for idx, url := range urls {
-		go func(url string, idx int) {
-			defer wg.Done()
-			file, err := ioutil.TempFile("/tmp", "lingualeo")
-			if err != nil {
-				out <- resultFile{Error: err, Index: idx}
-			}
-			fd, err := os.Create(file.Name())
-			if err != nil {
-				out <- resultFile{Error: err, Index: idx}
-			}
-			defer fd.Close()
-			resp, err := http.Get(url)
-			if err != nil {
-				out <- resultFile{Error: err, Index: idx}
-			}
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				out <- resultFile{Error: fmt.Errorf("bad status: %s", resp.Status), Index: idx}
-			}
-			_, err = io.Copy(fd, resp.Body)
-			if err != nil {
-				out <- resultFile{Error: err, Index: idx}
-			}
-			out <- resultFile{Filename: file.Name(), Index: idx}
-		}(url, idx)
+		out <- getWordFilePath(url, idx, &wg)
 	}
 	go func() {
 		defer close(out)

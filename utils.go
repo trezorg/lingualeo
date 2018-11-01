@@ -17,6 +17,10 @@ func getJSON(body io.ReadCloser, target interface{}) error {
 	return json.NewDecoder(body).Decode(target)
 }
 
+func getJSONFromString(body string, target interface{}) error {
+	return json.Unmarshal([]byte(body), &target)
+}
+
 func readBody(resp *http.Response) (string, error) {
 	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
