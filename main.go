@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/wsxiaoys/terminal/color"
@@ -35,18 +36,9 @@ func prepareParams() (*lingualeoArgs, error) {
 	return &args, nil
 }
 
-func main() {
-	args, err := prepareParams()
-	failIfError(err)
-	client, err := prepareClient()
-	failIfError(err)
-	auth(args, client)
-
+func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([]lingualeoResult, []string) {
 	var resultsToAdd []lingualeoResult
-	var urls []string
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
+	var soundUrls []string
 	for res := range orDone(ctx, getWords(args.Words, client)) {
 		res, _ := res.(result)
 		if res.Error != nil {
@@ -59,7 +51,7 @@ func main() {
 		}
 		printTranslate(res.Result)
 		if args.Sound {
-			urls = append(urls, res.Result.SoundURL)
+			soundUrls = append(soundUrls, res.Result.SoundURL)
 		}
 		if args.Add && (!bool(res.Result.Exists) || args.Force) {
 			if len(args.Translate) > 0 {
@@ -69,41 +61,63 @@ func main() {
 			resultsToAdd = append(resultsToAdd, *res.Result)
 		}
 	}
+	return resultsToAdd, soundUrls
+}
 
-	if len(urls) > 0 {
-		results := make([]string, len(urls))
-		for res := range orDone(ctx, downloadFiles(urls...)) {
-			res, _ := res.(resultFile)
-			if res.Error != nil {
-				fmt.Println(res.Error)
-				continue
-			}
-			results[res.Index] = res.Filename
+func play(ctx context.Context, args *lingualeoArgs, urls ...string) {
+	results := make([]string, len(urls))
+	for res := range orDone(ctx, downloadFiles(urls...)) {
+		res, _ := res.(resultFile)
+		if res.Error != nil {
+			fmt.Println(res.Error)
+			continue
 		}
-		for _, filename := range results {
-			if filename == "" {
-				continue
-			}
-			err := playSound(args.Player, filename)
-			if err != nil {
-				fmt.Println(err)
-			}
-			err = os.Remove(filename)
-			if err != nil {
-				fmt.Println(err)
-			}
+		results[res.Index] = res.Filename
+	}
+	for _, filename := range results {
+		if filename == "" {
+			continue
 		}
+		err := playSound(args.Player, filename)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = os.Remove(filename)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+}
 
+func add(ctx context.Context, client *http.Client, resultsToAdd []lingualeoResult) {
+	for res := range orDone(ctx, addWords(resultsToAdd, client)) {
+		res, _ := res.(result)
+		if res.Error != nil {
+			fmt.Println(res.Error)
+			continue
+		}
+		printAddTranslate(res.Result)
+	}
+}
+
+func main() {
+	args, err := prepareParams()
+	failIfError(err)
+	client, err := prepareClient()
+	failIfError(err)
+	err = auth(args, client)
+	failIfError(err)
+
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	resultsToAdd, soundUrls := translate(ctx, args, client)
+
+	if len(soundUrls) > 0 {
+		play(ctx, args, soundUrls...)
 	}
 
 	if len(resultsToAdd) > 0 {
-		for res := range orDone(ctx, addWords(resultsToAdd, client)) {
-			res, _ := res.(result)
-			if res.Error != nil {
-				fmt.Println(res.Error)
-				continue
-			}
-			printAddTranslate(res.Result)
-		}
+		add(ctx, client, resultsToAdd)
 	}
 }
