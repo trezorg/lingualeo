@@ -87,9 +87,14 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 		return err
 	}
 	defer resp.Body.Close()
+	body, _ := readBody(resp)
 	if resp.StatusCode != 200 {
-		body, _ := readBody(resp)
 		return fmt.Errorf("Response status code: %d\nbody:\n%s", resp.StatusCode, body)
+	}
+	res := &responseError{}
+	getJSONFromString(body, res)
+	if res.ErrorCode != 0 {
+		return fmt.Errorf(res.ErrorMsg)
 	}
 	return nil
 }

@@ -10,6 +10,11 @@ type lingualeoWordResult struct {
 	Value string `json:"value"`
 }
 
+type responseError struct {
+	ErrorMsg  string `json:"error_msg"`
+	ErrorCode int    `json:"error_code"`
+}
+
 type result struct {
 	Error  error
 	Result *lingualeoResult
