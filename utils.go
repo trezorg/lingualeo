@@ -42,11 +42,6 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-func printColorString(clr string, text string) {
-	str := fmt.Sprintf("@{%s}%s\n", clr, text)
-	color.Printf(str)
-}
-
 func failIfError(err error) {
 	if err != nil {
 		printColorString("r", fmt.Sprintf("Error: %v", err))
@@ -73,4 +68,34 @@ func isCommandAvailable(name string) bool {
 		return false
 	}
 	return true
+}
+
+func printColorString(clr string, text string) {
+	str := fmt.Sprintf("@{%s}%s\n", clr, text)
+	color.Printf(str)
+}
+
+func printTranslate(result *lingualeoResult) {
+	var strTitle string
+	if result.Exists {
+		strTitle = "existing"
+	} else {
+		strTitle = "new"
+	}
+	color.Printf("@{r}Found %s word:\n", strTitle)
+	color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
+	for _, word := range result.Words {
+		printColorString("y", word)
+	}
+}
+
+func printAddTranslate(result *lingualeoResult) {
+	var strTitle string
+	if result.Exists {
+		strTitle = "Updated existing"
+	} else {
+		strTitle = "Added new"
+	}
+	color.Printf("@{r}%s word: ", strTitle)
+	color.Printf("@{g}['%s']\n", result.Word)
 }

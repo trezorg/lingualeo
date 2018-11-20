@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/wsxiaoys/terminal/color"
 )
 
 func fixTranslateString(word string) string {
@@ -29,29 +27,4 @@ func sanitizeWords(result *lingualeoWordResult) []string {
 		}
 	}
 	return results
-}
-
-func printTranslate(result *lingualeoResult) {
-	var strTitle string
-	if result.Exists {
-		strTitle = "existing"
-	} else {
-		strTitle = "new"
-	}
-	color.Printf("@{r}Found %s word:\n", strTitle)
-	color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
-	for _, word := range result.Words {
-		printColorString("y", word)
-	}
-}
-
-func printAddTranslate(result *lingualeoResult) {
-	var strTitle string
-	if result.Exists {
-		strTitle = "Updated existing"
-	} else {
-		strTitle = "Added new"
-	}
-	color.Printf("@{r}%s word: ", strTitle)
-	color.Printf("@{g}['%s']\n", result.Word)
 }
