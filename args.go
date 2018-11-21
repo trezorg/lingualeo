@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/alyu/configparser"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type arrayFlags []string
@@ -28,7 +30,25 @@ func prepareArgs() lingualeoArgs {
 	var translateFlag arrayFlags
 	emailPtr := flag.String("e", "", "Lingualeo email")
 	passwordPtr := flag.String("p", "", "Lingualeo password")
-	configPtr := flag.String("c", "", "Config file")
+	configPtr := flag.String("c", "", `
+Config file. Either in plain ini format or yaml format.
+Plain format example:
+
+email = email@gmail.com
+password = password
+add = false
+sound = true
+player = mplayer
+
+Yaml format example:
+
+email: email@gmail.com
+password: pasword
+add: false
+sound: true
+player: mplayer
+
+Default config files are: ~/lingualeo.conf, ~/lingualeo.yml`)
 	playerPtr := flag.String("m", "", "Media player for word pronounciation")
 	forcePtr := flag.Bool("f", false, "Force add to lingualeo dictionary")
 	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
@@ -76,7 +96,7 @@ func setBoolOption(args *lingualeoArgs, name string, options map[string]string) 
 	return nil
 }
 
-func readConfig(args *lingualeoArgs, filename string) error {
+func readIniConfig(args *lingualeoArgs, filename string) error {
 	config, err := configparser.Read(filename)
 	if err != nil {
 		return err
@@ -99,21 +119,54 @@ func readConfig(args *lingualeoArgs, filename string) error {
 	return nil
 }
 
+func readYamlConfig(args *lingualeoArgs, filename string) error {
+	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(yamlFile, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func readConfig(args *lingualeoArgs, filename string) error {
+	extension := filepath.Ext(filename)
+	if extension == ".yml" || extension == ".yaml" {
+		return readYamlConfig(args, filename)
+	}
+	return readIniConfig(args, filename)
+}
+
 func readConfigs(filename string) (*lingualeoArgs, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
 	}
-	homeConfig, _ := filepath.Abs(filepath.Join(home, defaultConfigFile))
-	currentConfig, _ := filepath.Abs(defaultConfigFile)
-	configs := []string{homeConfig, currentConfig}
+	configs := []string{}
+	var homeConfigFile string
+	var currentConfigFile string
+	for _, configFilename := range defaultConfigFiles {
+		homeConfigFile, _ = filepath.Abs(filepath.Join(home, configFilename))
+		currentConfigFile, _ = filepath.Abs(configFilename)
+		for _, fullConfigFileName := range [2]string{homeConfigFile, currentConfigFile} {
+			if fileExists(fullConfigFileName) {
+				configs = append(configs, fullConfigFileName)
+			}
+		}
+	}
 	if len(filename) > 0 {
 		argsConfig, _ := filepath.Abs(filename)
 		configs = append(configs, argsConfig)
 	}
-	args := &lingualeoArgs{"", "", "", "", []string{}, []string{}, false, false, false}
+	configs = unique(configs)
+	args := &lingualeoArgs{}
 	for _, name := range configs {
-		readConfig(args, name)
+		err = readConfig(args, name)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return args, nil
 }

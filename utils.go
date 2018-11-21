@@ -99,3 +99,8 @@ func printAddTranslate(result *lingualeoResult) {
 	color.Printf("@{r}%s word: ", strTitle)
 	color.Printf("@{g}['%s']\n", result.Word)
 }
+
+func fileExists(name string) bool {
+	stat, err := os.Stat(name)
+	return !os.IsNotExist(err) && !stat.IsDir()
+}

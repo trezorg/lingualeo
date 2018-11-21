@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	defaultConfigFile  = "lingualeo.conf"
 	bigRussianAlphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
 	authURL            = "http://api.lingualeo.com/api/login"
 	translateURL       = "http://api.lingualeo.com/gettranslates"
@@ -15,6 +14,7 @@ const (
 )
 
 var (
+	defaultConfigFiles         = []string{"lingualeo.conf", "lingualeo.yml"}
 	splitRegex                 = regexp.MustCompile(`\s*?[:,;]+\s*?`)
 	blankSymbolsRegex          = regexp.MustCompile(`\s+`)
 	blankSymbolsWithPointRegex = regexp.MustCompile(`\s+\.\s*`)
