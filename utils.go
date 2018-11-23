@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 
 	"github.com/wsxiaoys/terminal/color"
 )
@@ -103,4 +104,12 @@ func printAddTranslate(result *lingualeoResult) {
 func fileExists(name string) bool {
 	stat, err := os.Stat(name)
 	return !os.IsNotExist(err) && !stat.IsDir()
+}
+
+func getUserHome() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return usr.HomeDir, nil
 }

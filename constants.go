@@ -14,7 +14,12 @@ const (
 )
 
 var (
-	defaultConfigFiles         = []string{"lingualeo.conf", "lingualeo.yml"}
+	defaultConfigFiles = []string{
+		"lingualeo.conf",
+		"lingualeo.yml",
+		"lingualeo.yaml",
+		"lingualeo.json",
+	}
 	splitRegex                 = regexp.MustCompile(`\s*?[:,;]+\s*?`)
 	blankSymbolsRegex          = regexp.MustCompile(`\s+`)
 	blankSymbolsWithPointRegex = regexp.MustCompile(`\s+\.\s*`)

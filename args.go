@@ -1,11 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/user"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -31,7 +30,8 @@ func prepareArgs() lingualeoArgs {
 	emailPtr := flag.String("e", "", "Lingualeo email")
 	passwordPtr := flag.String("p", "", "Lingualeo password")
 	configPtr := flag.String("c", "", `
-Config file. Either in plain ini format or yaml format.
+Config file. Either in plain ini, yaml or json format.
+
 Plain format example:
 
 email = email@gmail.com
@@ -48,7 +48,17 @@ add: false
 sound: true
 player: mplayer
 
-Default config files are: ~/lingualeo.conf, ~/lingualeo.yml`)
+JSON format example:
+
+{
+    "email": "email@gmail.com",
+    "password": "password",
+    "add": false,
+    "sound": true,
+    "player": "mplayer"
+}
+
+Default config files are: ~/lingualeo.[conf|yml|yaml|json]`)
 	playerPtr := flag.String("m", "", "Media player for word pronounciation")
 	forcePtr := flag.Bool("f", false, "Force add to lingualeo dictionary")
 	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
@@ -67,14 +77,6 @@ Default config files are: ~/lingualeo.conf, ~/lingualeo.yml`)
 		*addPtr,
 		*soundPtr,
 	}
-}
-
-func getUserHome() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	return usr.HomeDir, nil
 }
 
 func setStringOption(args *lingualeoArgs, name string, options map[string]string) {
@@ -131,10 +133,25 @@ func readYamlConfig(args *lingualeoArgs, filename string) error {
 	return nil
 }
 
+func readJSONConfig(args *lingualeoArgs, filename string) error {
+	jsonFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(jsonFile, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func readConfig(args *lingualeoArgs, filename string) error {
 	extension := filepath.Ext(filename)
 	if extension == ".yml" || extension == ".yaml" {
 		return readYamlConfig(args, filename)
+	}
+	if extension == ".json" {
+		return readJSONConfig(args, filename)
 	}
 	return readIniConfig(args, filename)
 }
@@ -174,7 +191,7 @@ func readConfigs(filename string) (*lingualeoArgs, error) {
 func checkConfig(args *lingualeoArgs) error {
 	if len(args.Config) > 0 {
 		filename, _ := filepath.Abs(args.Config)
-		if stat, err := os.Stat(filename); os.IsNotExist(err) || stat.IsDir() {
+		if !fileExists(filename) {
 			return fmt.Errorf("There is no the config file or file is a directory: %s", filename)
 		}
 	}
