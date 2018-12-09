@@ -44,9 +44,16 @@ func prepareClient() (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	netTransport := &http.Transport{
+		MaxIdleConns: 10,
+		MaxIdleConnsPerHost: 10,
+	}
+
 	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Jar:     jar,
+		Timeout:   10 * time.Second,
+		Jar:       jar,
+		Transport: netTransport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("Too many redirects")
