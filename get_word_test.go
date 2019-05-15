@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-const (
-	data = `{"error_msg":"","translate_source":"base","is_user":0,
-	"word_forms":[{"word":"accomodation","type":"прил."}],
+var (
+	responseData = `{"error_msg":"","translate_source":"base","is_user":0,
+	"word_forms":[{"word":"accommodation","type":"прил."}],
 	"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png",
 	"translate":[
 		{"id":33404925,"value":"размещение; жильё","votes":6261,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png"},
@@ -42,24 +42,27 @@ func checkResult(t *testing.T, res *lingualeoResult, searchWord string, expected
 }
 
 func TestParseResponseJson(t *testing.T) {
-	searchWord := "accomodation"
-	reader := ioutil.NopCloser(bytes.NewReader([]byte(data)))
+	searchWord := "accommodation"
+	reader := ioutil.NopCloser(bytes.NewReader([]byte(responseData)))
 	res := &lingualeoResult{Word: searchWord}
 	expected := []string{"размещение", "жильё", "проживание", "помещение"}
-	res.fillObjectFromJSON(reader)
+	err := res.fillObjectFromJSON(reader)
+	if err != nil {
+		t.Errorf("Cannot fill object from json")
+	}
 	res.parseAndSortTranslate()
 	checkResult(t, res, searchWord, expected)
 }
 
 func TestGetWordResponseJson(t *testing.T) {
-	var mockGetWordResponseString = func(word string, client *http.Client) (string, error) {
-		return data, nil
+	var mockGetWordResponseString = func(word string, client *http.Client) (*string, error) {
+		return &responseData, nil
 	}
 	origGetWordResponseString := getWordResponseString
 	getWordResponseString = mockGetWordResponseString
 	defer func() { getWordResponseString = origGetWordResponseString }()
 
-	searchWord := "accomodation"
+	searchWord := "accommodation"
 	expected := []string{"размещение", "жильё", "проживание", "помещение"}
 
 	out := make(chan interface{})
@@ -75,14 +78,14 @@ func TestGetWordResponseJson(t *testing.T) {
 }
 
 func TestGetWordsResponseJson(t *testing.T) {
-	var mockGetWordResponseString = func(word string, client *http.Client) (string, error) {
-		return data, nil
+	var mockGetWordResponseString = func(word string, client *http.Client) (*string, error) {
+		return &responseData, nil
 	}
 	origGetWordResponseString := getWordResponseString
 	getWordResponseString = mockGetWordResponseString
 	defer func() { getWordResponseString = origGetWordResponseString }()
 
-	searchWords := []string{"accomodation"}
+	searchWords := []string{"accommodation"}
 	expected := []string{"размещение", "жильё", "проживание", "помещение"}
 
 	client := &http.Client{}

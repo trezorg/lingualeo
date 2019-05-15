@@ -23,11 +23,11 @@ func getJSON(body io.ReadCloser, target interface{}) error {
 	return json.NewDecoder(body).Decode(target)
 }
 
-func getJSONFromString(body string, target interface{}) error {
-	return json.Unmarshal([]byte(body), &target)
+func getJSONFromString(body *string, target interface{}) error {
+	return json.Unmarshal([]byte(*body), &target)
 }
 
-func readBody(resp *http.Response) (string, error) {
+func readBody(resp *http.Response) (*string, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
@@ -36,16 +36,17 @@ func readBody(resp *http.Response) (string, error) {
 	}()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(data), nil
+	res := string(data)
+	return &res, nil
 }
 
 func unique(strSlice []string) []string {
-	keys := make(map[string]bool)
+	keys := make(map[string]bool, len(strSlice))
 	var list []string
 	for _, entry := range strSlice {
-		if _, value := keys[entry]; !value {
+		if _, ok := keys[entry]; !ok {
 			keys[entry] = true
 			list = append(list, entry)
 		}
@@ -109,7 +110,7 @@ func printTranslate(result *lingualeoResult) {
 	}
 }
 
-func printAddTranslate(result *lingualeoResult) {
+func printAddedTranslation(result *lingualeoResult) {
 	var strTitle string
 	if result.Exists {
 		strTitle = "Updated existing"

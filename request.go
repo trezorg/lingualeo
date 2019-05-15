@@ -102,7 +102,7 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Response status code: %d\nbody:\n%s", resp.StatusCode, body)
+		return fmt.Errorf("Response status code: %d\nbody:\n%s", resp.StatusCode, *body)
 	}
 	res := &responseError{}
 	err = getJSONFromString(body, res)
@@ -115,10 +115,10 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 	return nil
 }
 
-func getWordResponseBody(word string, client *http.Client) (string, error) {
+func getWordResponseBody(word string, client *http.Client) (*string, error) {
 	req, err := http.NewRequest("POST", translateURL, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	for key, values := range agentHeaders {
@@ -131,7 +131,7 @@ func getWordResponseBody(word string, client *http.Client) (string, error) {
 	req.URL.RawQuery = q.Encode()
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer func() {
 		err := resp.Body.Close()
@@ -139,13 +139,17 @@ func getWordResponseBody(word string, client *http.Client) (string, error) {
 			log.Error(err)
 		}
 	}()
-	body, _ := readBody(resp)
+	body, err := readBody(resp)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"Response status code: %d\nword: %s\nbody:\n%s",
 			resp.StatusCode,
 			word,
-			body,
+			*body,
 		)
 	}
 	return body, err
@@ -241,20 +245,22 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 			log.Error(err)
 		}
 	}()
+	body, err := readBody(resp)
+	if err != nil {
+		out <- result{Error: err}
+		return
+	}
 	if resp.StatusCode != 200 {
-		body, err := readBody(resp)
-		if err != nil {
-			out <- result{Error: fmt.Errorf(
-				"Response status code: %d\nword: %s\nbody:\n%s",
-				resp.StatusCode,
-				res.Word,
-				body,
-			)}
-			return
-		}
+		out <- result{Error: fmt.Errorf(
+			"Response status code: %d\nword: %s\nbody:\n%s",
+			resp.StatusCode,
+			res.Word,
+			*body,
+		)}
+		return
 	}
 	lingRes := &lingualeoResult{Word: res.Word}
-	err = getJSON(resp.Body, lingRes)
+	err = getJSONFromString(body, lingRes)
 	if err != nil {
 		out <- result{Error: err}
 		return

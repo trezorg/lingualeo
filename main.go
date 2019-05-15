@@ -2,12 +2,27 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/wsxiaoys/terminal/color"
 )
+
+func checkMediaPlayer(args *lingualeoArgs) {
+	if len(args.Player) == 0 {
+		_, err := color.Printf("@{r}Please set player parameter\n", args.Player)
+		if err != nil {
+			log.Debug(err)
+		}
+		args.Sound = false
+	} else if !isCommandAvailable(args.Player) {
+		_, err := color.Printf("@{r}Executable file %s is not available on your system\n", args.Player)
+		if err != nil {
+			log.Debug(err)
+		}
+		args.Sound = false
+	}
+}
 
 func prepareParams() (*lingualeoArgs, error) {
 	args := prepareArgs()
@@ -15,7 +30,7 @@ func prepareParams() (*lingualeoArgs, error) {
 	if err != nil {
 		return nil, err
 	}
-	configArgs, err := readConfigs(args.Config)
+	configArgs, err := readConfigs(&args.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -25,13 +40,7 @@ func prepareParams() (*lingualeoArgs, error) {
 		return nil, err
 	}
 	if args.Sound {
-		if len(args.Player) == 0 {
-			fmt.Println("Please set player parameter")
-			args.Sound = false
-		} else if !isCommandAvailable(args.Player) {
-			fmt.Printf("Executable file %s is not availabe on your system\n", args.Player)
-			args.Sound = false
-		}
+		checkMediaPlayer(&args)
 	}
 	return &args, nil
 }
@@ -42,7 +51,7 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 	for res := range orDone(ctx, getWords(args.Words, client)) {
 		res, _ := res.(result)
 		if res.Error != nil {
-			fmt.Println(res.Error)
+			log.Error(res.Error)
 			continue
 		}
 		if len(res.Result.Words) == 0 {
@@ -67,12 +76,12 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 	return resultsToAdd, soundUrls
 }
 
-func play(ctx context.Context, args *lingualeoArgs, urls ...string) {
+func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string) {
 	results := make([]string, len(urls))
 	for res := range orDone(ctx, downloadFiles(urls...)) {
 		res, _ := res.(resultFile)
 		if res.Error != nil {
-			fmt.Println(res.Error)
+			log.Error(res.Error)
 			continue
 		}
 		results[res.Index] = res.Filename
@@ -83,29 +92,30 @@ func play(ctx context.Context, args *lingualeoArgs, urls ...string) {
 		}
 		err := playSound(args.Player, filename)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
 		err = os.Remove(filename)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
 	}
 }
 
-func add(ctx context.Context, client *http.Client, resultsToAdd []lingualeoResult) {
+func addTranslationToDictionary(ctx context.Context, client *http.Client, resultsToAdd []lingualeoResult) {
 	for res := range orDone(ctx, addWords(resultsToAdd, client)) {
 		res, _ := res.(result)
 		if res.Error != nil {
-			fmt.Println(res.Error)
+			log.Error(res.Error)
 			continue
 		}
-		printAddTranslate(res.Result)
+		printAddedTranslation(res.Result)
 	}
 }
 
 func main() {
 	args, err := prepareParams()
 	failIfError(err)
+	initLogger(args.LogLevel, args.LogPrettyPrint)
 	client, err := prepareClient()
 	failIfError(err)
 	err = auth(args, client)
@@ -117,10 +127,10 @@ func main() {
 	resultsToAdd, soundUrls := translate(ctx, args, client)
 
 	if len(soundUrls) > 0 {
-		play(ctx, args, soundUrls...)
+		playTranslateFile(ctx, args, soundUrls...)
 	}
 
 	if len(resultsToAdd) > 0 {
-		add(ctx, client, resultsToAdd)
+		addTranslationToDictionary(ctx, client, resultsToAdd)
 	}
 }

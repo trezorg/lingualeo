@@ -60,7 +60,7 @@ type lingualeoArgs struct {
 	Words          []string
 	Translate      []string
 	Force          bool   `yaml:"force"`
-	Add            bool   `yaml:"add"`
+	Add            bool   `yaml:"addTranslationToDictionary"`
 	Sound          bool   `yaml:"sound"`
 	LogLevel       string `yaml:"log_level"`
 	LogPrettyPrint bool   `yaml:"log_pretty_print"`

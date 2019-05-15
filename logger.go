@@ -26,9 +26,10 @@ func initLogger(logLevel string, logPrettyPrint bool) {
 
 	logrus.SetFormatter(utcFormatter{&logrus.JSONFormatter{
 		PrettyPrint:     logPrettyPrint,
-		TimestampFormat: "2006-01-02 15:04:05 -0007",
+		TimestampFormat: "2006-01-02 15:04:05 -0700",
 	}})
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(level)
+	log = logrus.WithFields(logrus.Fields{"service": "lingualeo"})
 }

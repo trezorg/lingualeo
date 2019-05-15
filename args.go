@@ -160,7 +160,7 @@ func readConfig(args *lingualeoArgs, filename string) error {
 	return readIniConfig(args, filename)
 }
 
-func readConfigs(filename string) (*lingualeoArgs, error) {
+func readConfigs(filename *string) (*lingualeoArgs, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -177,8 +177,8 @@ func readConfigs(filename string) (*lingualeoArgs, error) {
 			}
 		}
 	}
-	if len(filename) > 0 {
-		argsConfig, _ := filepath.Abs(filename)
+	if len(*filename) > 0 {
+		argsConfig, _ := filepath.Abs(*filename)
 		configs = append(configs, argsConfig)
 	}
 	configs = unique(configs)
@@ -233,6 +233,12 @@ func mergeConfigs(args *lingualeoArgs, configArgs *lingualeoArgs) *lingualeoArgs
 	}
 	if configArgs.Sound {
 		args.Sound = configArgs.Sound
+	}
+	if configArgs.LogPrettyPrint {
+		args.LogPrettyPrint = configArgs.LogPrettyPrint
+	}
+	if len(args.LogLevel) == 0 && len(configArgs.LogLevel) > 0 {
+		args.LogLevel = configArgs.LogLevel
 	}
 	return args
 }
