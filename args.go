@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/alyu/configparser"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 type arrayFlags []string
@@ -43,7 +43,7 @@ player = mplayer
 Yaml format example:
 
 email: email@gmail.com
-password: pasword
+password: password
 add: false
 sound: true
 player: mplayer
@@ -59,10 +59,12 @@ JSON format example:
 }
 
 Default config files are: ~/lingualeo.[conf|yml|yaml|json]`)
-	playerPtr := flag.String("m", "", "Media player for word pronounciation")
+	playerPtr := flag.String("m", "", "Media player for word pronunciation")
 	forcePtr := flag.Bool("f", false, "Force add to lingualeo dictionary")
 	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
-	soundPtr := flag.Bool("s", false, "Play words pronounciation")
+	soundPtr := flag.Bool("s", false, "Play words pronunciation")
+	logPrettyPrintPtr := flag.Bool("pr", false, "Log pretty print")
+	logLevel := flag.String("l", "INFO", "Log level")
 	flag.Var(&translateFlag, "t", "Custom translation")
 	flag.Parse()
 	words := flag.Args()
@@ -76,6 +78,8 @@ Default config files are: ~/lingualeo.[conf|yml|yaml|json]`)
 		*forcePtr,
 		*addPtr,
 		*soundPtr,
+		*logLevel,
+		*logPrettyPrintPtr,
 	}
 }
 
@@ -108,11 +112,11 @@ func readIniConfig(args *lingualeoArgs, filename string) error {
 		return err
 	}
 	options := sections[0].Options()
-	for _, flag := range []string{"Email", "Password", "Player"} {
-		setStringOption(args, flag, options)
+	for _, attr := range []string{"Email", "Password", "Player", "LogLevel"} {
+		setStringOption(args, attr, options)
 	}
-	for _, flag := range []string{"Force", "Add", "Sound"} {
-		err := setBoolOption(args, flag, options)
+	for _, attr := range []string{"Force", "Add", "Sound", "LogPrettyPrint"} {
+		err := setBoolOption(args, attr, options)
 		if err != nil {
 			return err
 		}
@@ -161,7 +165,7 @@ func readConfigs(filename string) (*lingualeoArgs, error) {
 	if err != nil {
 		return nil, err
 	}
-	configs := []string{}
+	var configs []string
 	var homeConfigFile string
 	var currentConfigFile string
 	for _, configFilename := range defaultConfigFiles {
@@ -192,7 +196,7 @@ func checkConfig(args *lingualeoArgs) error {
 	if len(args.Config) > 0 {
 		filename, _ := filepath.Abs(args.Config)
 		if !fileExists(filename) {
-			return fmt.Errorf("There is no the config file or file is a directory: %s", filename)
+			return fmt.Errorf("there is no the config file or file is a directory: %s", filename)
 		}
 	}
 	return nil
@@ -200,13 +204,13 @@ func checkConfig(args *lingualeoArgs) error {
 
 func checkArgs(args *lingualeoArgs) error {
 	if len(args.Email) == 0 {
-		return fmt.Errorf("No email argument has been supplied")
+		return fmt.Errorf("mo email argument has been supplied")
 	}
 	if len(args.Password) == 0 {
-		return fmt.Errorf("No password argument has been supplied")
+		return fmt.Errorf("no password argument has been supplied")
 	}
 	if len(args.Words) == 0 {
-		return fmt.Errorf("No words to translate have been supplied")
+		return fmt.Errorf("no words to translate have been supplied")
 	}
 	return nil
 }

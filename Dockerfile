@@ -5,6 +5,7 @@ ADD . /build/
 WORKDIR /build 
 RUN go get github.com/PuerkitoBio/goquery \
     github.com/alyu/configparser \
+    github.com/sirupsen/logrus \
     gopkg.in/yaml.v2 \
     github.com/wsxiaoys/terminal/color && \
     CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o ${USER} . && \

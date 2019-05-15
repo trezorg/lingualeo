@@ -17,11 +17,6 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-type formValue struct {
-	Name  string
-	Value string
-}
-
 type convertibleBoolean bool
 
 func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
@@ -31,7 +26,7 @@ func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	} else if asString == "0" || asString == "false" {
 		*bit = false
 	} else {
-		return fmt.Errorf("Boolean unmarshal error: invalid input %s", asString)
+		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)
 	}
 	return nil
 }
@@ -46,7 +41,7 @@ func prepareClient() (*http.Client, error) {
 	}
 
 	netTransport := &http.Transport{
-		MaxIdleConns: 10,
+		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 10,
 	}
 
@@ -56,7 +51,7 @@ func prepareClient() (*http.Client, error) {
 		Transport: netTransport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
-				return fmt.Errorf("Too many redirects")
+				return fmt.Errorf("too many redirects")
 			}
 			if len(via) == 0 {
 				return nil
@@ -77,7 +72,10 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 		"email":    args.Email,
 		"password": args.Password,
 	}
-	jsonValue, _ := json.Marshal(values)
+	jsonValue, err := json.Marshal(values)
+	if err != nil {
+		return nil
+	}
 	req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return err
@@ -93,13 +91,24 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	body, _ := readBody(resp)
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
+	body, err := readBody(resp)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Response status code: %d\nbody:\n%s", resp.StatusCode, body)
 	}
 	res := &responseError{}
-	getJSONFromString(body, res)
+	err = getJSONFromString(body, res)
+	if err != nil {
+		return err
+	}
 	if res.ErrorCode != 0 {
 		return fmt.Errorf(res.ErrorMsg)
 	}
@@ -124,7 +133,12 @@ func getWordResponseBody(word string, client *http.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	body, _ := readBody(resp)
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf(
@@ -147,12 +161,22 @@ func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
 	if err != nil {
 		return resultFile{Error: err, Index: idx}
 	}
-	defer fd.Close()
+	defer func() {
+		err := fd.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	resp, err := http.Get(url)
 	if err != nil {
 		return resultFile{Error: err, Index: idx}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return resultFile{Error: fmt.Errorf("bad status: %s", resp.Status), Index: idx}
 	}
@@ -211,9 +235,14 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 		out <- result{Error: err}
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	if resp.StatusCode != 200 {
-		body, _ := readBody(resp)
+		body, err := readBody(resp)
 		if err != nil {
 			out <- result{Error: fmt.Errorf(
 				"Response status code: %d\nword: %s\nbody:\n%s",

@@ -14,7 +14,12 @@ import (
 )
 
 func getJSON(body io.ReadCloser, target interface{}) error {
-	defer body.Close()
+	defer func() {
+		err := body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	return json.NewDecoder(body).Decode(target)
 }
 
@@ -23,7 +28,12 @@ func getJSONFromString(body string, target interface{}) error {
 }
 
 func readBody(resp *http.Response) (string, error) {
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
+	}()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -33,7 +43,7 @@ func readBody(resp *http.Response) (string, error) {
 
 func unique(strSlice []string) []string {
 	keys := make(map[string]bool)
-	list := []string{}
+	var list []string
 	for _, entry := range strSlice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
@@ -73,7 +83,10 @@ func isCommandAvailable(name string) bool {
 
 func printColorString(clr string, text string) {
 	str := fmt.Sprintf("@{%s}%s\n", clr, text)
-	color.Printf(str)
+	_, err := color.Printf(str)
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func printTranslate(result *lingualeoResult) {
@@ -83,8 +96,14 @@ func printTranslate(result *lingualeoResult) {
 	} else {
 		strTitle = "new"
 	}
-	color.Printf("@{r}Found %s word:\n", strTitle)
-	color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
+	_, err := color.Printf("@{r}Found %s word:\n", strTitle)
+	if err != nil {
+		log.Error(err)
+	}
+	_, err = color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
+	if err != nil {
+		log.Error(err)
+	}
 	for _, word := range result.Words {
 		printColorString("y", word)
 	}
@@ -97,8 +116,14 @@ func printAddTranslate(result *lingualeoResult) {
 	} else {
 		strTitle = "Added new"
 	}
-	color.Printf("@{r}%s word: ", strTitle)
-	color.Printf("@{g}['%s']\n", result.Word)
+	_, err := color.Printf("@{r}%s word: ", strTitle)
+	if err != nil {
+		log.Error(err)
+	}
+	_, err = color.Printf("@{g}['%s']\n", result.Word)
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func fileExists(name string) bool {

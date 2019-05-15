@@ -8,9 +8,9 @@ import (
 
 const (
 	bigRussianAlphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-	authURL            = "http://api.lingualeo.com/api/login"
-	translateURL       = "http://api.lingualeo.com/gettranslates"
-	addWordURL         = "http://api.lingualeo.com/addword"
+	authURL            = "https://api.lingualeo.com/api/login"
+	translateURL       = "https://api.lingualeo.com/gettranslates"
+	addWordURL         = "https://api.lingualeo.com/addword"
 )
 
 var (

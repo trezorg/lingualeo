@@ -53,13 +53,15 @@ func (result *lingualeoResult) fillObjectFromJSON(body io.ReadCloser) error {
 }
 
 type lingualeoArgs struct {
-	Email     string `yaml:"email"`
-	Password  string `yaml:"password"`
-	Config    string
-	Player    string `yaml:"player"`
-	Words     []string
-	Translate []string
-	Force     bool `yaml:"force"`
-	Add       bool `yaml:"add"`
-	Sound     bool `yaml:"sound"`
+	Email          string `yaml:"email"`
+	Password       string `yaml:"password"`
+	Config         string
+	Player         string `yaml:"player"`
+	Words          []string
+	Translate      []string
+	Force          bool   `yaml:"force"`
+	Add            bool   `yaml:"add"`
+	Sound          bool   `yaml:"sound"`
+	LogLevel       string `yaml:"log_level"`
+	LogPrettyPrint bool   `yaml:"log_pretty_print"`
 }

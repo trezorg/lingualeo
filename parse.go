@@ -13,8 +13,8 @@ func fixTranslateString(word string) string {
 }
 
 func removeSymbols(word string) string {
-	nonAphaBet := regexp.MustCompile(fmt.Sprintf(`[^%s]`, alphabet))
-	return string(nonAphaBet.ReplaceAllString(word, ""))
+	nonAlphaBet := regexp.MustCompile(fmt.Sprintf(`[^%s]`, alphabet))
+	return string(nonAlphaBet.ReplaceAllString(word, ""))
 }
 
 func sanitizeWords(result *lingualeoWordResult) []string {

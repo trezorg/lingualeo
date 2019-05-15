@@ -46,7 +46,10 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 			continue
 		}
 		if len(res.Result.Words) == 0 {
-			color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
+			_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
+			if err != nil {
+				log.Debug(err)
+			}
 			continue
 		}
 		printTranslate(res.Result)
