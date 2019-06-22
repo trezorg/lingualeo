@@ -198,21 +198,21 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 	defer wg.Done()
 	body, err := getWordResponseString(word, client)
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	res := &lingualeoResult{Word: word}
 	err = getJSONFromString(body, res)
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	if len(res.ErrorMsg) > 0 {
-		out <- result{Error: fmt.Errorf(res.ErrorMsg)}
+		out <- translateResult{Error: fmt.Errorf(res.ErrorMsg)}
 		return
 	}
 	res.parseAndSortTranslate()
-	out <- result{Result: res}
+	out <- translateResult{Result: res}
 }
 
 func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, wg *sync.WaitGroup) {
@@ -224,7 +224,7 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 	jsonValue, _ := json.Marshal(values)
 	req, err := http.NewRequest("POST", addWordURL, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -236,7 +236,7 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	defer func() {
@@ -247,11 +247,11 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 	}()
 	body, err := readBody(resp)
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	if resp.StatusCode != 200 {
-		out <- result{Error: fmt.Errorf(
+		out <- translateResult{Error: fmt.Errorf(
 			"Response status code: %d\nword: %s\nbody:\n%s",
 			resp.StatusCode,
 			res.Word,
@@ -262,14 +262,14 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 	lingRes := &lingualeoResult{Word: res.Word}
 	err = getJSONFromString(body, lingRes)
 	if err != nil {
-		out <- result{Error: err}
+		out <- translateResult{Error: err}
 		return
 	}
 	if len(lingRes.ErrorMsg) > 0 {
-		out <- result{Error: fmt.Errorf(res.ErrorMsg)}
+		out <- translateResult{Error: fmt.Errorf(res.ErrorMsg)}
 		return
 	}
-	out <- result{Result: &res}
+	out <- translateResult{Result: &res}
 }
 
 func getWords(words []string, client *http.Client) <-chan interface{} {

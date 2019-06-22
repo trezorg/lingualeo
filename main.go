@@ -49,7 +49,7 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 	var resultsToAdd []lingualeoResult
 	var soundUrls []string
 	for res := range orDone(ctx, getWords(args.Words, client)) {
-		res, _ := res.(result)
+		res, _ := res.(translateResult)
 		if res.Error != nil {
 			log.Error(res.Error)
 			continue
@@ -103,7 +103,7 @@ func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string)
 
 func addTranslationToDictionary(ctx context.Context, client *http.Client, resultsToAdd []lingualeoResult) {
 	for res := range orDone(ctx, addWords(resultsToAdd, client)) {
-		res, _ := res.(result)
+		res, _ := res.(translateResult)
 		if res.Error != nil {
 			log.Error(res.Error)
 			continue

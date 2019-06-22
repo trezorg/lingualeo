@@ -73,7 +73,7 @@ func TestGetWordResponseJson(t *testing.T) {
 	wg.Add(1)
 	go getWord(searchWord, client, out, &wg)
 
-	res := (<-out).(result).Result
+	res := (<-out).(translateResult).Result
 	checkResult(t, res, searchWord, expected)
 }
 
@@ -92,6 +92,6 @@ func TestGetWordsResponseJson(t *testing.T) {
 
 	out := getWords(searchWords, client)
 
-	res := (<-out).(result).Result
+	res := (<-out).(translateResult).Result
 	checkResult(t, res, searchWords[0], expected)
 }

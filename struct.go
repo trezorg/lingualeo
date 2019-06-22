@@ -15,7 +15,7 @@ type responseError struct {
 	ErrorCode int    `json:"error_code"`
 }
 
-type result struct {
+type translateResult struct {
 	Error  error
 	Result *lingualeoResult
 }
