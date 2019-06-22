@@ -45,9 +45,8 @@ func prepareParams() (*lingualeoArgs, error) {
 	return &args, nil
 }
 
-func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([]lingualeoResult, []string) {
-	var resultsToAdd []lingualeoResult
-	var soundUrls []string
+func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Client) []translateResult {
+	var results []translateResult
 	for res := range orDone(ctx, getWords(args.Words, client)) {
 		res, _ := res.(translateResult)
 		if res.Error != nil {
@@ -61,11 +60,29 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 			}
 			continue
 		}
+		results = append(results, res)
+	}
+	return results
+}
+
+func showTranslateResults(results []translateResult) {
+	for _, res := range results {
 		printTranslate(res.Result)
-		if args.Sound {
-			soundUrls = append(soundUrls, res.Result.SoundURL)
-		}
-		if args.Add && (!bool(res.Result.Exists) || args.Force) {
+	}
+}
+
+func getSoundUrls(results []translateResult) []string {
+	var soundUrls []string
+	for _, res := range results {
+		soundUrls = append(soundUrls, res.Result.SoundURL)
+	}
+	return soundUrls
+}
+
+func getResultsToAdd(results []translateResult, args *lingualeoArgs) []lingualeoResult {
+	var resultsToAdd []lingualeoResult
+	for _, res := range results {
+		if !bool(res.Result.Exists) || args.Force {
 			if len(args.Translate) > 0 {
 				// Custom translation
 				res.Result.Words = args.Translate
@@ -73,7 +90,7 @@ func translate(ctx context.Context, args *lingualeoArgs, client *http.Client) ([
 			resultsToAdd = append(resultsToAdd, *res.Result)
 		}
 	}
-	return resultsToAdd, soundUrls
+	return resultsToAdd
 }
 
 func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string) {
@@ -124,13 +141,20 @@ func main() {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	resultsToAdd, soundUrls := translate(ctx, args, client)
+	results := translateWords(ctx, args, client)
+	showTranslateResults(results)
 
-	if len(soundUrls) > 0 {
-		playTranslateFile(ctx, args, soundUrls...)
+	if args.Sound {
+		soundUrls := getSoundUrls(results)
+		if len(soundUrls) > 0 {
+			playTranslateFile(ctx, args, soundUrls...)
+		}
 	}
 
-	if len(resultsToAdd) > 0 {
-		addTranslationToDictionary(ctx, client, resultsToAdd)
+	if args.Add {
+		resultsToAdd := getResultsToAdd(results, args)
+		if len(resultsToAdd) > 0 {
+			addTranslationToDictionary(ctx, client, resultsToAdd)
+		}
 	}
 }
