@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,8 +40,8 @@ func prepareClient() (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	netTransport := &http.Transport{
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 10,
 	}

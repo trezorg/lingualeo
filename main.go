@@ -45,7 +45,7 @@ func prepareParams() (*lingualeoArgs, error) {
 	return &args, nil
 }
 
-func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Client) []translateResult {
+func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Client) *[]translateResult {
 	var results []translateResult
 	for res := range orDone(ctx, getWords(args.Words, client)) {
 		res, _ := res.(translateResult)
@@ -62,26 +62,26 @@ func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Clien
 		}
 		results = append(results, res)
 	}
-	return results
+	return &results
 }
 
-func showTranslateResults(results []translateResult) {
-	for _, res := range results {
+func showTranslateResults(results *[]translateResult) {
+	for _, res := range *results {
 		printTranslate(res.Result)
 	}
 }
 
-func getSoundUrls(results []translateResult) []string {
+func getSoundUrls(results *[]translateResult) []string {
 	var soundUrls []string
-	for _, res := range results {
+	for _, res := range *results {
 		soundUrls = append(soundUrls, res.Result.SoundURL)
 	}
 	return soundUrls
 }
 
-func getResultsToAdd(results []translateResult, args *lingualeoArgs) []lingualeoResult {
+func getResultsToAdd(results *[]translateResult, args *lingualeoArgs) []lingualeoResult {
 	var resultsToAdd []lingualeoResult
-	for _, res := range results {
+	for _, res := range *results {
 		if !bool(res.Result.Exists) || args.Force {
 			if len(args.Translate) > 0 {
 				// Custom translation
