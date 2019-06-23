@@ -129,6 +129,8 @@ func getWordResponseBody(word string, client *http.Client) (*string, error) {
 	}
 	q := req.URL.Query()
 	q.Add("word", word)
+	q.Add("include_media", "1")
+	q.Add("app_word_forms", "1")
 	req.URL.RawQuery = q.Encode()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -221,6 +223,7 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 	values := map[string]string{
 		"word":  res.Word,
 		"tword": strings.Join(res.Words, ", "),
+		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
 	req, err := http.NewRequest("POST", addWordURL, bytes.NewBuffer(jsonValue))
