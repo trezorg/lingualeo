@@ -21,7 +21,7 @@ import (
 type convertibleBoolean bool
 
 func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
-	asString := string(data)
+	asString := strings.Trim(string(data), "\"")
 	if asString == "1" || asString == "true" {
 		*bit = true
 	} else if asString == "0" || asString == "false" {
