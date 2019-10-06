@@ -178,7 +178,7 @@ func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
 	}()
 	resp, err := http.Get(url)
 	if err != nil {
-		return resultFile{Error: err, Index: idx}
+		return resultFile{Error: fmt.Errorf("cannot read sound url: %s, %w", url, err), Index: idx}
 	}
 	defer func() {
 		err := resp.Body.Close()

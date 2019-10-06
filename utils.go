@@ -139,3 +139,10 @@ func getUserHome() (string, error) {
 	}
 	return usr.HomeDir, nil
 }
+
+func insertIntoSlice(slice []string, pos int, value string) []string {
+	s := append(slice, "")
+	copy(s[pos+1:], s[pos:])
+	s[pos] = value
+	return s
+}
