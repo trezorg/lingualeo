@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 
 	"github.com/wsxiaoys/terminal/color"
 )
@@ -76,28 +74,10 @@ func showTranslateResults(results *[]translateResult) {
 	}
 }
 
-func fixSoundURL(rawURL string) (*string, error) {
-	parsedURL, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	path := parsedURL.Path
-	pathParts := strings.Split(path, "/")
-	pathParts = insertIntoSlice(pathParts, 2, "3")
-	parsedURL.Path = strings.Join(pathParts, "/")
-	result := parsedURL.String()
-	return &result, nil
-}
-
 func getSoundUrls(results *[]translateResult) []string {
 	var soundUrls []string
 	for _, res := range *results {
-		soundUrl, err := fixSoundURL(res.Result.SoundURL)
-		if err != nil {
-			log.Errorf("Cannot fix sound url: %s. %#v", res.Result.SoundURL, err)
-			soundUrl = &res.Result.SoundURL
-		}
-		soundUrls = append(soundUrls, *soundUrl)
+		soundUrls = append(soundUrls, res.Result.SoundURL)
 	}
 	return soundUrls
 }

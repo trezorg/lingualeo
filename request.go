@@ -24,7 +24,7 @@ func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	asString := strings.Trim(string(data), "\"")
 	if asString == "1" || asString == "true" {
 		*bit = true
-	} else if asString == "0" || asString == "false" {
+	} else if asString == "0" || asString == "false" || asString == "null" {
 		*bit = false
 	} else {
 		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)

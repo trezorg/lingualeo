@@ -6,8 +6,11 @@ import (
 )
 
 type lingualeoWordResult struct {
-	Votes int    `json:"votes"`
-	Value string `json:"value"`
+	Id      int                `json:"id"`
+	Votes   int                `json:"votes"`
+	Value   string             `json:"value"`
+	Picture string             `json:"pic_url"`
+	Exists  convertibleBoolean `json:"is_user"`
 }
 
 type responseError struct {
@@ -29,7 +32,7 @@ type resultFile struct {
 type lingualeoResult struct {
 	Word          string                `json:"-"`
 	Words         []string              `json:"-"`
-	Exists        convertibleBoolean    `json:"is_user"`
+	Exists        bool                  `json:"-"`
 	SoundURL      string                `json:"sound_url"`
 	Transcription string                `json:"transcription"`
 	Translate     []lingualeoWordResult `json:"translate"`
@@ -42,6 +45,23 @@ type lingualeoNoResult struct {
 }
 
 func (result *lingualeoResult) parseAndSortTranslate() {
+	isUsed := false
+	sort.Slice(result.Translate, func(i, j int) bool {
+		return result.Translate[i].Votes > result.Translate[j].Votes
+	})
+	for _, translate := range result.Translate {
+		if !isUsed {
+			isUsed = bool(translate.Exists)
+		}
+		for _, word := range sanitizeWords(&translate) {
+			result.Words = append(result.Words, word)
+		}
+	}
+	result.Exists = isUsed
+	result.Words = unique(result.Words)
+}
+
+func (result *lingualeoResult) findWordUsage() {
 	sort.Slice(result.Translate, func(i, j int) bool {
 		return result.Translate[i].Votes > result.Translate[j].Votes
 	})
