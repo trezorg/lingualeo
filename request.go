@@ -70,8 +70,10 @@ func prepareClient() (*http.Client, error) {
 
 func auth(args *lingualeoArgs, client *http.Client) error {
 	values := map[string]string{
-		"email":    args.Email,
-		"password": args.Password,
+		"email":              args.Email,
+		"password":           args.Password,
+		"type":               "login",
+		"successRedirectUrl": "",
 	}
 	jsonValue, err := json.Marshal(values)
 	if err != nil {
@@ -207,6 +209,11 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 	res := &lingualeoResult{Word: word}
 	err = getJSONFromString(body, res)
 	if err != nil {
+		res := &lingualeoNoResult{}
+		if getJSONFromString(body, res) == nil {
+			out <- translateResult{Error: fmt.Errorf("Cannot translate word: %s", word)}
+			return
+		}
 		out <- translateResult{Error: err}
 		return
 	}

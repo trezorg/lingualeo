@@ -36,6 +36,11 @@ type lingualeoResult struct {
 	ErrorMsg      string                `json:"error_msg"`
 }
 
+type lingualeoNoResult struct {
+	Translate []string `json:"translate"`
+	ErrorMsg  string   `json:"error_msg"`
+}
+
 func (result *lingualeoResult) parseAndSortTranslate() {
 	sort.Slice(result.Translate, func(i, j int) bool {
 		return result.Translate[i].Votes > result.Translate[j].Votes
