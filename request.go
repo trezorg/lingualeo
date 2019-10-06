@@ -105,7 +105,7 @@ func auth(args *lingualeoArgs, client *http.Client) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Response status code: %d\nbody:\n%s", resp.StatusCode, *body)
+		return fmt.Errorf("response status code: %d\nbody:\n%s", resp.StatusCode, *body)
 	}
 	res := &responseError{}
 	err = getJSONFromString(body, res)
@@ -211,7 +211,7 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 	if err != nil {
 		res := &lingualeoNoResult{}
 		if getJSONFromString(body, res) == nil {
-			out <- translateResult{Error: fmt.Errorf("Cannot translate word: %s", word)}
+			out <- translateResult{Error: fmt.Errorf("cannot translate word: %s", word)}
 			return
 		}
 		out <- translateResult{Error: err}

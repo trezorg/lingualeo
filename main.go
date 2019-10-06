@@ -52,7 +52,10 @@ func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Clien
 	for res := range orDone(ctx, getWords(args.Words, client)) {
 		res, _ := res.(translateResult)
 		if res.Error != nil {
-			log.Error(res.Error)
+			_, err := color.Printf("@{r}%s\n", capitalize(res.Error.Error()))
+			if err != nil {
+				log.Debug(err)
+			}
 			continue
 		}
 		if len(res.Result.Words) == 0 {
@@ -91,7 +94,7 @@ func getSoundUrls(results *[]translateResult) []string {
 	for _, res := range *results {
 		soundUrl, err := fixSoundURL(res.Result.SoundURL)
 		if err != nil {
-			log.Errorf("Cannot fix sound url: %s. %#v", soundUrl, err)
+			log.Errorf("Cannot fix sound url: %s. %#v", res.Result.SoundURL, err)
 			soundUrl = &res.Result.SoundURL
 		}
 		soundUrls = append(soundUrls, *soundUrl)

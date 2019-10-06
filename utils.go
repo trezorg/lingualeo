@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"unicode"
 
 	"github.com/wsxiaoys/terminal/color"
 )
@@ -145,4 +146,11 @@ func insertIntoSlice(slice []string, pos int, value string) []string {
 	copy(s[pos+1:], s[pos:])
 	s[pos] = value
 	return s
+}
+
+func capitalize(s string) string {
+	for index, value := range s {
+		return string(unicode.ToUpper(value)) + s[index+1:]
+	}
+	return ""
 }
