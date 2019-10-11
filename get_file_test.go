@@ -3,6 +3,8 @@ package main
 import (
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -19,7 +21,5 @@ func TestGetWordFilePathResponse(t *testing.T) {
 
 	out := downloadFiles("http://test.com/file")
 	fileName := (<-out).(resultFile).Filename
-	if fileName != resData.Filename {
-		t.Errorf("Incorrect filename: %s", fileName)
-	}
+	assert.Equal(t, fileName, resData.Filename)
 }

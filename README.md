@@ -7,10 +7,9 @@ Lingualeo API console helper
 Install
 ------------------------------------
 
-    go get github.com/trezorg/go-lingualeo
-    go install github.com/trezorg/go-lingualeo
+    go get -u github.com/trezorg/lingualeo
 
 Using
 ------------------------------------
 
-    go-lingualeo --help
+    lingualeo --help

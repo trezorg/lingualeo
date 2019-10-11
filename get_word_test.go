@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -26,19 +27,12 @@ var (
 )
 
 func checkResult(t *testing.T, res *lingualeoResult, searchWord string, expected []string) {
-	if res.Word != searchWord {
-		t.Errorf("Incorrect search word: %s", searchWord)
-	}
-	if len(res.Words) != 4 {
-		t.Errorf("Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
-	}
-	if !reflect.DeepEqual(res.Words, expected) {
-		t.Errorf(
-			"Incorrect translated words order: %s. Expected: %s",
-			strings.Join(expected, ", "),
-			strings.Join(res.Words, ", "),
-		)
-	}
+	assert.Equalf(t, res.Word, searchWord, "Incorrect search word: %s", searchWord)
+	assert.Len(t, res.Words, 4, "Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
+	assert.Equalf(t, res.Words, expected, "Incorrect translated words order: %s. Expected: %s",
+		strings.Join(expected, ", "),
+		strings.Join(res.Words, ", "),
+	)
 }
 
 func TestParseResponseJson(t *testing.T) {
@@ -47,9 +41,7 @@ func TestParseResponseJson(t *testing.T) {
 	res := &lingualeoResult{Word: searchWord}
 	expected := []string{"размещение", "жильё", "проживание", "помещение"}
 	err := res.fillObjectFromJSON(reader)
-	if err != nil {
-		t.Errorf("Cannot fill object from json")
-	}
+	assert.NoError(t, err, "Cannot fill object from json")
 	res.parseAndSortTranslate()
 	checkResult(t, res, searchWord, expected)
 }

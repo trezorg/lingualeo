@@ -6,13 +6,60 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/alyu/configparser"
+	"github.com/BurntSushi/toml"
+
 	"gopkg.in/yaml.v2"
 )
+
+type configType int
+type decodeFunc func(data []byte, args *lingualeoArgs) error
+
+const (
+	yamlType = configType(1)
+	jsonType = configType(2)
+	tomlType = configType(3)
+)
+
+var (
+	decodeMapping = map[configType]decodeFunc{
+		yamlType: readYamlConfig,
+		jsonType: readJSONConfig,
+		tomlType: readTomlConfig,
+	}
+)
+
+type configFileType struct {
+	filename string
+}
+
+func (cf *configFileType) getType() configType {
+	ext := filepath.Ext(cf.filename)
+	if ext == ".yml" || ext == ".yaml" {
+		return yamlType
+	}
+	if ext == ".json" {
+		return jsonType
+	}
+	return tomlType
+}
+
+func (cf *configFileType) decode(data []byte, args *lingualeoArgs) error {
+	return decodeMapping[cf.getType()](data, args)
+}
+
+func (cf *configFileType) decodeFile(args *lingualeoArgs) error {
+	data, err := ioutil.ReadFile(cf.filename)
+	if err != nil {
+		return err
+	}
+	return cf.decode(data, args)
+}
+
+func newConfigFileType(filename string) *configFileType {
+	return &configFileType{filename: filename}
+}
 
 type arrayFlags []string
 
@@ -30,15 +77,15 @@ func prepareArgs() lingualeoArgs {
 	emailPtr := flag.String("e", "", "Lingualeo email")
 	passwordPtr := flag.String("p", "", "Lingualeo password")
 	configPtr := flag.String("c", "", `
-Config file. Either in plain ini, yaml or json format.
+Config file. Either in toml, yaml or json format.
 
-Plain format example:
+Toml format example:
 
-email = email@gmail.com
-password = password
+email = "email@gmail.com"
+password = "password"
 add = false
 sound = true
-player = mplayer
+player = "mplayer"
 
 Yaml format example:
 
@@ -58,109 +105,58 @@ JSON format example:
     "player": "mplayer"
 }
 
-Default config files are: ~/lingualeo.[conf|yml|yaml|json]`)
-	playerPtr := flag.String("m", "", "Media player for word pronunciation")
-	forcePtr := flag.Bool("f", false, "Force add to lingualeo dictionary")
-	addPtr := flag.Bool("a", false, "Add to lingualeo dictionary")
-	soundPtr := flag.Bool("s", false, "Play words pronunciation")
-	logPrettyPrintPtr := flag.Bool("pr", false, "Log pretty print")
+Default config files are: ~/lingualeo.[toml|yml|yaml|json]`)
+	player := flag.String("m", "", "Media player for word pronunciation")
+	force := flag.Bool("f", false, "Force add to lingualeo dictionary")
+	add := flag.Bool("a", false, "Add to lingualeo dictionary")
+	sound := flag.Bool("s", false, "Play words pronunciation")
+	logPrettyPrint := flag.Bool("pr", false, "Log pretty print")
+	translateReplaceWithAdd := flag.Bool("tr", false, "Custom translation. Replace word instead of to add")
 	logLevel := flag.String("l", "INFO", "Log level")
-	flag.Var(&translateFlag, "t", "Custom translation")
+	flag.Var(&translateFlag, "t", "Custom translation. -t word1 -t word2")
 	flag.Parse()
 	words := flag.Args()
 	return lingualeoArgs{
-		*emailPtr,
-		*passwordPtr,
-		*configPtr,
-		*playerPtr,
-		words,
-		translateFlag,
-		*forcePtr,
-		*addPtr,
-		*soundPtr,
-		*logLevel,
-		*logPrettyPrintPtr,
+		Email:                   *emailPtr,
+		Password:                *passwordPtr,
+		Config:                  *configPtr,
+		Player:                  *player,
+		Words:                   words,
+		Translate:               translateFlag,
+		Force:                   *force,
+		Add:                     *add,
+		TranslateReplaceWithAdd: *translateReplaceWithAdd,
+		Sound:                   *sound,
+		LogLevel:                *logLevel,
+		LogPrettyPrint:          *logPrettyPrint,
 	}
 }
 
-func setStringOption(args *lingualeoArgs, name string, options map[string]string) {
-	value, exists := options[strings.ToLower(name)]
-	if exists && len(value) > 0 {
-		reflect.ValueOf(args).Elem().FieldByName(name).SetString(value)
-	}
-}
-
-func setBoolOption(args *lingualeoArgs, name string, options map[string]string) error {
-	value, exists := options[strings.ToLower(name)]
-	if exists {
-		res, err := strconv.ParseBool(value)
-		if err != nil {
-			return err
-		}
-		reflect.ValueOf(args).Elem().FieldByName(name).SetBool(res)
-	}
-	return nil
-}
-
-func readIniConfig(args *lingualeoArgs, filename string) error {
-	config, err := configparser.Read(filename)
-	if err != nil {
-		return err
-	}
-	sections, err := config.AllSections()
-	if err != nil {
-		return err
-	}
-	options := sections[0].Options()
-	for _, attr := range []string{"Email", "Password", "Player", "LogLevel"} {
-		setStringOption(args, attr, options)
-	}
-	for _, attr := range []string{"Force", "Add", "Sound", "LogPrettyPrint"} {
-		err := setBoolOption(args, attr, options)
-		if err != nil {
-			return err
-		}
-	}
-	args.Config = filename
-	return nil
-}
-
-func readYamlConfig(args *lingualeoArgs, filename string) error {
-	yamlFile, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(yamlFile, args)
+func readTomlConfig(data []byte, args *lingualeoArgs) error {
+	_, err := toml.Decode(string(data), &args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func readJSONConfig(args *lingualeoArgs, filename string) error {
-	jsonFile, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(jsonFile, args)
+func readYamlConfig(data []byte, args *lingualeoArgs) error {
+	err := yaml.Unmarshal(data, args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func readConfig(args *lingualeoArgs, filename string) error {
-	extension := filepath.Ext(filename)
-	if extension == ".yml" || extension == ".yaml" {
-		return readYamlConfig(args, filename)
+func readJSONConfig(data []byte, args *lingualeoArgs) error {
+	err := json.Unmarshal(data, args)
+	if err != nil {
+		return err
 	}
-	if extension == ".json" {
-		return readJSONConfig(args, filename)
-	}
-	return readIniConfig(args, filename)
+	return nil
 }
 
-func readConfigs(filename *string) (*lingualeoArgs, error) {
+func getConfigFiles(filename *string) ([]string, error) {
 	home, err := getUserHome()
 	if err != nil {
 		return nil, err
@@ -177,14 +173,25 @@ func readConfigs(filename *string) (*lingualeoArgs, error) {
 			}
 		}
 	}
-	if len(*filename) > 0 {
+	if filename != nil && len(*filename) > 0 {
 		argsConfig, _ := filepath.Abs(*filename)
+		if fileExists(argsConfig) {
+			configs = append(configs, argsConfig)
+		}
 		configs = append(configs, argsConfig)
 	}
 	configs = unique(configs)
+	return configs, nil
+}
+
+func readConfigs(filename *string) (*lingualeoArgs, error) {
+	configs, err := getConfigFiles(filename)
+	if err != nil {
+		return nil, err
+	}
 	args := &lingualeoArgs{}
 	for _, name := range configs {
-		err = readConfig(args, name)
+		err = newConfigFileType(name).decodeFile(args)
 		if err != nil {
 			return nil, err
 		}

@@ -14,6 +14,8 @@ import (
 	"github.com/wsxiaoys/terminal/color"
 )
 
+type Value interface{}
+
 func getJSON(body io.ReadCloser, target interface{}) error {
 	defer func() {
 		err := body.Close()
@@ -141,8 +143,8 @@ func getUserHome() (string, error) {
 	return usr.HomeDir, nil
 }
 
-func insertIntoSlice(slice []string, pos int, value string) []string {
-	s := append(slice, "")
+func insertIntoSlice(slice []Value, pos int, value Value) []Value {
+	s := append(slice, new(Value))
 	copy(s[pos+1:], s[pos:])
 	s[pos] = value
 	return s
