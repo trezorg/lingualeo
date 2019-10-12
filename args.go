@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/urfave/cli"
 
 	"gopkg.in/yaml.v2"
 )
@@ -30,11 +31,11 @@ var (
 	}
 )
 
-type configFileType struct {
+type configFile struct {
 	filename string
 }
 
-func (cf *configFileType) getType() configType {
+func (cf *configFile) getType() configType {
 	ext := filepath.Ext(cf.filename)
 	if ext == ".yml" || ext == ".yaml" {
 		return yamlType
@@ -45,11 +46,11 @@ func (cf *configFileType) getType() configType {
 	return tomlType
 }
 
-func (cf *configFileType) decode(data []byte, args *lingualeoArgs) error {
+func (cf *configFile) decode(data []byte, args *lingualeoArgs) error {
 	return decodeMapping[cf.getType()](data, args)
 }
 
-func (cf *configFileType) decodeFile(args *lingualeoArgs) error {
+func (cf *configFile) decodeFile(args *lingualeoArgs) error {
 	data, err := ioutil.ReadFile(cf.filename)
 	if err != nil {
 		return err
@@ -57,79 +58,146 @@ func (cf *configFileType) decodeFile(args *lingualeoArgs) error {
 	return cf.decode(data, args)
 }
 
-func newConfigFileType(filename string) *configFileType {
-	return &configFileType{filename: filename}
+func newConfigFile(filename string) *configFile {
+	return &configFile{filename: filename}
 }
 
-type arrayFlags []string
+func prepareCliArgs() lingualeoArgs {
 
-func (s *arrayFlags) String() string {
-	return strings.Join(*s, ", ")
-}
+	args := lingualeoArgs{}
 
-func (s *arrayFlags) Set(value string) error {
-	*s = append(*s, value)
-	return nil
-}
-
-func prepareArgs() lingualeoArgs {
-	var translateFlag arrayFlags
-	emailPtr := flag.String("e", "", "Lingualeo email")
-	passwordPtr := flag.String("p", "", "Lingualeo password")
-	configPtr := flag.String("c", "", `
-Config file. Either in toml, yaml or json format.
-
-Toml format example:
-
-email = "email@gmail.com"
-password = "password"
-add = false
-sound = true
-player = "mplayer"
-
-Yaml format example:
-
-email: email@gmail.com
-password: password
-add: false
-sound: true
-player: mplayer
-
-JSON format example:
-
-{
-    "email": "email@gmail.com",
-    "password": "password",
-    "add": false,
-    "sound": true,
-    "player": "mplayer"
-}
-
-Default config files are: ~/lingualeo.[toml|yml|yaml|json]`)
-	player := flag.String("m", "", "Media player for word pronunciation")
-	force := flag.Bool("f", false, "Force add to lingualeo dictionary")
-	add := flag.Bool("a", false, "Add to lingualeo dictionary")
-	sound := flag.Bool("s", false, "Play words pronunciation")
-	logPrettyPrint := flag.Bool("pr", false, "Log pretty print")
-	translateReplaceWithAdd := flag.Bool("tr", false, "Custom translation. Replace word instead of to add")
-	logLevel := flag.String("l", "INFO", "Log level")
-	flag.Var(&translateFlag, "t", "Custom translation. -t word1 -t word2")
-	flag.Parse()
-	words := flag.Args()
-	return lingualeoArgs{
-		Email:                   *emailPtr,
-		Password:                *passwordPtr,
-		Config:                  *configPtr,
-		Player:                  *player,
-		Words:                   words,
-		Translate:               translateFlag,
-		Force:                   *force,
-		Add:                     *add,
-		TranslateReplaceWithAdd: *translateReplaceWithAdd,
-		Sound:                   *sound,
-		LogLevel:                *logLevel,
-		LogPrettyPrint:          *logPrettyPrint,
+	defaultCommand := func(c *cli.Context) error {
+		if c.NArg() == 0 {
+			err := cli.ShowAppHelp(c)
+			if err != nil {
+				return fmt.Errorf("there are no words to translate, %w", err)
+			}
+			return fmt.Errorf("there are no words to translate")
+		}
+		args.Words = c.Args()
+		return nil
 	}
+
+	app := cli.NewApp()
+	app.Version = "0.0.1"
+	app.HideHelp = true
+	app.HideVersion = true
+	app.Author = "Igor Nemilentsev"
+	app.Email = "trezorg@gmail.com"
+	app.Usage = "Lingualeo API console helper"
+	app.EnableBashCompletion = true
+	app.ArgsUsage = "Multiple words can be supplied"
+	app.Action = defaultCommand
+	app.Description = `
+	It is possible to use config file to set predefined parameters  	
+	Default config files are: ~/lingualeo.[toml|yml|yaml|json]
+
+	Toml format example:
+
+	email = "email@gmail.com"
+	password = "password"
+	add = false
+	sound = true
+	player = "mplayer"
+	
+	Yaml format example:
+	
+	email: email@gmail.com
+	password: password
+	add: false
+	sound: true
+	player: mplayer
+	
+	JSON format example:
+	
+	{
+		"email": "email@gmail.com",
+		"password": "password",
+		"add": false,
+		"sound": true,
+		"player": "mplayer"
+	}
+	`
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "email, e",
+			Value:       "",
+			Usage:       "Lingualeo email",
+			Destination: &args.Email,
+		},
+		cli.StringFlag{
+			Name:        "password, p",
+			Value:       "",
+			Usage:       "Lingualeo password",
+			Destination: &args.Password,
+		},
+		cli.StringFlag{
+			Name:        "config, c",
+			Value:       "",
+			Usage:       "Config file. Either in toml, yaml or json format",
+			Destination: &args.Config,
+		},
+		cli.StringFlag{
+			Name:        "player, m",
+			Value:       "",
+			Usage:       "Media player for word pronunciation",
+			Destination: &args.Player,
+		},
+		cli.StringFlag{
+			Name:        "log-level, l",
+			Value:       "INFO",
+			Usage:       "Log level",
+			Destination: &args.LogLevel,
+		},
+		cli.BoolFlag{
+			Name:        "sound, s",
+			Usage:       "Play words pronunciation",
+			Destination: &args.Sound,
+		},
+		cli.BoolFlag{
+			Name:        "log-pretty-print, lpr",
+			Usage:       "Log pretty print",
+			Destination: &args.LogPrettyPrint,
+		},
+	}
+	app.Commands = []cli.Command{
+		{
+			Name:    "add",
+			Aliases: []string{"a"},
+			Usage:   "Add to lingualeo dictionary",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:        "force, f",
+					Usage:       "Force add to lingualeo dictionary",
+					Destination: &args.Force,
+				},
+				cli.BoolFlag{
+					Name:        "replace, r",
+					Usage:       "Custom translation. Replace word instead of to add",
+					Destination: &args.TranslateReplace,
+				},
+				cli.StringSliceFlag{
+					Name:  "translate, t",
+					Usage: "Custom translation. -t word1 -t word2",
+					Value: &args.Translate,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				args.Add = true
+				return defaultCommand(c)
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		if strings.Contains(err.Error(), "help requested") {
+			os.Exit(0)
+		}
+		failIfError(err)
+	}
+	return args
+
 }
 
 func readTomlConfig(data []byte, args *lingualeoArgs) error {
@@ -191,7 +259,7 @@ func readConfigs(filename *string) (*lingualeoArgs, error) {
 	}
 	args := &lingualeoArgs{}
 	for _, name := range configs {
-		err = newConfigFileType(name).decodeFile(args)
+		err = newConfigFile(name).decodeFile(args)
 		if err != nil {
 			return nil, err
 		}
@@ -243,6 +311,9 @@ func mergeConfigs(args *lingualeoArgs, configArgs *lingualeoArgs) *lingualeoArgs
 	}
 	if configArgs.LogPrettyPrint {
 		args.LogPrettyPrint = configArgs.LogPrettyPrint
+	}
+	if configArgs.TranslateReplace {
+		args.TranslateReplace = configArgs.TranslateReplace
 	}
 	if len(args.LogLevel) == 0 && len(configArgs.LogLevel) > 0 {
 		args.LogLevel = configArgs.LogLevel

@@ -1,4 +1,4 @@
-go-lingualeo
+lingualeo
 ====================================
 
 Lingualeo API console helper

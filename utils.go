@@ -14,6 +14,7 @@ import (
 	"github.com/wsxiaoys/terminal/color"
 )
 
+// Value blank interface
 type Value interface{}
 
 func getJSON(body io.ReadCloser, target interface{}) error {

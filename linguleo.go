@@ -25,7 +25,7 @@ func checkMediaPlayer(args *lingualeoArgs) {
 }
 
 func prepareParams() (*lingualeoArgs, error) {
-	args := prepareArgs()
+	args := prepareCliArgs()
 	err := checkConfig(&args)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func prepareResultsToAdd(results *[]translateResult, args *lingualeoArgs) []ling
 		if !res.Result.Exists || args.Force {
 			if len(args.Translate) > 0 {
 				// Custom translation
-				if args.TranslateReplaceWithAdd {
+				if args.TranslateReplace {
 					res.Result.Words = unique(args.Translate)
 				} else {
 					res.Result.Words = unique(append(res.Result.Words, args.Translate...))
