@@ -101,24 +101,20 @@ func prepareResultsToAdd(results *[]translateResult, args *lingualeoArgs) []ling
 }
 
 func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string) {
-	results := make([]string, len(urls))
-	for res := range orDone(ctx, downloadFiles(urls...)) {
+	for res := range orDone(ctx, orderedChannel(downloadFiles(urls...), len(urls))) {
 		res, _ := res.(resultFile)
 		if res.Error != nil {
 			log.Error(res.Error)
 			continue
 		}
-		results[res.Index] = res.Filename
-	}
-	for _, filename := range results {
-		if filename == "" {
+		if res.Filename == "" {
 			continue
 		}
-		err := playSound(args.Player, filename)
+		err := playSound(args.Player, res.Filename)
 		if err != nil {
 			log.Error(err)
 		}
-		err = os.Remove(filename)
+		err = os.Remove(res.Filename)
 		if err != nil {
 			log.Error(err)
 		}

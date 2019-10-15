@@ -7,6 +7,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+type Indexed interface {
+	getIndex() int
+}
+
 type lingualeoWordResult struct {
 	ID      int                `json:"id"`
 	Votes   int                `json:"votes"`
@@ -29,6 +33,10 @@ type resultFile struct {
 	Error    error
 	Filename string
 	Index    int
+}
+
+func (rf resultFile) getIndex() int {
+	return rf.Index
 }
 
 type lingualeoResult struct {

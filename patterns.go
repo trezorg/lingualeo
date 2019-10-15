@@ -93,6 +93,21 @@ func repeat(ctx context.Context, input ...interface{}) <-chan interface{} {
 	return out
 }
 
+func toChannel(ctx context.Context, input ...interface{}) <-chan interface{} {
+	out := make(chan interface{})
+	go func() {
+		defer close(out)
+		for _, val := range input {
+			select {
+			case <-ctx.Done():
+				return
+			case out <- val:
+			}
+		}
+	}()
+	return out
+}
+
 func take(ctx context.Context, input <-chan interface{}, num int) <-chan interface{} {
 	out := make(chan interface{})
 	go func() {
@@ -131,5 +146,31 @@ func bridge(ctx context.Context, inputs <-chan <-chan interface{}) <-chan interf
 			}
 		}
 	}()
+	return out
+}
+
+func orderedChannel(input <-chan interface{}, count int) <-chan interface{} {
+	out := make(chan interface{}, count)
+
+	go func() {
+		defer close(out)
+		slideIndex := 0
+		results := newIndexedHeap()
+
+		check := func(obj *Indexed) bool {
+			return obj != nil && slideIndex == (*obj).getIndex()
+		}
+		for result := range input {
+			results.Add(result.(Indexed))
+			for orderResult := results.PullWithCondition(check); orderResult != nil; orderResult = results.PullWithCondition(check) {
+				slideIndex++
+				out <- *orderResult
+			}
+		}
+		for orderResult := results.Pull(); orderResult != nil; orderResult = results.Pull() {
+			out <- *orderResult
+		}
+	}()
+
 	return out
 }
