@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -160,15 +161,17 @@ func getWordResponseBody(word string, client *http.Client) (*string, error) {
 	return body, err
 }
 
-func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
+func getFileContent(url string, idx int, out chan<- interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	file, err := ioutil.TempFile("/tmp", "lingualeo")
 	if err != nil {
-		return resultFile{Error: err, Index: idx}
+		out <- resultFile{Error: err, Index: idx}
+		return
 	}
 	fd, err := os.Create(file.Name())
 	if err != nil {
-		return resultFile{Error: err, Index: idx}
+		out <- resultFile{Error: err, Index: idx}
+		return
 	}
 	defer func() {
 		err := fd.Close()
@@ -178,7 +181,8 @@ func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
 	}()
 	resp, err := http.Get(url)
 	if err != nil {
-		return resultFile{Error: fmt.Errorf("cannot read sound url: %s, %w", url, err), Index: idx}
+		out <- resultFile{Error: fmt.Errorf("cannot read sound url: %s, %w", url, err), Index: idx}
+		return
 	}
 	defer func() {
 		err := resp.Body.Close()
@@ -187,13 +191,15 @@ func getFileContent(url string, idx int, wg *sync.WaitGroup) resultFile {
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
-		return resultFile{Error: fmt.Errorf("bad status: %s", resp.Status), Index: idx}
+		out <- resultFile{Error: fmt.Errorf("bad status: %s", resp.Status), Index: idx}
+		return
 	}
 	_, err = io.Copy(fd, resp.Body)
 	if err != nil {
-		return resultFile{Error: err, Index: idx}
+		out <- resultFile{Error: err, Index: idx}
+		return
 	}
-	return resultFile{Filename: file.Name(), Index: idx}
+	out <- resultFile{Filename: file.Name(), Index: idx}
 }
 
 var getWordResponseString = getWordResponseBody
@@ -206,8 +212,8 @@ func getWord(word string, client *http.Client, out chan<- interface{}, wg *sync.
 		out <- translateResult{Error: err}
 		return
 	}
-	res := &lingualeoResult{Word: word}
-	err = getJSONFromString(body, res)
+	res := lingualeoResult{Word: word}
+	err = getJSONFromString(body, &res)
 	if err != nil {
 		res := &lingualeoNoResult{}
 		if getJSONFromString(body, res) == nil {
@@ -280,7 +286,7 @@ func addWord(res lingualeoResult, client *http.Client, out chan<- interface{}, w
 		out <- translateResult{Error: fmt.Errorf(res.ErrorMsg)}
 		return
 	}
-	out <- translateResult{Result: &res}
+	out <- translateResult{Result: res}
 }
 
 func getWords(words []string, client *http.Client) <-chan interface{} {
@@ -298,14 +304,17 @@ func getWords(words []string, client *http.Client) <-chan interface{} {
 	return out
 }
 
-func addWords(results []lingualeoResult, client *http.Client) <-chan interface{} {
-	count := len(results)
-	out := make(chan interface{}, count)
+func addWords(ctx context.Context, results <-chan interface{}, client *http.Client) <-chan interface{} {
+	out := make(chan interface{})
 	var wg sync.WaitGroup
-	wg.Add(count)
-	for _, res := range results {
-		go addWord(res, client, out, &wg)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for res := range orDone(ctx, results) {
+			wg.Add(1)
+			go addWord(res.(lingualeoResult), client, out, &wg)
+		}
+	}()
 	go func() {
 		defer close(out)
 		wg.Wait()
@@ -313,14 +322,19 @@ func addWords(results []lingualeoResult, client *http.Client) <-chan interface{}
 	return out
 }
 
-func downloadFiles(urls ...string) <-chan interface{} {
-	count := len(urls)
-	out := make(chan interface{}, count)
+func downloadFiles(ctx context.Context, urls <-chan interface{}) <-chan interface{} {
+	out := make(chan interface{})
+	idx := 0
 	var wg sync.WaitGroup
-	wg.Add(count)
-	for idx, url := range urls {
-		out <- getWordFilePath(url, idx, &wg)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for url := range orDone(ctx, urls) {
+			wg.Add(1)
+			go getWordFilePath(url.(string), idx, out, &wg)
+			idx++
+		}
+	}()
 	go func() {
 		defer close(out)
 		wg.Wait()

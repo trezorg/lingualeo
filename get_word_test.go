@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -26,7 +27,7 @@ var (
 	"sound_url":"http:\/\/audiocdn.lingualeo.com\/v2\/3\/102085-631152000.mp3"}`
 )
 
-func checkResult(t *testing.T, res *lingualeoResult, searchWord string, expected []string) {
+func checkResult(t *testing.T, res lingualeoResult, searchWord string, expected []string) {
 	assert.Equalf(t, res.Word, searchWord, "Incorrect search word: %s", searchWord)
 	assert.Len(t, res.Words, 4, "Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
 	assert.Equalf(t, res.Words, expected, "Incorrect translated words order: %s. Expected: %s",
@@ -43,7 +44,7 @@ func TestParseResponseJson(t *testing.T) {
 	err := res.fillObjectFromJSON(reader)
 	assert.NoError(t, err, "Cannot fill object from json")
 	res.parseAndSortTranslate()
-	checkResult(t, res, searchWord, expected)
+	checkResult(t, *res, searchWord, expected)
 }
 
 func TestGetWordResponseJson(t *testing.T) {
@@ -86,4 +87,50 @@ func TestGetWordsResponseJson(t *testing.T) {
 
 	res := (<-out).(translateResult).Result
 	checkResult(t, res, searchWords[0], expected)
+}
+
+func TestProcessTranslationResponseJson(t *testing.T) {
+	var mockGetWordResponseString = func(word string, client *http.Client) (*string, error) {
+		return &responseData, nil
+	}
+	var mockGetWordFilePathResponse = func(url string, idx int, out chan<- interface{}, wg *sync.WaitGroup) {
+		defer wg.Done()
+		out <- resData
+	}
+	origGetWordResponseString := getWordResponseString
+	getWordResponseString = mockGetWordResponseString
+	origGetWordFilePathResponse := getWordFilePath
+	getWordFilePath = mockGetWordFilePathResponse
+	defer func() {
+		getWordResponseString = origGetWordResponseString
+		getWordFilePath = origGetWordFilePathResponse
+	}()
+
+	initLogger("FATAL", true)
+
+	count := 1000 // max for race checking
+	expected := []string{"размещение", "жильё", "проживание", "помещение"}
+
+	searchWords := make([]string, 0, count)
+
+	for i := 0; i < count; i++ {
+		searchWords = append(searchWords, "accommodation")
+	}
+	ctx := context.Background()
+	client := &http.Client{}
+	args := lingualeoArgs{Sound: true, Words: searchWords, Add: true}
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	soundChan, _, resultChan := processTranslation(ctx, client, &args, &wg)
+	wg.Add(1)
+	go playTranslateFiles(ctx, &args, soundChan, &wg)
+
+	for result := range resultChan {
+		res := result.(lingualeoResult)
+		checkResult(t, res, searchWords[0], expected)
+	}
+
+	wg.Wait()
+
 }

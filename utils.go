@@ -94,7 +94,7 @@ func printColorString(clr string, text string) {
 	}
 }
 
-func printTranslate(result *lingualeoResult) {
+func printTranslate(result lingualeoResult) {
 	var strTitle string
 	if result.Exists {
 		strTitle = "existing"
@@ -114,7 +114,7 @@ func printTranslate(result *lingualeoResult) {
 	}
 }
 
-func printAddedTranslation(result *lingualeoResult) {
+func printAddedTranslation(result lingualeoResult) {
 	var strTitle string
 	if result.Exists {
 		strTitle = "Updated existing"

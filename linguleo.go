@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/wsxiaoys/terminal/color"
 )
@@ -45,63 +46,50 @@ func prepareParams() (*lingualeoArgs, error) {
 	return &args, nil
 }
 
-func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Client) *[]translateResult {
-	var results []translateResult
-	for res := range orDone(ctx, getWords(args.Words, client)) {
-		res, _ := res.(translateResult)
-		if res.Error != nil {
-			_, err := color.Printf("@{r}%s\n", capitalize(res.Error.Error()))
-			if err != nil {
-				log.Debug(err)
-			}
-			continue
-		}
-		if len(res.Result.Words) == 0 {
-			_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
-			if err != nil {
-				log.Debug(err)
-			}
-			continue
-		}
-		results = append(results, res)
-	}
-	return &results
-}
-
-func showTranslateResults(results *[]translateResult) {
-	for _, res := range *results {
-		printTranslate(res.Result)
-	}
-}
-
-func getSoundUrls(results *[]translateResult) []string {
-	var soundUrls []string
-	for _, res := range *results {
-		soundUrls = append(soundUrls, res.Result.SoundURL)
-	}
-	return soundUrls
-}
-
-func prepareResultsToAdd(results *[]translateResult, args *lingualeoArgs) []lingualeoResult {
-	var resultsToAdd []lingualeoResult
-	for _, res := range *results {
-		if !res.Result.Exists || args.Force {
-			if len(args.Translate) > 0 {
-				// Custom translation
-				if args.TranslateReplace {
-					res.Result.Words = unique(args.Translate)
-				} else {
-					res.Result.Words = unique(append(res.Result.Words, args.Translate...))
+func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Client) <-chan interface{} {
+	results := make(chan interface{}, len(args.Words))
+	go func() {
+		defer close(results)
+		for res := range orDone(ctx, getWords(args.Words, client)) {
+			res, _ := res.(translateResult)
+			if res.Error != nil {
+				_, err := color.Printf("@{r}%s\n", capitalize(res.Error.Error()))
+				if err != nil {
+					log.Error(err)
 				}
+				continue
 			}
-			resultsToAdd = append(resultsToAdd, *res.Result)
+			if len(res.Result.Words) == 0 {
+				_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
+				if err != nil {
+					log.Error(err)
+				}
+				continue
+			}
+			results <- res
 		}
-	}
-	return resultsToAdd
+	}()
+	return results
 }
 
-func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string) {
-	for res := range orDone(ctx, orderedChannel(downloadFiles(urls...), len(urls))) {
+func prepareResultToAdd(result lingualeoResult, args *lingualeoArgs) *lingualeoResult {
+	if !result.Exists || args.Force {
+		// Custom translation
+		if len(args.Translate) > 0 {
+			if args.TranslateReplace {
+				result.Words = unique(args.Translate)
+			} else {
+				result.Words = unique(append(result.Words, args.Translate...))
+			}
+		}
+		return &result
+	}
+	return nil
+}
+
+func playTranslateFiles(ctx context.Context, args *lingualeoArgs, urls <-chan interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for res := range orderedChannel(downloadFiles(ctx, urls), len(urls)) {
 		res, _ := res.(resultFile)
 		if res.Error != nil {
 			log.Error(res.Error)
@@ -121,8 +109,9 @@ func playTranslateFile(ctx context.Context, args *lingualeoArgs, urls ...string)
 	}
 }
 
-func addTranslationToDictionary(ctx context.Context, client *http.Client, resultsToAdd []lingualeoResult) {
-	for res := range orDone(ctx, addWords(resultsToAdd, client)) {
+func addTranslationToDictionary(ctx context.Context, client *http.Client, resultsToAdd <-chan interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for res := range addWords(ctx, resultsToAdd, client) {
 		res, _ := res.(translateResult)
 		if res.Error != nil {
 			log.Error(res.Error)
@@ -130,4 +119,38 @@ func addTranslationToDictionary(ctx context.Context, client *http.Client, result
 		}
 		printAddedTranslation(res.Result)
 	}
+}
+
+func processTranslation(ctx context.Context, client *http.Client, args *lingualeoArgs, wg *sync.WaitGroup) (_, _, _ <-chan interface{}) {
+
+	soundChan := make(chan interface{}, len(args.Words))
+	addWordChan := make(chan interface{}, len(args.Words))
+	resultsChan := make(chan interface{}, len(args.Words))
+
+	go func() {
+
+		defer func() {
+			wg.Done()
+			close(soundChan)
+			close(addWordChan)
+			close(resultsChan)
+		}()
+
+		for value := range orDone(ctx, translateWords(ctx, args, client)) {
+			result, _ := value.(translateResult)
+			if args.Sound && result.Result.SoundURL != "" {
+				soundChan <- result.Result.SoundURL
+			}
+
+			if args.Add {
+				if resultsToAdd := prepareResultToAdd(result.Result, args); resultsToAdd != nil {
+					addWordChan <- *resultsToAdd
+				}
+			}
+			resultsChan <- result.Result
+		}
+	}()
+
+	return soundChan, addWordChan, resultsChan
+
 }

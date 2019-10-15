@@ -157,11 +157,11 @@ func orderedChannel(input <-chan interface{}, count int) <-chan interface{} {
 		slideIndex := 0
 		results := newIndexedHeap()
 
-		check := func(obj *Indexed) bool {
+		check := func(obj *indexedItem) bool {
 			return obj != nil && slideIndex == (*obj).getIndex()
 		}
 		for result := range input {
-			results.Add(result.(Indexed))
+			results.Add(result.(indexedItem))
 			for orderResult := results.PullWithCondition(check); orderResult != nil; orderResult = results.PullWithCondition(check) {
 				slideIndex++
 				out <- *orderResult

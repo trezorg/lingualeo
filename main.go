@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 func main() {
@@ -16,20 +20,33 @@ func main() {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	results := translateWords(ctx, args, client)
-	showTranslateResults(results)
+	var wg sync.WaitGroup
 
-	if args.Sound {
-		soundUrls := getSoundUrls(results)
-		if len(soundUrls) > 0 {
-			playTranslateFile(ctx, args, soundUrls...)
-		}
-	}
+	wg.Add(1)
+	soundChan, addWordChan, resultsChan := processTranslation(ctx, client, args, &wg)
+	wg.Add(1)
+	go playTranslateFiles(ctx, args, soundChan, &wg)
+	wg.Add(1)
+	go addTranslationToDictionary(ctx, client, addWordChan, &wg)
 
-	if args.Add {
-		resultsToAdd := prepareResultsToAdd(results, args)
-		if len(resultsToAdd) > 0 {
-			addTranslationToDictionary(ctx, client, resultsToAdd)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM)
+	signal.Notify(stop, syscall.SIGINT)
+
+	go func() {
+		for {
+			select {
+			case <-stop:
+				done()
+				return
+			case result, ok := <-resultsChan:
+				if !ok {
+					return
+				}
+				printTranslate(result.(lingualeoResult))
+			}
 		}
-	}
+	}()
+
+	wg.Wait()
 }

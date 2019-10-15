@@ -74,7 +74,10 @@ func prepareCliArgs() lingualeoArgs {
 			}
 			return fmt.Errorf("there are no words to translate")
 		}
-		args.Words = c.Args()
+		args.Words = unique(c.Args())
+		if args.Add && len(args.Translate) > 0 && len(args.Words) > 1 {
+			return fmt.Errorf("you should add only one word with custom transcation")
+		}
 		return nil
 	}
 
@@ -155,6 +158,11 @@ func prepareCliArgs() lingualeoArgs {
 			Destination: &args.Sound,
 		},
 		cli.BoolFlag{
+			Name:        "debug, d",
+			Usage:       "Debug mode. Set DEBUG mode",
+			Destination: &args.Debug,
+		},
+		cli.BoolFlag{
 			Name:        "log-pretty-print, lpr",
 			Usage:       "Log pretty print",
 			Destination: &args.LogPrettyPrint,
@@ -178,7 +186,7 @@ func prepareCliArgs() lingualeoArgs {
 				},
 				cli.StringSliceFlag{
 					Name:  "translate, t",
-					Usage: "Custom translation. -t word1 -t word2",
+					Usage: "Custom translation: lingualeo add -t word1 -t word2 word",
 					Value: &args.Translate,
 				},
 			},

@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-type Indexed interface {
+type indexedItem interface {
 	getIndex() int
 }
 
@@ -26,7 +26,7 @@ type responseError struct {
 
 type translateResult struct {
 	Error  error
-	Result *lingualeoResult
+	Result lingualeoResult
 }
 
 type resultFile struct {
@@ -98,6 +98,7 @@ type lingualeoArgs struct {
 	Add              bool   `yaml:"add" json:"add" toml:"add"`
 	TranslateReplace bool   `yaml:"translate_replace" json:"translate_replace" toml:"translate_replace"`
 	Sound            bool   `yaml:"sound" json:"sound" toml:"sound"`
+	Debug            bool   `yaml:"debug" json:"debug" toml:"debug"`
 	LogLevel         string `yaml:"log_level" json:"log_level" toml:"log_level"`
 	LogPrettyPrint   bool   `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
 }

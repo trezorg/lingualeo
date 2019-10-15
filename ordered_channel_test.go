@@ -13,7 +13,7 @@ type TestIndexer struct {
 	idx int
 }
 
-var count = 10
+var count = 1000
 
 func (ti TestIndexer) getIndex() int {
 	return ti.idx

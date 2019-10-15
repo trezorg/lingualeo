@@ -5,22 +5,22 @@ import (
 	"sync"
 )
 
-type IndexedHeap struct {
-	messages []Indexed
+type indexedHeap struct {
+	messages []indexedItem
 	lock     sync.RWMutex
 }
 
-func (h *IndexedHeap) Len() int           { return len(h.messages) }
-func (h *IndexedHeap) Less(i, j int) bool { return h.messages[i].getIndex() < h.messages[j].getIndex() }
-func (h *IndexedHeap) Swap(i, j int)      { h.messages[i], h.messages[j] = h.messages[j], h.messages[i] }
+func (h *indexedHeap) Len() int           { return len(h.messages) }
+func (h *indexedHeap) Less(i, j int) bool { return h.messages[i].getIndex() < h.messages[j].getIndex() }
+func (h *indexedHeap) Swap(i, j int)      { h.messages[i], h.messages[j] = h.messages[j], h.messages[i] }
 
 // Push and Pop use pointer receivers because they modify the slice's length,
 // not just its contents.
-func (h *IndexedHeap) Push(x interface{}) {
-	(*h).messages = append((*h).messages, x.(Indexed))
+func (h *indexedHeap) Push(x interface{}) {
+	(*h).messages = append((*h).messages, x.(indexedItem))
 }
 
-func (h *IndexedHeap) Pop() interface{} {
+func (h *indexedHeap) Pop() interface{} {
 	old := (*h).messages
 	n := len(old)
 	x := old[n-1]
@@ -28,13 +28,13 @@ func (h *IndexedHeap) Pop() interface{} {
 	return x
 }
 
-func (h *IndexedHeap) Add(message Indexed) {
+func (h *indexedHeap) Add(message indexedItem) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	heap.Push(h, message)
 }
 
-func (h *IndexedHeap) AddMany(messages ...Indexed) {
+func (h *indexedHeap) AddMany(messages ...indexedItem) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	for _, message := range messages {
@@ -42,33 +42,33 @@ func (h *IndexedHeap) AddMany(messages ...Indexed) {
 	}
 }
 
-func (h *IndexedHeap) Pull() *Indexed {
+func (h *indexedHeap) Pull() *indexedItem {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if h.Len() == 0 {
 		return nil
 	}
-	message := heap.Pop(h).(Indexed)
+	message := heap.Pop(h).(indexedItem)
 	return &message
 }
 
-func (h *IndexedHeap) PullWithCondition(check func(*Indexed) bool) *Indexed {
+func (h *indexedHeap) PullWithCondition(check func(*indexedItem) bool) *indexedItem {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if check(h.pick()) {
-		message := heap.Pop(h).(Indexed)
+		message := heap.Pop(h).(indexedItem)
 		return &message
 	}
 	return nil
 }
 
-func (h *IndexedHeap) Pick() *Indexed {
+func (h *indexedHeap) Pick() *indexedItem {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
 	return h.pick()
 }
 
-func (h *IndexedHeap) pick() *Indexed {
+func (h *indexedHeap) pick() *indexedItem {
 	if h.Len() > 0 {
 		message := (*h).messages[0]
 		return &message
@@ -76,8 +76,8 @@ func (h *IndexedHeap) pick() *Indexed {
 	return nil
 }
 
-func newIndexedHeap() *IndexedHeap {
-	h := &IndexedHeap{}
+func newIndexedHeap() *indexedHeap {
+	h := &indexedHeap{}
 	heap.Init(h)
 	return h
 }

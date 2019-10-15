@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -12,14 +13,22 @@ var (
 )
 
 func TestGetWordFilePathResponse(t *testing.T) {
-	var mockGetWordFilePathResponse = func(url string, idx int, wg *sync.WaitGroup) resultFile {
-		return resData
+	var mockGetWordFilePathResponse = func(url string, idx int, out chan<- interface{}, wg *sync.WaitGroup) {
+		defer wg.Done()
+		out <- resData
 	}
 	origGetWordFilePathResponse := getWordFilePath
 	getWordFilePath = mockGetWordFilePathResponse
 	defer func() { getWordFilePath = origGetWordFilePathResponse }()
 
-	out := downloadFiles("http://test.com/file")
+	inChan := make(chan interface{}, 1)
+	inChan <- "http://test.com/file"
+
+	ctx := context.Background()
+
+	close(inChan)
+
+	out := downloadFiles(ctx, inChan)
 	fileName := (<-out).(resultFile).Filename
 	assert.Equal(t, fileName, resData.Filename)
 }
