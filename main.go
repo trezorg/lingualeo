@@ -34,19 +34,16 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT)
 
 	go func() {
-		for {
-			select {
-			case <-stop:
-				done()
-				return
-			case result, ok := <-resultsChan:
-				if !ok {
-					return
-				}
-				printTranslate(result.(lingualeoResult))
-			}
+		for sig := range stop {
+			printColorStringF("r", "Got OS signal: %s", sig)
+			done()
+			return
 		}
 	}()
+
+	for result := range orDone(ctx, resultsChan) {
+		printTranslate(result.(lingualeoResult))
+	}
 
 	wg.Wait()
 }

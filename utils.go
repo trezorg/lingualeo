@@ -94,6 +94,15 @@ func printColorString(clr string, text string) {
 	}
 }
 
+func printColorStringF(clr string, fmtText string, params ...interface{}) {
+	text := fmt.Sprintf(fmtText, params...)
+	str := fmt.Sprintf("@{%s}%s\n", clr, text)
+	_, err := color.Printf(str)
+	if err != nil {
+		log.Error(err)
+	}
+}
+
 func printTranslate(result lingualeoResult) {
 	var strTitle string
 	if result.Exists {

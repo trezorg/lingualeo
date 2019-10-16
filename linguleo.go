@@ -89,7 +89,7 @@ func prepareResultToAdd(result lingualeoResult, args *lingualeoArgs) *lingualeoR
 
 func playTranslateFiles(ctx context.Context, args *lingualeoArgs, urls <-chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for res := range orderedChannel(downloadFiles(ctx, urls), len(urls)) {
+	for res := range orDone(ctx, orderedChannel(downloadFiles(ctx, urls), len(urls))) {
 		res, _ := res.(resultFile)
 		if res.Error != nil {
 			log.Error(res.Error)

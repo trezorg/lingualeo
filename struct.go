@@ -63,23 +63,9 @@ func (result *lingualeoResult) parseAndSortTranslate() {
 		if !isUsed {
 			isUsed = bool(translate.Exists)
 		}
-		for _, word := range sanitizeWords(&translate) {
-			result.Words = append(result.Words, word)
-		}
+		result.Words = append(result.Words, sanitizeWords(&translate)...)
 	}
 	result.Exists = isUsed
-	result.Words = unique(result.Words)
-}
-
-func (result *lingualeoResult) findWordUsage() {
-	sort.Slice(result.Translate, func(i, j int) bool {
-		return result.Translate[i].Votes > result.Translate[j].Votes
-	})
-	for _, translate := range result.Translate {
-		for _, word := range sanitizeWords(&translate) {
-			result.Words = append(result.Words, word)
-		}
-	}
 	result.Words = unique(result.Words)
 }
 
