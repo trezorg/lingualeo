@@ -30,8 +30,7 @@ func main() {
 	go addTranslationToDictionary(ctx, client, addWordChan, &wg)
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM)
-	signal.Notify(stop, syscall.SIGINT)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
 		for sig := range stop {
