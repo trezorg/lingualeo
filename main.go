@@ -25,7 +25,11 @@ func main() {
 	wg.Add(1)
 	soundChan, addWordChan, resultsChan := processTranslation(ctx, client, args, &wg)
 	wg.Add(1)
-	go playTranslateFiles(ctx, args, soundChan, &wg)
+	if args.DownloadSoundFile {
+		go playTranslateDownloadFiles(ctx, args, soundChan, &wg)
+	} else {
+		go playTranslateFiles(ctx, args, soundChan, &wg)
+	}
 	wg.Add(1)
 	go addTranslationToDictionary(ctx, client, addWordChan, &wg)
 

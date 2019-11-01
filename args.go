@@ -158,6 +158,11 @@ func prepareCliArgs() lingualeoArgs {
 			Destination: &args.Sound,
 		},
 		cli.BoolFlag{
+			Name:        "download, dl",
+			Usage:       "Download file to play sound",
+			Destination: &args.DownloadSoundFile,
+		},
+		cli.BoolFlag{
 			Name:        "debug, d",
 			Usage:       "Debug mode. Set DEBUG mode",
 			Destination: &args.Debug,
@@ -316,6 +321,9 @@ func mergeConfigs(args *lingualeoArgs, configArgs *lingualeoArgs) *lingualeoArgs
 	}
 	if configArgs.Sound {
 		args.Sound = configArgs.Sound
+	}
+	if configArgs.DownloadSoundFile {
+		args.DownloadSoundFile = configArgs.DownloadSoundFile
 	}
 	if configArgs.LogPrettyPrint {
 		args.LogPrettyPrint = configArgs.LogPrettyPrint

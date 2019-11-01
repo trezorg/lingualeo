@@ -124,7 +124,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	wg.Add(1)
 	soundChan, _, resultChan := processTranslation(ctx, client, &args, &wg)
 	wg.Add(1)
-	go playTranslateFiles(ctx, &args, soundChan, &wg)
+	go playTranslateDownloadFiles(ctx, &args, soundChan, &wg)
 
 	for result := range resultChan {
 		res := result.(lingualeoResult)

@@ -87,7 +87,7 @@ func prepareResultToAdd(result lingualeoResult, args *lingualeoArgs) *lingualeoR
 	return nil
 }
 
-func playTranslateFiles(ctx context.Context, args *lingualeoArgs, urls <-chan interface{}, wg *sync.WaitGroup) {
+func playTranslateDownloadFiles(ctx context.Context, args *lingualeoArgs, urls <-chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for res := range orDone(ctx, orderedChannel(downloadFiles(ctx, urls), len(urls))) {
 		res, _ := res.(resultFile)
@@ -103,6 +103,16 @@ func playTranslateFiles(ctx context.Context, args *lingualeoArgs, urls <-chan in
 			log.Error(err)
 		}
 		err = os.Remove(res.Filename)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func playTranslateFiles(ctx context.Context, args *lingualeoArgs, urls <-chan interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for res := range orDone(ctx, urls) {
+		err := playSound(args.Player, res.(string))
 		if err != nil {
 			log.Error(err)
 		}
