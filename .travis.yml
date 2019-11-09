@@ -15,6 +15,7 @@ script:
 - go vet
 - golint -set_exit_status
 - go test -v -race ./...
+before_deploy:
 - GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -a -tags static_all -o lingualeo
 deploy:
   provider: releases

@@ -13,3 +13,9 @@ func TestInsertIntoSlice(t *testing.T) {
 	newSlice = insertIntoSlice(newSlice, 1, "2")
 	assert.Equal(t, newSlice, []Value{"1", "2", "2", "4", "6"})
 }
+
+func TestCheckEitherCommandIsAvailableOnSystem(t *testing.T) {
+	assert.Equal(t, true, isCommandAvailable("bash -c 'oops'"))
+	assert.Equal(t, true, isCommandAvailable("bash"))
+	assert.Equal(t, false, isCommandAvailable("xxxxxxxxxxx"))
+}

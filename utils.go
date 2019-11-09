@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"strings"
 	"unicode"
 
 	"github.com/wsxiaoys/terminal/color"
@@ -66,7 +67,10 @@ func failIfError(err error) {
 }
 
 func playSound(player string, url string) error {
-	cmd := exec.Command(player, url)
+	parts := strings.Split(player, " ")
+	playerExec := parts[0]
+	params := append(parts[1:], url)
+	cmd := exec.Command(playerExec, params...)
 	err := cmd.Start()
 	if err != nil {
 		return err
@@ -79,7 +83,8 @@ func playSound(player string, url string) error {
 }
 
 func isCommandAvailable(name string) bool {
-	cmd := exec.Command("/bin/sh", "-c", "command -v "+name)
+	execName := strings.Split(name, " ")[0]
+	cmd := exec.Command("/bin/sh", "-c", "command -v "+execName)
 	if err := cmd.Run(); err != nil {
 		return false
 	}

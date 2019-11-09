@@ -102,6 +102,7 @@ func prepareCliArgs() lingualeoArgs {
 	add = false
 	sound = true
 	player = "mplayer"
+	download = false
 	
 	Yaml format example:
 	
@@ -110,6 +111,7 @@ func prepareCliArgs() lingualeoArgs {
 	add: false
 	sound: true
 	player: mplayer
+	download: false
 	
 	JSON format example:
 	
@@ -118,7 +120,8 @@ func prepareCliArgs() lingualeoArgs {
 		"password": "password",
 		"add": false,
 		"sound": true,
-		"player": "mplayer"
+		"player": "mplayer",
+		"download": false,
 	}
 	`
 	app.Flags = []cli.Flag{
@@ -143,7 +146,7 @@ func prepareCliArgs() lingualeoArgs {
 		cli.StringFlag{
 			Name:        "player, m",
 			Value:       "",
-			Usage:       "Media player for word pronunciation",
+			Usage:       "Media player to pronounce words",
 			Destination: &args.Player,
 		},
 		cli.StringFlag{
@@ -154,12 +157,12 @@ func prepareCliArgs() lingualeoArgs {
 		},
 		cli.BoolFlag{
 			Name:        "sound, s",
-			Usage:       "Play words pronunciation",
+			Usage:       "Pronounce words",
 			Destination: &args.Sound,
 		},
 		cli.BoolFlag{
 			Name:        "download, dl",
-			Usage:       "Download file to play sound",
+			Usage:       "Download file to play sound. In case a player is not able to play url directly",
 			Destination: &args.DownloadSoundFile,
 		},
 		cli.BoolFlag{
