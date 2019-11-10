@@ -84,11 +84,8 @@ func playSound(player string, url string) error {
 
 func isCommandAvailable(name string) bool {
 	execName := strings.Split(name, " ")[0]
-	cmd := exec.Command("/bin/sh", "-c", "command -v "+execName)
-	if err := cmd.Run(); err != nil {
-		return false
-	}
-	return true
+	_, err := exec.LookPath(execName)
+	return err == nil
 }
 
 func printColorString(clr string, text string) {
