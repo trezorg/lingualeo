@@ -75,11 +75,11 @@ func translateWords(ctx context.Context, args *lingualeoArgs, client *http.Clien
 func prepareResultToAdd(result lingualeoResult, args *lingualeoArgs) *lingualeoResult {
 	if !result.Exists || args.Force {
 		// Custom translation
-		if len(args.Translate) > 0 {
+		if len(args.Translate.Value()) > 0 {
 			if args.TranslateReplace {
-				result.Words = unique(args.Translate)
+				result.Words = unique(args.Translate.Value())
 			} else {
-				result.Words = unique(append(result.Words, args.Translate...))
+				result.Words = unique(append(result.Words, args.Translate.Value()...))
 			}
 		}
 		return &result

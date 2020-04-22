@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 
 	"gopkg.in/yaml.v2"
 )
@@ -74,8 +74,8 @@ func prepareCliArgs() lingualeoArgs {
 			}
 			return fmt.Errorf("there are no words to translate")
 		}
-		args.Words = unique(c.Args())
-		if args.Add && len(args.Translate) > 0 && len(args.Words) > 1 {
+		args.Words = unique(c.Args().Slice())
+		if args.Add && len(args.Translate.Value()) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom transcation")
 		}
 		return nil
@@ -85,8 +85,10 @@ func prepareCliArgs() lingualeoArgs {
 	app.Version = "0.0.1"
 	app.HideHelp = true
 	app.HideVersion = true
-	app.Author = "Igor Nemilentsev"
-	app.Email = "trezorg@gmail.com"
+	app.Authors = []*cli.Author{{
+		Name:  "Igor Nemilentsev",
+		Email: "trezorg@gmail.com",
+	}}
 	app.Usage = "Lingualeo API console helper"
 	app.EnableBashCompletion = true
 	app.ArgsUsage = "Multiple words can be supplied"
@@ -125,77 +127,77 @@ func prepareCliArgs() lingualeoArgs {
 	}
 	`
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "email, e",
 			Value:       "",
 			Usage:       "Lingualeo email",
 			Destination: &args.Email,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "password, p",
 			Value:       "",
 			Usage:       "Lingualeo password",
 			Destination: &args.Password,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "config, c",
 			Value:       "",
 			Usage:       "Config file. Either in toml, yaml or json format",
 			Destination: &args.Config,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "player, m",
 			Value:       "",
 			Usage:       "Media player to pronounce words",
 			Destination: &args.Player,
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "log-level, l",
 			Value:       "INFO",
 			Usage:       "Log level",
 			Destination: &args.LogLevel,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "sound, s",
 			Usage:       "Pronounce words",
 			Destination: &args.Sound,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "download, dl",
 			Usage:       "Download file to play sound. In case a player is not able to play url directly",
 			Destination: &args.DownloadSoundFile,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "debug, d",
 			Usage:       "Debug mode. Set DEBUG mode",
 			Destination: &args.Debug,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:        "log-pretty-print, lpr",
 			Usage:       "Log pretty print",
 			Destination: &args.LogPrettyPrint,
 		},
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name:    "add",
 			Aliases: []string{"a"},
 			Usage:   "Add to lingualeo dictionary",
 			Flags: []cli.Flag{
-				cli.BoolFlag{
+				&cli.BoolFlag{
 					Name:        "force, f",
 					Usage:       "Force add to lingualeo dictionary",
 					Destination: &args.Force,
 				},
-				cli.BoolFlag{
+				&cli.BoolFlag{
 					Name:        "replace, r",
 					Usage:       "Custom translation. Replace word instead of to add",
 					Destination: &args.TranslateReplace,
 				},
-				cli.StringSliceFlag{
-					Name:  "translate, t",
-					Usage: "Custom translation: lingualeo add -t word1 -t word2 word",
-					Value: &args.Translate,
+				&cli.StringSliceFlag{
+					Name:        "translate, t",
+					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
+					Destination: &args.Translate,
 				},
 			},
 			Action: func(c *cli.Context) error {
