@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"fmt"
@@ -7,19 +7,19 @@ import (
 )
 
 func fixTranslateString(word string) string {
-	word = string(blankSymbolsRegex.ReplaceAllString(word, " "))
+	word = blankSymbolsRegex.ReplaceAllString(word, " ")
 	word = blankSymbolsWithPointRegex.ReplaceAllString(word, ". ")
 	return strings.ToLower(word)
 }
 
 func removeSymbols(word string) string {
 	nonAlphaBet := regexp.MustCompile(fmt.Sprintf(`[^%s]`, alphabet))
-	return string(nonAlphaBet.ReplaceAllString(word, ""))
+	return nonAlphaBet.ReplaceAllString(word, "")
 }
 
-func sanitizeWords(result *lingualeoWordResult) []string {
+func sanitizeWords(word string) []string {
 	var results []string
-	words := splitRegex.Split(strings.TrimSpace(result.Value), -1)
+	words := splitRegex.Split(strings.TrimSpace(word), -1)
 	for _, word := range words {
 		word = fixTranslateString(strings.TrimSpace(removeSymbols(word)))
 		if len(word) > 1 {

@@ -1,4 +1,4 @@
-package main
+package translator
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ player: %s
 		logLevel,
 		player,
 	)
-	args := &lingualeoArgs{}
+	args := &Lingualeo{}
 	decoder := newConfigFile("test.yaml")
 	require.Equal(t, yamlType, decoder.getType())
 	err := decoder.decode([]byte(config), args)
@@ -58,7 +58,7 @@ func TestReadJsonConfig(t *testing.T) {
 		logLevel,
 		player,
 	)
-	args := &lingualeoArgs{}
+	args := &Lingualeo{}
 	decoder := newConfigFile("test.json")
 	require.Equal(t, jsonType, decoder.getType())
 	err := decoder.decode([]byte(config), args)
@@ -89,7 +89,7 @@ player = "%s"
 		logLevel,
 		player,
 	)
-	args := &lingualeoArgs{}
+	args := &Lingualeo{}
 	decoder := newConfigFile("test.ini")
 	require.Equal(t, tomlType, decoder.getType())
 	err := decoder.decode([]byte(config), args)
@@ -126,7 +126,7 @@ player: "%s"
 		logLevel,
 		player,
 	)
-	args := &lingualeoArgs{}
+	args := &Lingualeo{}
 
 	decoder := newConfigFile("test.ini")
 	require.Equal(t, tomlType, decoder.getType())

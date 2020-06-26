@@ -1,12 +1,14 @@
-package main
+package logger
 
 import (
 	"os"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 )
 
-var log *logrus.Entry
+var Log *logrus.Entry
+var onceLog sync.Once
 
 type utcFormatter struct {
 	logrus.Formatter
@@ -21,7 +23,7 @@ func initLogger(logLevel string, logPrettyPrint bool) {
 
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		logrus.Fatalf("Cannot parse log level: %s", logLevel)
+		logrus.Fatalf("Cannot parse Log level: %s", logLevel)
 	}
 
 	logrus.SetFormatter(utcFormatter{&logrus.JSONFormatter{
@@ -31,5 +33,12 @@ func initLogger(logLevel string, logPrettyPrint bool) {
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(level)
-	log = logrus.WithFields(logrus.Fields{"service": "lingualeo"})
+	Log = logrus.WithFields(logrus.Fields{"service": "lingualeo"})
+}
+
+func InitLogger(logLevel string, logPrettyPrint bool) *logrus.Entry {
+	onceLog.Do(func() {
+		initLogger(logLevel, logPrettyPrint)
+	})
+	return Log
 }

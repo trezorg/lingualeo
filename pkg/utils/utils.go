@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"encoding/json"
@@ -12,31 +12,33 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/trezorg/lingualeo/pkg/logger"
+
 	"github.com/wsxiaoys/terminal/color"
 )
 
 // Value blank interface
 type Value interface{}
 
-func getJSON(body io.ReadCloser, target interface{}) error {
+func GetJSON(body io.ReadCloser, target interface{}) error {
 	defer func() {
 		err := body.Close()
 		if err != nil {
-			log.Error(err)
+			logger.Log.Error(err)
 		}
 	}()
 	return json.NewDecoder(body).Decode(target)
 }
 
-func getJSONFromString(body *string, target interface{}) error {
+func GetJSONFromString(body *string, target interface{}) error {
 	return json.Unmarshal([]byte(*body), &target)
 }
 
-func readBody(resp *http.Response) (*string, error) {
+func ReadBody(resp *http.Response) (*string, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			log.Error(err)
+			logger.Log.Error(err)
 		}
 	}()
 	data, err := ioutil.ReadAll(resp.Body)
@@ -47,7 +49,7 @@ func readBody(resp *http.Response) (*string, error) {
 	return &res, nil
 }
 
-func unique(strSlice []string) []string {
+func Unique(strSlice []string) []string {
 	keys := make(map[string]bool, len(strSlice))
 	var list []string
 	for _, entry := range strSlice {
@@ -59,14 +61,14 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-func failIfError(err error) {
+func FailIfError(err error) {
 	if err != nil {
-		printColorString("r", fmt.Sprintf("Error: %v", err))
+		PrintColorString("r", fmt.Sprintf("Error: %v", err))
 		os.Exit(1)
 	}
 }
 
-func playSound(player string, url string) error {
+func PlaySound(player string, url string) error {
 	parts := strings.Split(player, " ")
 	playerExec := parts[0]
 	params := append(parts[1:], url)
@@ -82,72 +84,35 @@ func playSound(player string, url string) error {
 	return nil
 }
 
-func isCommandAvailable(name string) bool {
+func IsCommandAvailable(name string) bool {
 	execName := strings.Split(name, " ")[0]
 	_, err := exec.LookPath(execName)
 	return err == nil
 }
 
-func printColorString(clr string, text string) {
+func PrintColorString(clr string, text string) {
 	str := fmt.Sprintf("@{%s}%s\n", clr, text)
 	_, err := color.Printf(str)
 	if err != nil {
-		log.Error(err)
+		logger.Log.Error(err)
 	}
 }
 
-func printColorStringF(clr string, fmtText string, params ...interface{}) {
+func PrintColorStringF(clr string, fmtText string, params ...interface{}) {
 	text := fmt.Sprintf(fmtText, params...)
 	str := fmt.Sprintf("@{%s}%s\n", clr, text)
 	_, err := color.Printf(str)
 	if err != nil {
-		log.Error(err)
+		logger.Log.Error(err)
 	}
 }
 
-func printTranslate(result lingualeoResult) {
-	var strTitle string
-	if result.Exists {
-		strTitle = "existing"
-	} else {
-		strTitle = "new"
-	}
-	_, err := color.Printf("@{r}Found %s word:\n", strTitle)
-	if err != nil {
-		log.Error(err)
-	}
-	_, err = color.Printf("@{g}['%s'] (%s)\n", result.Word, result.Transcription)
-	if err != nil {
-		log.Error(err)
-	}
-	for _, word := range result.Words {
-		printColorString("y", word)
-	}
-}
-
-func printAddedTranslation(result lingualeoResult) {
-	var strTitle string
-	if result.Exists {
-		strTitle = "Updated existing"
-	} else {
-		strTitle = "Added new"
-	}
-	_, err := color.Printf("@{r}%s word: ", strTitle)
-	if err != nil {
-		log.Error(err)
-	}
-	_, err = color.Printf("@{g}['%s']\n", result.Word)
-	if err != nil {
-		log.Error(err)
-	}
-}
-
-func fileExists(name string) bool {
+func FileExists(name string) bool {
 	stat, err := os.Stat(name)
 	return !os.IsNotExist(err) && !stat.IsDir()
 }
 
-func getUserHome() (string, error) {
+func GetUserHome() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
@@ -155,14 +120,14 @@ func getUserHome() (string, error) {
 	return usr.HomeDir, nil
 }
 
-func insertIntoSlice(slice []Value, pos int, value Value) []Value {
+func InsertIntoSlice(slice []Value, pos int, value Value) []Value {
 	s := append(slice, new(Value))
 	copy(s[pos+1:], s[pos:])
 	s[pos] = value
 	return s
 }
 
-func capitalize(s string) string {
+func Capitalize(s string) string {
 	for index, value := range s {
 		return string(unicode.ToUpper(value)) + s[index+1:]
 	}

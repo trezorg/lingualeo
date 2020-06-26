@@ -1,12 +1,26 @@
-package main
+package channel
 
 import (
 	"context"
-	"sync"
 )
 
-func orDone(ctx context.Context, input <-chan interface{}) <-chan interface{} {
-	out := make(chan interface{})
+func ToStringChannel(ctx context.Context, input ...string) <-chan string {
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		for _, val := range input {
+			select {
+			case <-ctx.Done():
+				return
+			case out <- val:
+			}
+		}
+	}()
+	return out
+}
+
+func OrStringDone(ctx context.Context, input <-chan string) <-chan string {
+	out := make(chan string)
 	go func() {
 		defer close(out)
 		for {
@@ -27,6 +41,7 @@ func orDone(ctx context.Context, input <-chan interface{}) <-chan interface{} {
 	return out
 }
 
+/*
 func fanOut(ctx context.Context, inputs ...<-chan interface{}) <-chan interface{} {
 	var wg sync.WaitGroup
 	wg.Add(len(inputs))
@@ -60,7 +75,7 @@ func tee(ctx context.Context, input <-chan interface{}) (_, _ <-chan interface{}
 	go func() {
 		defer close(out1)
 		defer close(out2)
-		for val := range orDone(ctx, input) {
+		for val := range OrDone(ctx, input) {
 			var out1, out2 = out1, out2
 			for i := 0; i < 2; i++ {
 				select {
@@ -87,21 +102,6 @@ func repeat(ctx context.Context, input ...interface{}) <-chan interface{} {
 					return
 				case out <- val:
 				}
-			}
-		}
-	}()
-	return out
-}
-
-func toChannel(ctx context.Context, input ...interface{}) <-chan interface{} {
-	out := make(chan interface{})
-	go func() {
-		defer close(out)
-		for _, val := range input {
-			select {
-			case <-ctx.Done():
-				return
-			case out <- val:
 			}
 		}
 	}()
@@ -138,7 +138,7 @@ func bridge(ctx context.Context, inputs <-chan <-chan interface{}) <-chan interf
 			case <-ctx.Done():
 				return
 			}
-			for val := range orDone(ctx, stream) {
+			for val := range OrDone(ctx, stream) {
 				select {
 				case out <- val:
 				case <-ctx.Done():
@@ -149,28 +149,4 @@ func bridge(ctx context.Context, inputs <-chan <-chan interface{}) <-chan interf
 	return out
 }
 
-func orderedChannel(input <-chan interface{}, count int) <-chan interface{} {
-	out := make(chan interface{}, count)
-
-	go func() {
-		defer close(out)
-		slideIndex := 0
-		results := newIndexedHeap()
-
-		check := func(obj *indexedItem) bool {
-			return obj != nil && slideIndex == (*obj).getIndex()
-		}
-		for result := range input {
-			results.Add(result.(indexedItem))
-			for orderResult := results.PullWithCondition(check); orderResult != nil; orderResult = results.PullWithCondition(check) {
-				slideIndex++
-				out <- *orderResult
-			}
-		}
-		for orderResult := results.Pull(); orderResult != nil; orderResult = results.Pull() {
-			out <- *orderResult
-		}
-	}()
-
-	return out
-}
+*/

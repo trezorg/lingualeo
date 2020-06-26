@@ -1,4 +1,4 @@
-package main
+package translator
 
 import (
 	"encoding/json"
@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/trezorg/lingualeo/pkg/utils"
+
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"
 
@@ -15,7 +17,7 @@ import (
 )
 
 type configType int
-type decodeFunc func(data []byte, args *lingualeoArgs) error
+type decodeFunc func(data []byte, args *Lingualeo) error
 
 const (
 	yamlType = configType(1)
@@ -46,11 +48,11 @@ func (cf *configFile) getType() configType {
 	return tomlType
 }
 
-func (cf *configFile) decode(data []byte, args *lingualeoArgs) error {
+func (cf *configFile) decode(data []byte, args *Lingualeo) error {
 	return decodeMapping[cf.getType()](data, args)
 }
 
-func (cf *configFile) decodeFile(args *lingualeoArgs) error {
+func (cf *configFile) decodeFile(args *Lingualeo) error {
 	data, err := ioutil.ReadFile(cf.filename)
 	if err != nil {
 		return err
@@ -62,9 +64,11 @@ func newConfigFile(filename string) *configFile {
 	return &configFile{filename: filename}
 }
 
-func prepareCliArgs() lingualeoArgs {
+func prepareCliArgs(version string) Lingualeo {
 
-	args := lingualeoArgs{}
+	args := Lingualeo{}
+
+	var translate cli.StringSlice
 
 	defaultCommand := func(c *cli.Context) error {
 		if c.NArg() == 0 {
@@ -74,17 +78,17 @@ func prepareCliArgs() lingualeoArgs {
 			}
 			return fmt.Errorf("there are no words to translate")
 		}
-		args.Words = unique(c.Args().Slice())
-		if args.Add && len(args.Translate.Value()) > 0 && len(args.Words) > 1 {
+		args.Words = utils.Unique(c.Args().Slice())
+		if args.Add && len(args.Translate) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom transcation")
 		}
 		return nil
 	}
 
 	app := cli.NewApp()
-	app.Version = "0.0.1"
-	app.HideHelp = true
-	app.HideVersion = true
+	app.Version = version
+	app.HideHelp = false
+	app.HideVersion = false
 	app.Authors = []*cli.Author{{
 		Name:  "Igor Nemilentsev",
 		Email: "trezorg@gmail.com",
@@ -191,13 +195,13 @@ func prepareCliArgs() lingualeoArgs {
 				},
 				&cli.BoolFlag{
 					Name:        "replace, r",
-					Usage:       "Custom translation. Replace word instead of to add",
+					Usage:       "Custom translation. Replace word instead of adding",
 					Destination: &args.TranslateReplace,
 				},
 				&cli.StringSliceFlag{
 					Name:        "translate, t",
 					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
-					Destination: &args.Translate,
+					Destination: &translate,
 				},
 			},
 			Action: func(c *cli.Context) error {
@@ -212,21 +216,21 @@ func prepareCliArgs() lingualeoArgs {
 		if strings.Contains(err.Error(), "help requested") {
 			os.Exit(0)
 		}
-		failIfError(err)
+		utils.FailIfError(err)
 	}
 	return args
 
 }
 
-func readTomlConfig(data []byte, args *lingualeoArgs) error {
-	_, err := toml.Decode(string(data), &args)
+func readTomlConfig(data []byte, args *Lingualeo) error {
+	_, err := toml.Decode(string(data), args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func readYamlConfig(data []byte, args *lingualeoArgs) error {
+func readYamlConfig(data []byte, args *Lingualeo) error {
 	err := yaml.Unmarshal(data, args)
 	if err != nil {
 		return err
@@ -234,7 +238,7 @@ func readYamlConfig(data []byte, args *lingualeoArgs) error {
 	return nil
 }
 
-func readJSONConfig(data []byte, args *lingualeoArgs) error {
+func readJSONConfig(data []byte, args *Lingualeo) error {
 	err := json.Unmarshal(data, args)
 	if err != nil {
 		return err
@@ -243,7 +247,7 @@ func readJSONConfig(data []byte, args *lingualeoArgs) error {
 }
 
 func getConfigFiles(filename *string) ([]string, error) {
-	home, err := getUserHome()
+	home, err := utils.GetUserHome()
 	if err != nil {
 		return nil, err
 	}
@@ -254,48 +258,48 @@ func getConfigFiles(filename *string) ([]string, error) {
 		homeConfigFile, _ = filepath.Abs(filepath.Join(home, configFilename))
 		currentConfigFile, _ = filepath.Abs(configFilename)
 		for _, fullConfigFileName := range [2]string{homeConfigFile, currentConfigFile} {
-			if fileExists(fullConfigFileName) {
+			if utils.FileExists(fullConfigFileName) {
 				configs = append(configs, fullConfigFileName)
 			}
 		}
 	}
 	if filename != nil && len(*filename) > 0 {
 		argsConfig, _ := filepath.Abs(*filename)
-		if fileExists(argsConfig) {
+		if utils.FileExists(argsConfig) {
 			configs = append(configs, argsConfig)
 		}
 		configs = append(configs, argsConfig)
 	}
-	configs = unique(configs)
+	configs = utils.Unique(configs)
 	return configs, nil
 }
 
-func readConfigs(filename *string) (*lingualeoArgs, error) {
+func fromConfigs(filename *string) (*Lingualeo, error) {
 	configs, err := getConfigFiles(filename)
 	if err != nil {
 		return nil, err
 	}
-	args := &lingualeoArgs{}
+	args := Lingualeo{}
 	for _, name := range configs {
-		err = newConfigFile(name).decodeFile(args)
+		err = newConfigFile(name).decodeFile(&args)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return args, nil
+	return &args, nil
 }
 
-func checkConfig(args *lingualeoArgs) error {
+func (args *Lingualeo) checkConfig() error {
 	if len(args.Config) > 0 {
 		filename, _ := filepath.Abs(args.Config)
-		if !fileExists(filename) {
+		if !utils.FileExists(filename) {
 			return fmt.Errorf("there is no the config file or file is a directory: %s", filename)
 		}
 	}
 	return nil
 }
 
-func checkArgs(args *lingualeoArgs) error {
+func (args *Lingualeo) checkArgs() error {
 	if len(args.Email) == 0 {
 		return fmt.Errorf("mo email argument has been supplied")
 	}
@@ -308,36 +312,35 @@ func checkArgs(args *lingualeoArgs) error {
 	return nil
 }
 
-func mergeConfigs(args *lingualeoArgs, configArgs *lingualeoArgs) *lingualeoArgs {
-	if len(args.Email) == 0 && len(configArgs.Email) > 0 {
-		args.Email = configArgs.Email
+func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
+	if len(args.Email) == 0 && len(a.Email) > 0 {
+		args.Email = a.Email
 	}
-	if len(args.Password) == 0 && len(configArgs.Password) > 0 {
-		args.Password = configArgs.Password
+	if len(args.Password) == 0 && len(a.Password) > 0 {
+		args.Password = a.Password
 	}
-	if len(args.Player) == 0 && len(configArgs.Player) > 0 {
-		args.Player = configArgs.Player
+	if len(args.Player) == 0 && len(a.Player) > 0 {
+		args.Player = a.Player
 	}
-	if configArgs.Force {
-		args.Force = configArgs.Force
+	if a.Force {
+		args.Force = a.Force
 	}
-	if configArgs.Add {
-		args.Add = configArgs.Add
+	if a.Add {
+		args.Add = a.Add
 	}
-	if configArgs.Sound {
-		args.Sound = configArgs.Sound
+	if a.Sound {
+		args.Sound = a.Sound
 	}
-	if configArgs.DownloadSoundFile {
-		args.DownloadSoundFile = configArgs.DownloadSoundFile
+	if a.DownloadSoundFile {
+		args.DownloadSoundFile = a.DownloadSoundFile
 	}
-	if configArgs.LogPrettyPrint {
-		args.LogPrettyPrint = configArgs.LogPrettyPrint
+	if a.LogPrettyPrint {
+		args.LogPrettyPrint = a.LogPrettyPrint
 	}
-	if configArgs.TranslateReplace {
-		args.TranslateReplace = configArgs.TranslateReplace
+	if a.TranslateReplace {
+		args.TranslateReplace = a.TranslateReplace
 	}
-	if len(args.LogLevel) == 0 && len(configArgs.LogLevel) > 0 {
-		args.LogLevel = configArgs.LogLevel
+	if len(args.LogLevel) == 0 && len(a.LogLevel) > 0 {
+		args.LogLevel = a.LogLevel
 	}
-	return args
 }
