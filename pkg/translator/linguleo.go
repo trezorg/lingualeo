@@ -35,7 +35,6 @@ func (args *Lingualeo) checkMediaPlayer() {
 
 func NewLingualeo(version string) (Lingualeo, error) {
 	client := prepareCliArgs(version)
-	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	err := client.checkConfig()
 	if err != nil {
 		return client, err
@@ -49,6 +48,7 @@ func NewLingualeo(version string) (Lingualeo, error) {
 	if err != nil {
 		return client, err
 	}
+	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	client.checkMediaPlayer()
 	a, err := api.NewAPI(client.Email, client.Password, client.Debug)
 	if err != nil {
@@ -99,7 +99,7 @@ func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	return false
 }
 
-func (args *Lingualeo) DownloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup, downloader files.NewDownloader) {
+func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup, downloader files.NewDownloader) {
 	defer wg.Done()
 	fileChannel := files.OrderedChannel(files.DownloadFiles(ctx, urls, downloader), len(urls))
 	for res := range files.OrFilesDone(ctx, fileChannel) {
@@ -121,13 +121,21 @@ func (args *Lingualeo) DownloadAndPronounce(ctx context.Context, urls <-chan str
 	}
 }
 
-func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
+func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for res := range channel.OrStringDone(ctx, urls) {
 		err := utils.PlaySound(args.Player, res)
 		if err != nil {
 			logger.Log.Error(err)
 		}
+	}
+}
+
+func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
+	if args.DownloadSoundFile {
+		args.downloadAndPronounce(ctx, urls, wg, files.NewFileDownloader)
+	} else {
+		args.pronounce(ctx, urls, wg)
 	}
 }
 

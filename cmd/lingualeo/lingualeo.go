@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/trezorg/lingualeo/pkg/api"
-	"github.com/trezorg/lingualeo/pkg/files"
 	"github.com/trezorg/lingualeo/pkg/translator"
 	"github.com/trezorg/lingualeo/pkg/utils"
 )
@@ -22,19 +21,6 @@ func main() {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
-	wg.Add(1)
-	if args.DownloadSoundFile {
-		go args.DownloadAndPronounce(ctx, soundChan, &wg, files.NewFileDownloader)
-	} else {
-		go args.Pronounce(ctx, soundChan, &wg)
-	}
-	wg.Add(1)
-	go args.AddToDictionary(ctx, addWordChan, &wg)
-
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
@@ -45,6 +31,18 @@ func main() {
 			return
 		}
 	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
+	if args.Sound {
+		wg.Add(1)
+		go args.Pronounce(ctx, soundChan, &wg)
+	}
+	if args.Add {
+		wg.Add(1)
+		go args.AddToDictionary(ctx, addWordChan, &wg)
+	}
 
 	for result := range api.OrResultDone(ctx, resultsChan) {
 		result.PrintTranslation()

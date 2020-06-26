@@ -96,41 +96,17 @@ func (api *API) auth() error {
 	if err != nil {
 		return nil
 	}
-	req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(jsonValue))
+	responseBody, err := request("POST", authURL, api.client, jsonValue, "")
 	if err != nil {
 		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Length", strconv.Itoa(len(jsonValue)))
-	for key, values := range agentHeaders {
-		for _, header := range values {
-			req.Header.Add(key, header)
-		}
-	}
-	resp, err := api.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			logger.Log.Error(err)
-		}
-	}()
-	body, err := readBody(resp)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("response status code: %d\nbody:\n%s", resp.StatusCode, *body)
 	}
 	res := apiError{}
-	err = getJSONFromString(body, res)
+	err = getJSONFromString(responseBody, &res)
 	if err != nil {
 		return err
 	}
 	if res.ErrorCode != 0 {
-		return fmt.Errorf(res.ErrorMsg)
+		return fmt.Errorf("%s: Status code: %d", res.ErrorMsg, res.ErrorCode)
 	}
 	return nil
 }
@@ -149,6 +125,10 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if len(body) > 0 {
+		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+	}
+
 	for key, values := range agentHeaders {
 		for _, header := range values {
 			req.Header.Add(key, header)

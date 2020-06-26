@@ -1,4 +1,4 @@
-package testing
+package translator
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/trezorg/lingualeo/pkg/logger"
-
-	"github.com/trezorg/lingualeo/pkg/translator"
 
 	"github.com/trezorg/lingualeo/internal/fakeapi"
 )
@@ -24,14 +22,14 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	ctx := context.Background()
 	fakeAPI := fakeapi.FakeAPI{}
 
-	args := translator.Lingualeo{Sound: true, Words: searchWords, Add: true, API: &fakeAPI}
+	args := Lingualeo{Sound: true, Words: searchWords, Add: false, API: &fakeAPI}
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	soundChan, _, resultChan := args.Process(ctx, &wg)
 	wg.Add(1)
 
-	go args.DownloadAndPronounce(ctx, soundChan, &wg, fakeapi.FakeDownloader)
+	go args.downloadAndPronounce(ctx, soundChan, &wg, fakeapi.FakeDownloader)
 
 	for result := range resultChan {
 		fakeapi.CheckResult(t, result, searchWords[0], fakeapi.Expected)

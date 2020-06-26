@@ -8,9 +8,6 @@ import (
 	"github.com/trezorg/lingualeo/pkg/logger"
 )
 
-// Value blank interface
-type Value interface{}
-
 func getJSONFromString(body *string, target interface{}) error {
 	return json.Unmarshal([]byte(*body), &target)
 }

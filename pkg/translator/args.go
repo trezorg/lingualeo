@@ -328,6 +328,9 @@ func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
 	if a.Add {
 		args.Add = a.Add
 	}
+	if a.Debug {
+		args.Debug = a.Debug
+	}
 	if a.Sound {
 		args.Sound = a.Sound
 	}

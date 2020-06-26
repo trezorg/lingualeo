@@ -61,7 +61,7 @@ fmt:
 goimports:
 ifndef HAS_GOIMPORTS
 	echo "installing goimports"
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.26.0
+	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
 endif
 	goimports -d $(shell find . -iname "*.go")
 
@@ -70,7 +70,7 @@ vet:
 
 golangci:
 ifndef HAS_GOLANGCI
-	GO111MODULE=off go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.26.0
 endif
 	golangci-lint run ./...
 
@@ -80,7 +80,7 @@ cover: work
 
 prepare:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.26.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.26.0
 endif
 	echo "golangci-lint already installed"
 ifndef HAS_GOIMPORTS
