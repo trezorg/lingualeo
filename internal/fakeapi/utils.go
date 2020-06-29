@@ -9,10 +9,10 @@ import (
 )
 
 func CheckResult(t *testing.T, res api.Result, searchWord string, expected []string) {
-	assert.Equalf(t, res.Word, searchWord, "Incorrect search word: %s", searchWord)
-	assert.Len(t, res.Words, 4, "Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
-	assert.Equalf(t, res.Words, expected, "Incorrect translated words order: %s. Expected: %s",
+	assert.Equalf(t, res.GetWord(), searchWord, "Incorrect search word: %s", searchWord)
+	assert.Len(t, res.GetTranslate(), 4, "Incorrect number of translated words: %d. Expected: %d", len(res.GetTranslate()), len(expected))
+	assert.Equalf(t, res.GetTranslate(), expected, "Incorrect translated words order: %s. Expected: %s",
 		strings.Join(expected, ", "),
-		strings.Join(res.Words, ", "),
+		strings.Join(res.GetTranslate(), ", "),
 	)
 }

@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -101,7 +100,7 @@ func (api *API) auth() error {
 		return err
 	}
 	res := apiError{}
-	err = getJSONFromString(responseBody, &res)
+	err = getJSONFromString(*responseBody, &res)
 	if err != nil {
 		return err
 	}
@@ -159,30 +158,22 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	return responseBody, err
 }
 
-func opResultFromBody(word string, body *string) OpResult {
-	res := Result{Word: word}
-	err := getJSONFromString(body, &res)
-	if err != nil {
-		res := NoResult{}
-		if getJSONFromString(body, res) == nil {
-			return OpResult{Error: fmt.Errorf("cannot translate word: %s", word)}
-		}
-		return OpResult{Error: err}
-	}
-	if len(res.ErrorMsg) > 0 {
-		return OpResult{Error: fmt.Errorf(res.ErrorMsg)}
-	}
-	res.ParseTranslation()
-	return OpResult{Result: res}
-}
-
 func (api *API) translateRequest(word string) (*string, error) {
-	q := url.Values{}
-	q.Add("word", word)
-	q.Add("include_media", "1")
-	q.Add("app_word_forms", "1")
-	query := q.Encode()
-	return request("POST", translateURL, api.client, nil, query)
+	values := map[string]interface{}{
+		"text":       word,
+		"apiVersion": apiVersion,
+		"ctx": map[string]interface{}{
+			"config": map[string]interface{}{
+				"isCheckData": true,
+				"isLogging":   true,
+			},
+		},
+	}
+	jsonValue, err := json.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+	return request("POST", translateURL, api.client, jsonValue, "")
 }
 
 func (api *API) addRequest(word string, translate []string) (*string, error) {
@@ -200,7 +191,7 @@ func (api *API) TranslateWord(word string) OpResult {
 	if err != nil {
 		return OpResult{Error: err}
 	}
-	return opResultFromBody(word, body)
+	return opResultFromBody(word, *body)
 }
 
 func (api *API) AddWord(word string, translate []string) OpResult {
@@ -208,7 +199,7 @@ func (api *API) AddWord(word string, translate []string) OpResult {
 	if err != nil {
 		return OpResult{Error: err}
 	}
-	return opResultFromBody(word, body)
+	return opResultFromBody(word, *body)
 }
 
 func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-chan OpResult {
@@ -243,7 +234,7 @@ func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OpRe
 			result := res
 			go func(result Result) {
 				defer wg.Done()
-				out <- api.AddWord(result.Word, result.Words)
+				out <- api.AddWord(result.GetWord(), result.GetTranslate())
 			}(result)
 		}
 	}()

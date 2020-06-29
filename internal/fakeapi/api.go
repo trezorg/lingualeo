@@ -1,9 +1,7 @@
 package fakeapi
 
 import (
-	"bytes"
 	"context"
-	"io/ioutil"
 	"sync"
 
 	"github.com/trezorg/lingualeo/pkg/channel"
@@ -33,19 +31,15 @@ type FakeAPI struct {
 }
 
 func (f *FakeAPI) TranslateWord(word string) api.OpResult {
-	res := api.Result{Word: word}
-	reader := ioutil.NopCloser(bytes.NewReader([]byte(responseData)))
-	err := res.FromJSON(reader)
-	res.ParseTranslation()
-	return api.OpResult{Result: res, Error: err}
+	res := api.EnglishResult{Word: word}
+	err := res.FromResponse(responseData)
+	return api.OpResult{Result: &res, Error: err}
 }
 
 func (f *FakeAPI) AddWord(word string, _ []string) api.OpResult {
-	res := api.Result{Word: word}
-	reader := ioutil.NopCloser(bytes.NewReader([]byte(responseData)))
-	err := res.FromJSON(reader)
-	res.ParseTranslation()
-	return api.OpResult{Result: res, Error: err}
+	res := api.EnglishResult{Word: word}
+	err := res.FromResponse(responseData)
+	return api.OpResult{Result: &res, Error: err}
 }
 
 func (f *FakeAPI) TranslateWords(ctx context.Context, results <-chan string) <-chan api.OpResult {
@@ -80,7 +74,7 @@ func (f *FakeAPI) AddWords(ctx context.Context, results <-chan api.Result) <-cha
 			result := res
 			go func(result api.Result) {
 				defer wg.Done()
-				out <- f.AddWord(result.Word, result.Words)
+				out <- f.AddWord(result.GetWord(), result.GetTranslate())
 			}(result)
 		}
 	}()

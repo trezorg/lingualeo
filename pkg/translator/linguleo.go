@@ -71,8 +71,8 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 				}
 				continue
 			}
-			if len(res.Result.Words) == 0 {
-				_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.Word)
+			if len(res.Result.GetTranslate()) == 0 {
+				_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.GetWord())
 				if err != nil {
 					logger.Log.Error(err)
 				}
@@ -85,14 +85,10 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 }
 
 func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
-	if !result.Exists || args.Force {
+	if !(*result).InDictionary() || args.Force {
 		// Custom translation
 		if len(args.Translate) > 0 {
-			if args.TranslateReplace {
-				result.Words = utils.Unique(args.Translate)
-			} else {
-				result.Words = utils.Unique(append(result.Words, args.Translate...))
-			}
+			(*result).SetTranslate(args.Translate, args.TranslateReplace)
 		}
 		return true
 	}
@@ -170,8 +166,10 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 				logger.Log.Error(result.Error)
 				continue
 			}
-			if args.Sound && result.Result.SoundURL != "" {
-				soundChan <- result.Result.SoundURL
+			if args.Sound {
+				for _, url := range result.Result.GetSoundURLs() {
+					soundChan <- url
+				}
 			}
 
 			if args.Add {
