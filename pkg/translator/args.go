@@ -79,6 +79,7 @@ func prepareCliArgs(version string) Lingualeo {
 			return fmt.Errorf("there are no words to translate")
 		}
 		args.Words = utils.Unique(c.Args().Slice())
+		args.Translate = translate.Value()
 		if args.Add && len(args.Translate) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom transcation")
 		}
@@ -132,52 +133,61 @@ func prepareCliArgs(version string) Lingualeo {
 	`
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:        "email, e",
+			Name:        "email",
+			Aliases:     []string{"e"},
 			Value:       "",
 			Usage:       "Lingualeo email",
 			Destination: &args.Email,
 		},
 		&cli.StringFlag{
-			Name:        "password, p",
+			Name:        "password",
+			Aliases:     []string{"p"},
 			Value:       "",
 			Usage:       "Lingualeo password",
 			Destination: &args.Password,
 		},
 		&cli.StringFlag{
-			Name:        "config, c",
+			Name:        "config",
+			Aliases:     []string{"c"},
 			Value:       "",
 			Usage:       "Config file. Either in toml, yaml or json format",
 			Destination: &args.Config,
 		},
 		&cli.StringFlag{
-			Name:        "player, m",
+			Name:        "player",
+			Aliases:     []string{"m"},
 			Value:       "",
 			Usage:       "Media player to pronounce words",
 			Destination: &args.Player,
 		},
 		&cli.StringFlag{
-			Name:        "log-level, l",
+			Name:        "log-level",
+			Aliases:     []string{"l"},
 			Value:       "INFO",
 			Usage:       "Log level",
 			Destination: &args.LogLevel,
 		},
 		&cli.BoolFlag{
-			Name:        "sound, s",
+			Name:        "sound",
+			Aliases:     []string{"s"},
 			Usage:       "Pronounce words",
 			Destination: &args.Sound,
 		},
 		&cli.BoolFlag{
-			Name:        "download, dl",
+			Name:        "download",
+			Aliases:     []string{"dl"},
 			Usage:       "Download file to play sound. In case a player is not able to play url directly",
 			Destination: &args.DownloadSoundFile,
 		},
 		&cli.BoolFlag{
-			Name:        "debug, d",
+			Name:        "debug",
+			Aliases:     []string{"d"},
 			Usage:       "Debug mode. Set DEBUG mode",
 			Destination: &args.Debug,
 		},
 		&cli.BoolFlag{
-			Name:        "log-pretty-print, lpr",
+			Name:        "log-pretty-print",
+			Aliases:     []string{"lpr"},
 			Usage:       "Log pretty print",
 			Destination: &args.LogPrettyPrint,
 		},
@@ -189,17 +199,20 @@ func prepareCliArgs(version string) Lingualeo {
 			Usage:   "Add to lingualeo dictionary",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
-					Name:        "force, f",
+					Name:        "force",
+					Aliases:     []string{"f"},
 					Usage:       "Force add to lingualeo dictionary",
 					Destination: &args.Force,
 				},
 				&cli.BoolFlag{
-					Name:        "replace, r",
+					Name:        "replace",
+					Aliases:     []string{"r"},
 					Usage:       "Custom translation. Replace word instead of adding",
 					Destination: &args.TranslateReplace,
 				},
 				&cli.StringSliceFlag{
-					Name:        "translate, t",
+					Name:        "translate",
+					Aliases:     []string{"t"},
 					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
 					Destination: &translate,
 				},

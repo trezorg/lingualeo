@@ -5,6 +5,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/trezorg/lingualeo/pkg/api"
 	"github.com/trezorg/lingualeo/pkg/channel"
 	"github.com/trezorg/lingualeo/pkg/files"
@@ -47,6 +49,10 @@ func NewLingualeo(version string) (Lingualeo, error) {
 	err = client.checkArgs()
 	if err != nil {
 		return client, err
+	}
+	if client.Debug {
+		client.LogLevel = logrus.DebugLevel.String()
+		client.LogPrettyPrint = true
 	}
 	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	client.checkMediaPlayer()

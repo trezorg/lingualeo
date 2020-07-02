@@ -9,10 +9,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/trezorg/lingualeo/pkg/channel"
 	"github.com/trezorg/lingualeo/pkg/logger"
@@ -95,7 +99,7 @@ func (api *API) auth() error {
 	if err != nil {
 		return nil
 	}
-	responseBody, err := request("POST", authURL, api.client, jsonValue, "")
+	responseBody, err := request("POST", authURL, api.client, jsonValue, "", api.Debug)
 	if err != nil {
 		return err
 	}
@@ -110,7 +114,29 @@ func (api *API) auth() error {
 	return nil
 }
 
-func request(method string, url string, client *http.Client, body []byte, query string) (*string, error) {
+func debugRequest(request *http.Request) {
+	dump, err := httputil.DumpRequestOut(request, true)
+	if err != nil {
+		logrus.Error(err)
+	} else {
+		logrus.SetOutput(os.Stderr)
+		logrus.Debug(string(dump))
+		logrus.SetOutput(os.Stdout)
+	}
+}
+
+func debugResponse(response *http.Response) {
+	dump, err := httputil.DumpResponse(response, true)
+	if err != nil {
+		logrus.Error(err)
+	} else {
+		logrus.SetOutput(os.Stderr)
+		logrus.Debug(string(dump))
+		logrus.SetOutput(os.Stdout)
+	}
+}
+
+func request(method string, url string, client *http.Client, body []byte, query string, debug bool) (*string, error) {
 	var requestBody io.Reader = nil
 	if len(body) > 0 {
 		requestBody = bytes.NewBuffer(body)
@@ -133,9 +159,16 @@ func request(method string, url string, client *http.Client, body []byte, query 
 			req.Header.Add(key, header)
 		}
 	}
+
+	if debug {
+		debugRequest(req)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if debug {
+		debugResponse(resp)
 	}
 	defer func() {
 		err := resp.Body.Close()
@@ -173,7 +206,7 @@ func (api *API) translateRequest(word string) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return request("POST", translateURL, api.client, jsonValue, "")
+	return request("POST", translateURL, api.client, jsonValue, "", api.Debug)
 }
 
 func (api *API) addRequest(word string, translate []string) (*string, error) {
@@ -183,7 +216,7 @@ func (api *API) addRequest(word string, translate []string) (*string, error) {
 		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
-	return request("POST", addWordURL, api.client, jsonValue, "")
+	return request("POST", addWordURL, api.client, jsonValue, "", api.Debug)
 }
 
 func (api *API) TranslateWord(word string) OpResult {
