@@ -27,7 +27,7 @@ var (
 )
 
 type FakeAPI struct {
-	*api.API
+	api.Translator
 }
 
 func (f *FakeAPI) TranslateWord(word string) api.OpResult {
