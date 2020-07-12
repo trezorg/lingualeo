@@ -14,7 +14,6 @@ var (
 	"word_forms":[{"word":"accommodation","type":"прил."}],
 	"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png",
 	"translate":[
-		{"id":33404925,"value":"размещение; жильё","votes":6261,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png"},
 		{"id":2569250,"value":"жильё","votes":5703,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/31064.png"},
 		{"id":2718711,"value":"проживание","votes":1589,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/335521.png"},
 		{"id":185932,"value":"размещение","votes":880,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/374830.png"},
@@ -22,7 +21,7 @@ var (
 	],
 	"transcription":"əkəədˈeɪːʃən","word_id":102085,"word_top":0,
 	"sound_url":"http:\/\/audiocdn.lingualeo.com\/v2\/3\/102085-631152000.mp3"}`
-	Expected   = []string{"размещение", "жильё", "проживание", "помещение"}
+	Expected   = []string{"жильё", "проживание", "размещение", "помещение"}
 	SearchWord = "accommodation"
 )
 
@@ -31,13 +30,13 @@ type FakeAPI struct {
 }
 
 func (f *FakeAPI) TranslateWord(word string) api.OpResult {
-	res := api.EnglishResult{Word: word}
+	res := api.TranslationResult{Word: word}
 	err := res.FromResponse(responseData)
 	return api.OpResult{Result: &res, Error: err}
 }
 
 func (f *FakeAPI) AddWord(word string, _ []string) api.OpResult {
-	res := api.EnglishResult{Word: word}
+	res := api.TranslationResult{Word: word}
 	err := res.FromResponse(responseData)
 	return api.OpResult{Result: &res, Error: err}
 }
