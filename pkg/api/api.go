@@ -38,6 +38,20 @@ type API struct {
 	client   *http.Client
 }
 
+func checkAuthError(body *string) error {
+	if body == nil || *body == "" {
+		return nil
+	}
+	res := apiError{}
+	if err := getJSONFromString(*body, &res); err != nil {
+		return err
+	}
+	if res.ErrorCode != 0 {
+		return fmt.Errorf("%s: Status code: %d", res.ErrorMsg, res.ErrorCode)
+	}
+	return nil
+}
+
 func NewAPI(email string, password string, debug bool) (*API, error) {
 	client, err := prepareClient()
 	if err != nil {
@@ -103,15 +117,7 @@ func (api *API) auth() error {
 	if err != nil {
 		return err
 	}
-	res := apiError{}
-	err = getJSONFromString(*responseBody, &res)
-	if err != nil {
-		return err
-	}
-	if res.ErrorCode != 0 {
-		return fmt.Errorf("%s: Status code: %d", res.ErrorMsg, res.ErrorCode)
-	}
-	return nil
+	return checkAuthError(responseBody)
 }
 
 func debugRequest(request *http.Request) {

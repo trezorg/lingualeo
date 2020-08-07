@@ -35,6 +35,7 @@ type Result interface {
 	PrintTranslation()
 	PrintAddedTranslation()
 	InDictionary() bool
+	IsRussian() bool
 }
 
 type apiError struct {
@@ -56,19 +57,7 @@ type OpResult struct {
 }
 
 func opResultFromBody(word string, body string) OpResult {
-	engOp := opEnglishResultFromBody(word, body)
-	if engOp.Error != nil {
-		rusOp := opRussianResultFromBody(word, body)
-		if rusOp.Error != nil {
-			return engOp
-		}
-		return rusOp
-	}
-	return engOp
-}
-
-func opEnglishResultFromBody(word string, body string) OpResult {
-	res := EnglishResult{Word: word}
+	res := TranslationResult{Word: word}
 	err := res.FromResponse(body)
 	return OpResult{
 		Error:  err,
@@ -76,78 +65,56 @@ func opEnglishResultFromBody(word string, body string) OpResult {
 	}
 }
 
-func opRussianResultFromBody(word string, body string) OpResult {
-	res := RussianResult{Word: word}
-	err := res.FromResponse(body)
-	return OpResult{
-		Error:  err,
-		Result: &res,
-	}
+type TranslationResult struct {
+	Word             string             `json:"-"`
+	Words            []string           `json:"-"`
+	Exists           convertibleBoolean `json:"is_user"`
+	SoundURL         string             `json:"sound_url"`
+	Transcription    string             `json:"transcription"`
+	Translate        []Word             `json:"translate"`
+	ErrorMsg         string             `json:"error_msg"`
+	DirectionEnglish bool               `json:"directionEnglish"`
 }
 
-type WordForm struct {
-	PictureURL    string `json:"pic_url"`
-	SoundURL      string `json:"sound_url"`
-	Transcription string `json:"transcription"`
-	Votes         int    `json:"votes"`
-	Word          string `json:"word"`
-}
-
-type EnglishResult struct {
-	Word             string   `json:"-"`
-	Words            []string `json:"-"`
-	Exists           bool     `json:"-"`
-	SoundURL         string   `json:"sound_url"`
-	Transcription    string   `json:"transcription"`
-	Translate        []Word   `json:"translate"`
-	ErrorMsg         string   `json:"error_msg"`
-	DirectionEnglish bool     `json:"directionEnglish"`
-}
-
-func (result *EnglishResult) FromResponse(body string) error {
+func (result *TranslationResult) FromResponse(body string) error {
 	return fromResponse(result, body)
 }
 
-func (result *EnglishResult) GetTranscription() []string {
+func (result *TranslationResult) GetTranscription() []string {
 	return []string{result.Transcription}
 }
 
-func (result *EnglishResult) PrintTranslation() {
+func (result *TranslationResult) PrintTranslation() {
 	printTranslation(result)
 }
 
-func (result *EnglishResult) PrintAddedTranslation() {
+func (result *TranslationResult) PrintAddedTranslation() {
 	printAddedTranslation(result)
 }
 
-func (result *EnglishResult) parse() {
-	isUsed := false
+func (result *TranslationResult) parse() {
 	sort.Slice(result.Translate, func(i, j int) bool {
 		return result.Translate[i].Votes > result.Translate[j].Votes
 	})
 	for _, translate := range result.Translate {
-		if !isUsed {
-			isUsed = bool(translate.Exists)
-		}
-		result.Words = append(result.Words, sanitizeWords(translate.Value)...)
+		result.Words = append(result.Words, translate.Value)
 	}
-	result.Exists = isUsed
 	result.Words = utils.Unique(result.Words)
 }
 
-func (result *EnglishResult) GetWord() string {
+func (result *TranslationResult) GetWord() string {
 	return result.Word
 }
 
-func (result *EnglishResult) SetWord(word string) {
+func (result *TranslationResult) SetWord(word string) {
 	result.Word = word
 }
 
-func (result *EnglishResult) GetTranslate() []string {
+func (result *TranslationResult) GetTranslate() []string {
 	return result.Words
 }
 
-func (result *EnglishResult) SetTranslate(translates []string, replace bool) {
+func (result *TranslationResult) SetTranslate(translates []string, replace bool) {
 	if replace {
 		result.Words = utils.Unique(translates)
 	} else {
@@ -155,95 +122,23 @@ func (result *EnglishResult) SetTranslate(translates []string, replace bool) {
 	}
 }
 
-func (result *EnglishResult) GetSoundURLs() []string {
+func (result *TranslationResult) GetSoundURLs() []string {
 	return []string{result.SoundURL}
 }
 
-func (result *EnglishResult) InDictionary() bool {
-	return result.Exists
+func (result *TranslationResult) InDictionary() bool {
+	return bool(result.Exists)
 }
 
-func (result *EnglishResult) Error() string {
+func (result *TranslationResult) Error() string {
 	return result.ErrorMsg
+}
+
+func (result *TranslationResult) IsRussian() bool {
+	return result.Transcription == ""
 }
 
 type NoResult struct {
 	Translate []string `json:"translate"`
 	ErrorMsg  string   `json:"error_msg"`
-}
-
-type RussianResult struct {
-	Word             string             `json:"-"`
-	Words            []string           `json:"-"`
-	Exists           convertibleBoolean `json:"is_user"`
-	Translate        []string           `json:"translate"`
-	ErrorMsg         string             `json:"error_msg"`
-	DirectionEnglish bool               `json:"directionEnglish"`
-	WordForms        []WordForm         `json:"word_forms"`
-}
-
-func (result *RussianResult) FromResponse(body string) error {
-	return fromResponse(result, body)
-}
-
-func (result *RussianResult) parse() {
-	sort.Slice(result.WordForms, func(i, j int) bool {
-		return result.WordForms[i].Votes > result.WordForms[j].Votes
-	})
-	for _, form := range result.WordForms {
-		result.Words = append(result.Words, form.Word)
-	}
-	result.Words = utils.Unique(result.Words)
-}
-
-func (result *RussianResult) Error() string {
-	return result.ErrorMsg
-}
-
-func (result *RussianResult) InDictionary() bool {
-	return bool(result.Exists)
-}
-
-func (result *RussianResult) GetSoundURLs() []string {
-	urls := make([]string, 0)
-	for _, form := range result.WordForms {
-		urls = append(urls, form.SoundURL)
-	}
-	return urls
-}
-
-func (result *RussianResult) GetWord() string {
-	return result.Word
-}
-
-func (result *RussianResult) SetWord(word string) {
-	result.Word = word
-}
-
-func (result *RussianResult) GetTranslate() []string {
-	return result.Words
-}
-
-func (result *RussianResult) GetTranscription() []string {
-	transcriptions := make([]string, 0)
-	for _, form := range result.WordForms {
-		transcriptions = append(transcriptions, form.Transcription)
-	}
-	return transcriptions
-}
-
-func (result *RussianResult) SetTranslate(translates []string, replace bool) {
-	if replace {
-		result.Words = utils.Unique(translates)
-	} else {
-		result.Words = utils.Unique(append(result.Words, translates...))
-	}
-}
-
-func (result *RussianResult) PrintTranslation() {
-	printTranslation(result)
-}
-
-func (result *RussianResult) PrintAddedTranslation() {
-	printAddedTranslation(result)
 }
