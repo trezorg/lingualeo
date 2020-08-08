@@ -281,7 +281,6 @@ func getConfigFiles(filename *string) ([]string, error) {
 		if utils.FileExists(argsConfig) {
 			configs = append(configs, argsConfig)
 		}
-		configs = append(configs, argsConfig)
 	}
 	configs = utils.Unique(configs)
 	return configs, nil

@@ -104,10 +104,8 @@ func prepareClient() (*http.Client, error) {
 
 func (api *API) auth() error {
 	values := map[string]string{
-		"email":              api.Email,
-		"password":           api.Password,
-		"type":               "login",
-		"successRedirectUrl": "",
+		"email":    api.Email,
+		"password": api.Password,
 	}
 	jsonValue, err := json.Marshal(values)
 	if err != nil {
