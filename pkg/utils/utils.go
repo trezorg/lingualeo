@@ -13,8 +13,7 @@ import (
 	"unicode"
 
 	"github.com/trezorg/lingualeo/pkg/logger"
-
-	"github.com/wsxiaoys/terminal/color"
+	"github.com/trezorg/lingualeo/pkg/messages"
 )
 
 // Value blank interface
@@ -63,7 +62,7 @@ func Unique(strSlice []string) []string {
 
 func FailIfError(err error) {
 	if err != nil {
-		PrintColorString("r", fmt.Sprintf("Error: %v", err))
+		_ = messages.Message(messages.RED, fmt.Sprintf("Error: %v\n", err))
 		os.Exit(1)
 	}
 }
@@ -88,23 +87,6 @@ func IsCommandAvailable(name string) bool {
 	execName := strings.Split(name, " ")[0]
 	_, err := exec.LookPath(execName)
 	return err == nil
-}
-
-func PrintColorString(clr string, text string) {
-	str := fmt.Sprintf("@{%s}%s\n", clr, text)
-	_, err := color.Printf(str)
-	if err != nil {
-		logger.Log.Error(err)
-	}
-}
-
-func PrintColorStringF(clr string, fmtText string, params ...interface{}) {
-	text := fmt.Sprintf(fmtText, params...)
-	str := fmt.Sprintf("@{%s}%s\n", clr, text)
-	_, err := color.Printf(str)
-	if err != nil {
-		logger.Log.Error(err)
-	}
 }
 
 func FileExists(name string) bool {

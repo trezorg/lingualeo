@@ -11,9 +11,8 @@ import (
 	"github.com/trezorg/lingualeo/pkg/channel"
 	"github.com/trezorg/lingualeo/pkg/files"
 	"github.com/trezorg/lingualeo/pkg/logger"
+	"github.com/trezorg/lingualeo/pkg/messages"
 	"github.com/trezorg/lingualeo/pkg/utils"
-
-	"github.com/wsxiaoys/terminal/color"
 )
 
 func (args *Lingualeo) checkMediaPlayer() {
@@ -21,13 +20,13 @@ func (args *Lingualeo) checkMediaPlayer() {
 		return
 	}
 	if len(args.Player) == 0 {
-		_, err := color.Printf("@{r}Please set player parameter\n", args.Player)
+		err := messages.Message(messages.RED, "Please set player parameter\n")
 		if err != nil {
 			logger.Log.Debug(err)
 		}
 		args.Sound = false
 	} else if !utils.IsCommandAvailable(args.Player) {
-		_, err := color.Printf("@{r}Executable file %s is not available on your system\n", args.Player)
+		err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", args.Player)
 		if err != nil {
 			logger.Log.Debug(err)
 		}
@@ -35,6 +34,7 @@ func (args *Lingualeo) checkMediaPlayer() {
 	}
 }
 
+// NewLingualeo initialize lingualeo client
 func NewLingualeo(version string) (Lingualeo, error) {
 	client := prepareCliArgs(version)
 	err := client.checkConfig()
@@ -71,14 +71,15 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 		defer close(results)
 		for res := range api.OrOpResultDone(ctx, args.API.TranslateWords(ctx, input)) {
 			if res.Error != nil {
-				_, err := color.Printf("@{r}%s\n", utils.Capitalize(res.Error.Error()))
+				err := messages.Message(messages.RED, "%s\n", utils.Capitalize(res.Error.Error()))
 				if err != nil {
 					logger.Log.Error(err)
 				}
 				continue
 			}
 			if len(res.Result.GetTranslate()) == 0 {
-				_, err := color.Printf("@{r}There are no translations for word: @{g}['%s']\n", res.Result.GetWord())
+				_ = messages.Message(messages.RED, "There are no translations for word: ")
+				err := messages.Message(messages.GREEN, "['%s']\n", res.Result.GetWord())
 				if err != nil {
 					logger.Log.Error(err)
 				}
@@ -133,6 +134,7 @@ func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sy
 	}
 }
 
+// Pronounce downloads and pronounce words
 func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	if args.DownloadSoundFile {
 		args.downloadAndPronounce(ctx, urls, wg, files.NewFileDownloader)
@@ -141,6 +143,7 @@ func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sy
 	}
 }
 
+// AddToDictionary adds words to dictionary
 func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for res := range args.API.AddWords(ctx, resultsToAdd) {
@@ -152,6 +155,7 @@ func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan 
 	}
 }
 
+// Process starts translation process
 func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan string, <-chan api.Result, <-chan api.Result) {
 
 	soundChan := make(chan string, len(args.Words))

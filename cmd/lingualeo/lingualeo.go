@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/trezorg/lingualeo/pkg/api"
+	"github.com/trezorg/lingualeo/pkg/messages"
 	"github.com/trezorg/lingualeo/pkg/translator"
 	"github.com/trezorg/lingualeo/pkg/utils"
 )
@@ -26,7 +27,7 @@ func main() {
 
 	go func() {
 		for sig := range stop {
-			utils.PrintColorStringF("r", "Got OS signal: %s", sig)
+			_ = messages.Message(messages.RED, "Got OS signal: %s\n", sig)
 			done()
 			return
 		}

@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/trezorg/lingualeo/pkg/utils"
-	"github.com/wsxiaoys/terminal/color"
+	"github.com/trezorg/lingualeo/pkg/messages"
 
 	"github.com/trezorg/lingualeo/pkg/logger"
 )
@@ -55,16 +54,16 @@ func printTranslation(result Result) {
 	} else {
 		strTitle = "new"
 	}
-	_, err := color.Printf("@{r}Found %s word:\n", strTitle)
+	err := messages.Message(messages.RED, "Found %s word:\n", strTitle)
 	if err != nil {
 		logger.Log.Error(err)
 	}
-	_, err = color.Printf("@{g}['%s'] (%s)\n", result.GetWord(), strings.Join(result.GetTranscription(), ", "))
+	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.GetWord(), strings.Join(result.GetTranscription(), ", "))
 	if err != nil {
 		logger.Log.Error(err)
 	}
 	for _, word := range result.GetTranslate() {
-		utils.PrintColorString("y", word)
+		_ = messages.Message(messages.YELLOW, "%s\n", word)
 	}
 }
 
@@ -75,11 +74,11 @@ func printAddedTranslation(result Result) {
 	} else {
 		strTitle = "Added new"
 	}
-	_, err := color.Printf("@{r}%s word: ", strTitle)
+	err := messages.Message(messages.RED, "%s word: ", strTitle)
 	if err != nil {
 		logger.Log.Error(err)
 	}
-	_, err = color.Printf("@{g}['%s']\n", result.GetWord())
+	err = messages.Message(messages.GREEN, "['%s']\n", result.GetWord())
 	if err != nil {
 		logger.Log.Error(err)
 	}
