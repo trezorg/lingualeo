@@ -16,31 +16,38 @@ import (
 const fileTemplate = "lingualeo"
 const filePath = "/tmp"
 
+// Downloader interface
 type Downloader interface {
 	DownloadFile() (string, error)
 	GetWriter() (io.WriteCloser, string, error)
 }
 
+// NewDownloader function type
 type NewDownloader func(url string) Downloader
 
+// File represents file for downloading
 type File struct {
 	Error    error
 	Filename string
 	Index    int
 }
 
+// GetIndex returns index from file structure
 func (f File) GetIndex() int {
 	return f.Index
 }
 
+// FileDownloader structure
 type FileDownloader struct {
 	URL string
 }
 
+// NewFileDownloader init new downloader
 func NewFileDownloader(url string) Downloader {
 	return &FileDownloader{URL: url}
 }
 
+// GetWriter prepares WriteCloser for termporary file
 func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
 	fl, err := ioutil.TempFile(filePath, fileTemplate)
 	if err != nil {
@@ -53,6 +60,7 @@ func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
 	return fd, fl.Name(), nil
 }
 
+// DownloadFile downloads file
 func (f *FileDownloader) DownloadFile() (string, error) {
 	fd, filename, err := f.GetWriter()
 	if err != nil {
@@ -84,6 +92,7 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 	return filename, nil
 }
 
+// DownloadFiles download files from urls channel
 func DownloadFiles(ctx context.Context, urls <-chan string, downloader NewDownloader) <-chan File {
 	out := make(chan File)
 	var wg sync.WaitGroup

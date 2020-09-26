@@ -6,6 +6,7 @@ import (
 	"github.com/trezorg/lingualeo/pkg/heap"
 )
 
+// OrderedChannel gets cahnnel and returns channel ordered by GetIndex
 func OrderedChannel(input <-chan File, count int) <-chan File {
 	out := make(chan File, count)
 
@@ -32,6 +33,7 @@ func OrderedChannel(input <-chan File, count int) <-chan File {
 	return out
 }
 
+// OrFilesDone gets and return channel. Possibility to stop when context done
 func OrFilesDone(ctx context.Context, input <-chan File) <-chan File {
 	out := make(chan File)
 	go func() {

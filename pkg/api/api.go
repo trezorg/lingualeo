@@ -24,13 +24,15 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
+// Translator interface
 type Translator interface {
-	TranslateWord(word string) OpResult
+	translateWord(word string) OpResult
 	TranslateWords(ctx context.Context, results <-chan string) <-chan OpResult
-	AddWord(word string, translate []string) OpResult
+	addWord(word string, translate []string) OpResult
 	AddWords(ctx context.Context, results <-chan Result) <-chan OpResult
 }
 
+// API structure represents api request
 type API struct {
 	Email    string
 	Password string
@@ -52,6 +54,7 @@ func checkAuthError(body *string) error {
 	return nil
 }
 
+// NewAPI constructor
 func NewAPI(email string, password string, debug bool) (*API, error) {
 	client, err := prepareClient()
 	if err != nil {
@@ -223,7 +226,7 @@ func (api *API) addRequest(word string, translate []string) (*string, error) {
 	return request("POST", addWordURL, api.client, jsonValue, "", api.Debug)
 }
 
-func (api *API) TranslateWord(word string) OpResult {
+func (api *API) translateWord(word string) OpResult {
 	body, err := api.translateRequest(word)
 	if err != nil {
 		return OpResult{Error: err}
@@ -231,7 +234,7 @@ func (api *API) TranslateWord(word string) OpResult {
 	return opResultFromBody(word, *body)
 }
 
-func (api *API) AddWord(word string, translate []string) OpResult {
+func (api *API) addWord(word string, translate []string) OpResult {
 	body, err := api.addRequest(word, translate)
 	if err != nil {
 		return OpResult{Error: err}
@@ -239,6 +242,7 @@ func (api *API) AddWord(word string, translate []string) OpResult {
 	return opResultFromBody(word, *body)
 }
 
+// TranslateWords transate words from string channel
 func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-chan OpResult {
 	out := make(chan OpResult)
 	var wg sync.WaitGroup
@@ -249,7 +253,7 @@ func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-cha
 			wg.Add(1)
 			go func(word string) {
 				defer wg.Done()
-				out <- api.TranslateWord(word)
+				out <- api.translateWord(word)
 			}(word)
 		}
 	}()
@@ -260,6 +264,7 @@ func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-cha
 	return out
 }
 
+// AddWords add words
 func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OpResult {
 	out := make(chan OpResult)
 	var wg sync.WaitGroup
@@ -271,7 +276,7 @@ func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OpRe
 			result := res
 			go func(result Result) {
 				defer wg.Done()
-				out <- api.AddWord(result.GetWord(), result.GetTranslate())
+				out <- api.addWord(result.GetWord(), result.GetTranslate())
 			}(result)
 		}
 	}()
