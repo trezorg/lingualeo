@@ -4,10 +4,8 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
-	"github.com/trezorg/lingualeo/pkg/api"
 	"github.com/trezorg/lingualeo/pkg/messages"
 	"github.com/trezorg/lingualeo/pkg/translator"
 	"github.com/trezorg/lingualeo/pkg/utils"
@@ -33,21 +31,6 @@ func main() {
 		}
 	}()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
-	if args.Sound {
-		wg.Add(1)
-		go args.Pronounce(ctx, soundChan, &wg)
-	}
-	if args.Add {
-		wg.Add(1)
-		go args.AddToDictionary(ctx, addWordChan, &wg)
-	}
+	args.TranslateWithReverseRussian(ctx)
 
-	for result := range api.OrResultDone(ctx, resultsChan) {
-		result.PrintTranslation()
-	}
-
-	wg.Wait()
 }

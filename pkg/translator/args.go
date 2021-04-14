@@ -79,8 +79,8 @@ func prepareCliArgs(version string) Lingualeo {
 			return fmt.Errorf("there are no words to translate")
 		}
 		args.Words = utils.Unique(c.Args().Slice())
-		args.Translate = translate.Value()
-		if args.Add && len(args.Translate) > 0 && len(args.Words) > 1 {
+		args.Translation = translate.Value()
+		if args.Add && len(args.Translation) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom transcation")
 		}
 		return nil
@@ -190,6 +190,12 @@ func prepareCliArgs(version string) Lingualeo {
 			Aliases:     []string{"lpr"},
 			Usage:       "Log pretty print",
 			Destination: &args.LogPrettyPrint,
+		},
+		&cli.BoolFlag{
+			Name:        "reverse-translate",
+			Aliases:     []string{"rt"},
+			Usage:       "Reverse translate russian words",
+			Destination: &args.ReverseTranslate,
 		},
 	}
 	app.Commands = []*cli.Command{
@@ -351,6 +357,9 @@ func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
 	}
 	if a.LogPrettyPrint {
 		args.LogPrettyPrint = a.LogPrettyPrint
+	}
+	if a.ReverseTranslate {
+		args.ReverseTranslate = a.ReverseTranslate
 	}
 	if a.TranslateReplace {
 		args.TranslateReplace = a.TranslateReplace

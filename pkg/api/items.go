@@ -22,7 +22,7 @@ func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-//Result API result insterface
+//Result API result interface
 type Result interface {
 	GetWord() string
 	Error() string
@@ -44,7 +44,7 @@ type apiError struct {
 	ErrorCode int    `json:"error_code"`
 }
 
-//Word transale word structure
+//Word translates word structure
 type Word struct {
 	ID      int                `json:"id"`
 	Votes   int                `json:"votes"`
@@ -68,7 +68,7 @@ func opResultFromBody(word string, body string) OpResult {
 	}
 }
 
-//TranslationResult represets API response
+//TranslationResult represents API response
 type TranslationResult struct {
 	Word             string             `json:"-"`
 	Words            []string           `json:"-"`
@@ -120,12 +120,12 @@ func (result *TranslationResult) SetWord(word string) {
 	result.Word = word
 }
 
-//GetTranslate returns transalation for a word
+//GetTranslate returns translation for a word
 func (result *TranslationResult) GetTranslate() []string {
 	return result.Words
 }
 
-//SetTranslate sets custom transaltion for a word
+//SetTranslate sets custom translation for a word
 func (result *TranslationResult) SetTranslate(translates []string, replace bool) {
 	if replace {
 		result.Words = utils.Unique(translates)
@@ -134,12 +134,12 @@ func (result *TranslationResult) SetTranslate(translates []string, replace bool)
 	}
 }
 
-//GetSoundURLs retuns sound urls to promounciate
+//GetSoundURLs returns sound urls to pronounce
 func (result *TranslationResult) GetSoundURLs() []string {
 	return []string{result.SoundURL}
 }
 
-//InDictionary chel either workd is already has been added into the dictionary
+//InDictionary checks either word is already has been added into the dictionary
 func (result *TranslationResult) InDictionary() bool {
 	if bool(result.Exists) {
 		return true
@@ -156,7 +156,7 @@ func (result *TranslationResult) Error() string {
 	return result.ErrorMsg
 }
 
-//IsRussian either word in in Russian langualge
+//IsRussian either word in in Russian language
 func (result *TranslationResult) IsRussian() bool {
 	return result.Transcription == ""
 }

@@ -8,7 +8,7 @@ type Lingualeo struct {
 	Config            string
 	Player            string `yaml:"player" json:"player" toml:"player"`
 	Words             []string
-	Translate         []string
+	Translation       []string
 	Force             bool   `yaml:"force" json:"force" toml:"force"`
 	Add               bool   `yaml:"add" json:"add" toml:"add"`
 	TranslateReplace  bool   `yaml:"translate_replace" json:"translate_replace" toml:"translate_replace"`
@@ -17,5 +17,6 @@ type Lingualeo struct {
 	DownloadSoundFile bool   `yaml:"download" json:"download" toml:"download"`
 	LogLevel          string `yaml:"log_level" json:"log_level" toml:"log_level"`
 	LogPrettyPrint    bool   `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
+	ReverseTranslate  bool   `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
 	API               api.Translator
 }

@@ -94,8 +94,8 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	if !(*result).InDictionary() || args.Force {
 		// Custom translation
-		if len(args.Translate) > 0 {
-			(*result).SetTranslate(args.Translate, args.TranslateReplace)
+		if len(args.Translation) > 0 {
+			(*result).SetTranslate(args.Translation, args.TranslateReplace)
 		}
 		return true
 	}
@@ -193,4 +193,51 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 
 	return soundChan, addWordChan, resultsChan
 
+}
+
+func (args *Lingualeo) translateToChan(ctx context.Context) chan api.Result {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
+	if args.Sound {
+		wg.Add(1)
+		go args.Pronounce(ctx, soundChan, &wg)
+	}
+	if args.Add {
+		wg.Add(1)
+		go args.AddToDictionary(ctx, addWordChan, &wg)
+	}
+
+	ch := make(chan api.Result, len(args.Words))
+
+	go func() {
+		defer close(ch)
+		for result := range api.OrResultDone(ctx, resultsChan) {
+			result.PrintTranslation()
+			ch <- result
+		}
+		wg.Wait()
+	}()
+
+	return ch
+
+}
+
+func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
+	//TranslateWithReverseRussian translates russian words,
+	//gets english translations and translates them once more
+	results := args.translateToChan(ctx)
+	var englishWords []string
+	for result := range results {
+		for _, word := range result.GetTranslate() {
+			if args.ReverseTranslate && utils.IsEnglishWord(word) {
+				englishWords = append(englishWords, word)
+			}
+		}
+	}
+	if len(englishWords) > 0 {
+		args.Words = englishWords
+		for range args.translateToChan(ctx) {
+		}
+	}
 }

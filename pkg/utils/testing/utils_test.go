@@ -17,7 +17,13 @@ func TestInsertIntoSlice(t *testing.T) {
 }
 
 func TestCheckEitherCommandIsAvailableOnSystem(t *testing.T) {
-	assert.Equal(t, true, utils.IsCommandAvailable("bash -c 'oops'"))
-	assert.Equal(t, true, utils.IsCommandAvailable("bash"))
-	assert.Equal(t, false, utils.IsCommandAvailable("xxxxxxxxxxx"))
+	assert.True(t, utils.IsCommandAvailable("bash -c 'oops'"))
+	assert.True(t, utils.IsCommandAvailable("bash"))
+	assert.False(t, utils.IsCommandAvailable("xxxxxxxxxxx"))
+}
+
+func TestRussianWord(t *testing.T) {
+	assert.True(t, utils.IsRussianWord("гном"))
+	assert.True(t, utils.IsRussianWord("гном1"))
+	assert.False(t, utils.IsRussianWord("test"))
 }
