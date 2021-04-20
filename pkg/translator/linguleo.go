@@ -22,13 +22,13 @@ func (args *Lingualeo) checkMediaPlayer() {
 	if len(args.Player) == 0 {
 		err := messages.Message(messages.RED, "Please set player parameter\n")
 		if err != nil {
-			logger.Log.Debug(err)
+			logger.Debug(err)
 		}
 		args.Sound = false
 	} else if !utils.IsCommandAvailable(args.Player) {
 		err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", args.Player)
 		if err != nil {
-			logger.Log.Debug(err)
+			logger.Debug(err)
 		}
 		args.Sound = false
 	}
@@ -73,7 +73,7 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 			if res.Error != nil {
 				err := messages.Message(messages.RED, "%s\n", utils.Capitalize(res.Error.Error()))
 				if err != nil {
-					logger.Log.Error(err)
+					logger.Error(err)
 				}
 				continue
 			}
@@ -81,7 +81,7 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 				_ = messages.Message(messages.RED, "There are no translations for word: ")
 				err := messages.Message(messages.GREEN, "['%s']\n", res.Result.GetWord())
 				if err != nil {
-					logger.Log.Error(err)
+					logger.Error(err)
 				}
 				continue
 			}
@@ -107,7 +107,7 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 	fileChannel := files.OrderedChannel(files.DownloadFiles(ctx, urls, downloader), len(urls))
 	for res := range files.OrFilesDone(ctx, fileChannel) {
 		if res.Error != nil {
-			logger.Log.Error(res.Error)
+			logger.Error(res.Error)
 			continue
 		}
 		if res.Filename == "" {
@@ -115,11 +115,11 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 		}
 		err := utils.PlaySound(args.Player, res.Filename)
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 		err = os.Remove(res.Filename)
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}
 }
@@ -129,7 +129,7 @@ func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sy
 	for res := range channel.OrStringDone(ctx, urls) {
 		err := utils.PlaySound(args.Player, res)
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}
 }
@@ -148,7 +148,7 @@ func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan 
 	defer wg.Done()
 	for res := range args.API.AddWords(ctx, resultsToAdd) {
 		if res.Error != nil {
-			logger.Log.Error(res.Error)
+			logger.Error(res.Error)
 			continue
 		}
 		res.Result.PrintAddedTranslation()
@@ -173,7 +173,7 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 
 		for result := range args.translateWords(ctx) {
 			if result.Error != nil {
-				logger.Log.Error(result.Error)
+				logger.Error(result.Error)
 				continue
 			}
 			if args.Sound {

@@ -20,7 +20,7 @@ func readBody(resp *http.Response) (*string, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	data, err := ioutil.ReadAll(resp.Body)
@@ -56,11 +56,11 @@ func printTranslation(result Result) {
 	}
 	err := messages.Message(messages.RED, "Found %s word:\n", strTitle)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Error(err)
 	}
 	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.GetWord(), strings.Join(result.GetTranscription(), ", "))
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Error(err)
 	}
 	for _, word := range result.GetTranslate() {
 		_ = messages.Message(messages.YELLOW, "%s\n", word)
@@ -76,10 +76,10 @@ func printAddedTranslation(result Result) {
 	}
 	err := messages.Message(messages.RED, "%s word: ", strTitle)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Error(err)
 	}
 	err = messages.Message(messages.GREEN, "['%s']\n", result.GetWord())
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Error(err)
 	}
 }

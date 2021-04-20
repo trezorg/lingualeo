@@ -23,7 +23,7 @@ func GetJSON(body io.ReadCloser, target interface{}) error {
 	defer func() {
 		err := body.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	return json.NewDecoder(body).Decode(target)
@@ -37,7 +37,7 @@ func ReadBody(resp *http.Response) (*string, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	data, err := ioutil.ReadAll(resp.Body)

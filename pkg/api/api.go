@@ -180,12 +180,12 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	responseBody, err := readBody(resp)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Error(err)
 		return nil, err
 	}
 	if resp.StatusCode != 200 {

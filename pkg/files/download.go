@@ -69,7 +69,7 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 	defer func() {
 		err := fd.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	resp, err := http.Get(f.URL)
@@ -79,7 +79,7 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Error(err)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
