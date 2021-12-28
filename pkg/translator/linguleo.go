@@ -195,7 +195,14 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 
 }
 
-func (args *Lingualeo) translateToChan(ctx context.Context) chan api.Result {
+type processResult func(api.Result) error
+
+func ProcessResultImpl(result api.Result) error {
+	result.PrintTranslation()
+	return nil
+}
+
+func (args *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
@@ -213,7 +220,6 @@ func (args *Lingualeo) translateToChan(ctx context.Context) chan api.Result {
 	go func() {
 		defer close(ch)
 		for result := range api.OrResultDone(ctx, resultsChan) {
-			result.PrintTranslation()
 			ch <- result
 		}
 		wg.Wait()
@@ -223,12 +229,14 @@ func (args *Lingualeo) translateToChan(ctx context.Context) chan api.Result {
 
 }
 
-func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
+func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context, resultFunc processResult) {
 	//TranslateWithReverseRussian translates russian words,
 	//gets english translations and translates them once more
-	results := args.translateToChan(ctx)
 	var englishWords []string
-	for result := range results {
+	for result := range api.OrResultDone(ctx, args.translateToChan(ctx)) {
+		if err := resultFunc(result); err != nil {
+			logger.Error(err)
+		}
 		for _, word := range result.GetTranslate() {
 			if args.ReverseTranslate && utils.IsEnglishWord(word) {
 				englishWords = append(englishWords, word)
@@ -237,7 +245,10 @@ func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
 	}
 	if len(englishWords) > 0 {
 		args.Words = englishWords
-		for range args.translateToChan(ctx) {
+		for result := range api.OrResultDone(ctx, args.translateToChan(ctx)) {
+			if err := resultFunc(result); err != nil {
+				logger.Error(err)
+			}
 		}
 	}
 }
