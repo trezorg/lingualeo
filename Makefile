@@ -3,11 +3,13 @@
 PWD := $(shell pwd)
 BASE_DIR := $(shell basename $(PWD))
 # Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
+GOPATH_DEFAULT := $(shell go env GOPATH)/.go
+OLD_PATH := ${PATH}
 export GOPATH ?= $(GOPATH_DEFAULT)
 GOBIN_DEFAULT := $(GOPATH)/bin
 export GOBIN ?= $(GOBIN_DEFAULT)
 export GO111MODULE := on
+export PATH=${OLD_PATH}:${GOBIN}
 TESTARGS_DEFAULT := -v -race
 TESTARGS ?= $(TESTARGS_DEFAULT)
 PKG := $(shell awk '/^module/ { print $$2 }' go.mod)
@@ -38,11 +40,14 @@ $(GOBIN):
 
 work: $(GOBIN)
 
-build: clean check test
+build: clean cache check test
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
 	-ldflags $(LDFLAGS) \
 	-o $(BINARY) \
 	$(CMD_PACKAGE)
+
+cache:
+	go clean --cache
 
 install: clean check test
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go install \
@@ -63,7 +68,8 @@ ifndef HAS_GOIMPORTS
 	echo "installing goimports"
 	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
 endif
-	goimports -d $(shell find . -iname "*.go")
+	goimports -d $(shell find . -path ./.go -prune -o -type f -iname "*.go")
+	find . -iname "*.go"
 
 vet:
 	go vet ./...
