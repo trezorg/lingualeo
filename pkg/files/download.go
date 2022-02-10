@@ -47,7 +47,7 @@ func NewFileDownloader(url string) Downloader {
 	return &FileDownloader{URL: url}
 }
 
-// GetWriter prepares WriteCloser for termporary file
+// GetWriter prepares WriteCloser for temporary file
 func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
 	fl, err := ioutil.TempFile(filePath, fileTemplate)
 	if err != nil {

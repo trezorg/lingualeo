@@ -6,7 +6,7 @@ import (
 	"github.com/trezorg/lingualeo/pkg/heap"
 )
 
-// OrderedChannel gets cahnnel and returns channel ordered by GetIndex
+// OrderedChannel gets channel and returns channel ordered by GetIndex
 func OrderedChannel(input <-chan File, count int) <-chan File {
 	out := make(chan File, count)
 
