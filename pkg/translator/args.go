@@ -3,7 +3,6 @@ package translator
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +52,7 @@ func (cf *configFile) decode(data []byte, args *Lingualeo) error {
 }
 
 func (cf *configFile) decodeFile(args *Lingualeo) error {
-	data, err := ioutil.ReadFile(cf.filename)
+	data, err := os.ReadFile(cf.filename)
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func prepareCliArgs(version string) Lingualeo {
 	app.ArgsUsage = "Multiple words can be supplied"
 	app.Action = defaultCommand
 	app.Description = `
-	It is possible to use config file to set predefined parameters  	
+	It is possible to use config file to set predefined parameters
 	Default config files are: ~/lingualeo.[toml|yml|yaml|json]
 
 	Toml format example:
@@ -110,18 +109,18 @@ func prepareCliArgs(version string) Lingualeo {
 	sound = true
 	player = "mplayer"
 	download = false
-	
+
 	Yaml format example:
-	
+
 	email: email@gmail.com
 	password: password
 	add: false
 	sound: true
 	player: mplayer
 	download: false
-	
+
 	JSON format example:
-	
+
 	{
 		"email": "email@gmail.com",
 		"password": "password",

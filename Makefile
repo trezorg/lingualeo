@@ -76,7 +76,7 @@ vet:
 
 golangci:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.26.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
 endif
 	golangci-lint run ./...
 
@@ -86,7 +86,7 @@ cover: work
 
 prepare:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.26.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
 endif
 	echo "golangci-lint already installed"
 ifndef HAS_GOIMPORTS

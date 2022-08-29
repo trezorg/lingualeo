@@ -22,7 +22,7 @@ func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-//Result API result interface
+// Result API result interface
 type Result interface {
 	GetWord() string
 	Error() string
@@ -44,7 +44,7 @@ type apiError struct {
 	ErrorCode int    `json:"error_code"`
 }
 
-//Word translates word structure
+// Word translates word structure
 type Word struct {
 	ID      int                `json:"id"`
 	Votes   int                `json:"votes"`
@@ -53,7 +53,7 @@ type Word struct {
 	Exists  convertibleBoolean `json:"ut"`
 }
 
-//OpResult represents operation result
+// OpResult represents operation result
 type OpResult struct {
 	Error  error
 	Result Result
@@ -68,7 +68,7 @@ func opResultFromBody(word string, body string) OpResult {
 	}
 }
 
-//TranslationResult represents API response
+// TranslationResult represents API response
 type TranslationResult struct {
 	Word             string             `json:"-"`
 	Words            []string           `json:"-"`
@@ -80,22 +80,22 @@ type TranslationResult struct {
 	DirectionEnglish bool               `json:"directionEnglish"`
 }
 
-//FromResponse fills TranslationResult from http response
+// FromResponse fills TranslationResult from http response
 func (result *TranslationResult) FromResponse(body string) error {
 	return fromResponse(result, body)
 }
 
-//GetTranscription returns word transcription
+// GetTranscription returns word transcription
 func (result *TranslationResult) GetTranscription() []string {
 	return []string{result.Transcription}
 }
 
-//PrintTranslation prints transcription
+// PrintTranslation prints transcription
 func (result *TranslationResult) PrintTranslation() {
 	printTranslation(result)
 }
 
-//PrintAddedTranslation prints transcription diring adding operation
+// PrintAddedTranslation prints transcription diring adding operation
 func (result *TranslationResult) PrintAddedTranslation() {
 	printAddedTranslation(result)
 }
@@ -110,22 +110,22 @@ func (result *TranslationResult) parse() {
 	result.Words = utils.Unique(result.Words)
 }
 
-//GetWord returns word to translate
+// GetWord returns word to translate
 func (result *TranslationResult) GetWord() string {
 	return result.Word
 }
 
-//SetWord sets word to translate
+// SetWord sets word to translate
 func (result *TranslationResult) SetWord(word string) {
 	result.Word = word
 }
 
-//GetTranslate returns translation for a word
+// GetTranslate returns translation for a word
 func (result *TranslationResult) GetTranslate() []string {
 	return result.Words
 }
 
-//SetTranslate sets custom translation for a word
+// SetTranslate sets custom translation for a word
 func (result *TranslationResult) SetTranslate(translates []string, replace bool) {
 	if replace {
 		result.Words = utils.Unique(translates)
@@ -134,12 +134,12 @@ func (result *TranslationResult) SetTranslate(translates []string, replace bool)
 	}
 }
 
-//GetSoundURLs returns sound urls to pronounce
+// GetSoundURLs returns sound urls to pronounce
 func (result *TranslationResult) GetSoundURLs() []string {
 	return []string{result.SoundURL}
 }
 
-//InDictionary checks either word is already has been added into the dictionary
+// InDictionary checks either word is already has been added into the dictionary
 func (result *TranslationResult) InDictionary() bool {
 	if bool(result.Exists) {
 		return true
@@ -156,12 +156,12 @@ func (result *TranslationResult) Error() string {
 	return result.ErrorMsg
 }
 
-//IsRussian either word in in Russian language
+// IsRussian either word in in Russian language
 func (result *TranslationResult) IsRussian() bool {
 	return result.Transcription == ""
 }
 
-//NoResult negative operation result
+// NoResult negative operation result
 type NoResult struct {
 	Translate []string `json:"translate"`
 	ErrorMsg  string   `json:"error_msg"`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"sync"
@@ -49,7 +48,7 @@ func NewFileDownloader(url string) Downloader {
 
 // GetWriter prepares WriteCloser for temporary file
 func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
-	fl, err := ioutil.TempFile(filePath, fileTemplate)
+	fl, err := os.CreateTemp(filePath, fileTemplate)
 	if err != nil {
 		return nil, "", err
 	}
