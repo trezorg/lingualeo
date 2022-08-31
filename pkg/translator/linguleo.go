@@ -56,11 +56,10 @@ func NewLingualeo(version string) (Lingualeo, error) {
 	}
 	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	client.checkMediaPlayer()
-	a, err := api.NewAPI(client.Email, client.Password, client.Debug)
+	client.API, err = api.NewAPI(client.Email, client.Password, client.Debug)
 	if err != nil {
 		return client, err
 	}
-	client.API = a
 	return client, nil
 }
 

@@ -66,9 +66,9 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 		return "", err
 	}
 	defer func() {
-		err := fd.Close()
-		if err != nil {
-			logger.Error(err)
+		cErr := fd.Close()
+		if cErr != nil {
+			logger.Error(cErr)
 		}
 	}()
 	resp, err := http.Get(f.URL)
@@ -76,9 +76,9 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 		return "", fmt.Errorf("cannot read url: %s, %w", f.URL, err)
 	}
 	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			logger.Error(err)
+		cErr := resp.Body.Close()
+		if cErr != nil {
+			logger.Error(cErr)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {

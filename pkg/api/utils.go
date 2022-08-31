@@ -35,8 +35,8 @@ func fromResponse(result Result, body string) error {
 	err := getJSONFromString(body, result)
 	if err != nil {
 		res := NoResult{}
-		if err := getJSONFromString(body, res); err != nil {
-			return fmt.Errorf("cannot translate word: %s, %w", result.GetWord(), err)
+		if fErr := getJSONFromString(body, res); fErr != nil {
+			return fmt.Errorf("cannot translate word: %s, %w", result.GetWord(), fErr)
 		}
 		return err
 	}
