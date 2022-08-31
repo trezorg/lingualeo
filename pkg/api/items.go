@@ -95,7 +95,7 @@ func (result *TranslationResult) PrintTranslation() {
 	printTranslation(result)
 }
 
-// PrintAddedTranslation prints transcription diring adding operation
+// PrintAddedTranslation prints transcription during adding operation
 func (result *TranslationResult) PrintAddedTranslation() {
 	printAddedTranslation(result)
 }

@@ -52,7 +52,7 @@ func (h *IndexedHeap) Pull() *IndexedItem {
 	if h.Len() == 0 {
 		return nil
 	}
-	message := heap.Pop(h).(IndexedItem)
+	message, _ := heap.Pop(h).(IndexedItem)
 	return &message
 }
 
@@ -60,7 +60,7 @@ func (h *IndexedHeap) PullWithCondition(check func(*IndexedItem) bool) *IndexedI
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if check(h.pick()) {
-		message := heap.Pop(h).(IndexedItem)
+		message, _ := heap.Pop(h).(IndexedItem)
 		return &message
 	}
 	return nil

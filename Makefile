@@ -78,7 +78,7 @@ golangci:
 ifndef HAS_GOLANGCI
 	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
 endif
-	golangci-lint run ./...
+	golangci-lint run
 
 cover: work
 	go test $(TESTARGS) -tags=unit -cover -coverpkg=./ ./...

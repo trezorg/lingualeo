@@ -144,7 +144,7 @@ func debugResponse(response *http.Response) {
 }
 
 func request(method string, url string, client *http.Client, body []byte, query string, debug bool) (*string, error) {
-	var requestBody io.Reader = nil
+	var requestBody io.Reader
 	if len(body) > 0 {
 		requestBody = bytes.NewBuffer(body)
 	}
@@ -178,9 +178,9 @@ func request(method string, url string, client *http.Client, body []byte, query 
 		debugResponse(resp)
 	}
 	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			logger.Error(err)
+		dErr := resp.Body.Close()
+		if dErr != nil {
+			logger.Error(dErr)
 		}
 	}()
 	responseBody, err := readBody(resp)
@@ -190,7 +190,7 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf(
-			"Response status code: %d\nbody:\n%s",
+			"response status code: %d\nbody:\n%s",
 			resp.StatusCode,
 			*responseBody,
 		)
