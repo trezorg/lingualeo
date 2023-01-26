@@ -43,7 +43,7 @@ APP_PATH="${INSTALL_DIR}/${NAME}"
 
 echo "Installalling into ${APP_PATH}..."
 
-TAG_NAME=$(curl -s https://api.github.com/repos/trezorg/k8spodsmetrics/releases/latest | jq -r '.tag_name')
+TAG_NAME=$(curl -s https://api.github.com/repos/trezorg/${NAME}/releases/latest | awk -F ':' '/tag_name/ { gsub("[\", ]", "", $2); print $2 }')
 DOWNLOAD_URL="https://github.com/trezorg/${NAME}/releases/download/${TAG_NAME}/${NAME}-${OS}-${ARCH}"
 
 if ! curl --fail-with-body -sL "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
