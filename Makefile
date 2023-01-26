@@ -16,7 +16,6 @@ PKG := $(shell awk '/^module/ { print $$2 }' go.mod)
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 SOURCES := $(shell find $(DEST) -name '*.go' 2>/dev/null)
 HAS_GOLANGCI := $(shell command -v golangci-lint;)
-HAS_GOIMPORTS := $(shell command -v goimports;)
 
 TARGETS		?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le linux/s390x
 DIST_DIRS	= find * -type d -exec
@@ -26,7 +25,7 @@ TEMP_DIR	:=$(shell mktemp -d)
 GOOS		?= $(shell go env GOOS)
 VERSION		?= $(shell git describe --tags 2> /dev/null || \
 			   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
-GOARCH		:= amd64
+GOARCH		?= $(shell go env GOARCH)
 TAGS		:=
 LDFLAGS		:= "-w -s -X 'main.version=${VERSION}'"
 CMD_PACKAGE := ./cmd/lingualeo
@@ -43,7 +42,13 @@ work: $(GOBIN)
 build: clean cache check test
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
 	-ldflags $(LDFLAGS) \
-	-o $(BINARY) \
+	-o $(BINARY)-$(GOOS)-$(GOARCH) \
+	$(CMD_PACKAGE)
+
+build_no_tests:
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
+	-ldflags $(LDFLAGS) \
+	-o build/$(BINARY)-$(GOOS)-$(GOARCH) \
 	$(CMD_PACKAGE)
 
 cache:
@@ -56,20 +61,12 @@ install: clean check test
 
 test: unit
 
-check: work prepare fmt vet goimports golangci
+check: work prepare fmt vet golangci
 unit: work
 	go test -tags=unit $(TESTARGS) ./...
 
 fmt:
 	go fmt ./...
-
-goimports:
-ifndef HAS_GOIMPORTS
-	echo "installing goimports"
-	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
-endif
-	goimports -d $(shell find . -path ./.go -prune -o -type f -iname "*.go")
-	find . -iname "*.go"
 
 vet:
 	go vet ./...
@@ -89,11 +86,6 @@ ifndef HAS_GOLANGCI
 	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
 endif
 	echo "golangci-lint already installed"
-ifndef HAS_GOIMPORTS
-	echo "installing goimports"
-	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
-endif
-	echo "goimports already installed"
 
 shell:
 	$(SHELL) -i
@@ -104,4 +96,4 @@ clean: work
 version:
 	@echo ${VERSION}
 
-.PHONY: install build cover work fmt test version clean prepare
+.PHONY: install build build_no_tests -cover work fmt test version clean prepare
