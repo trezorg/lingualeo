@@ -249,7 +249,7 @@ func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-cha
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for word := range channel.OrStringDone(ctx, results) {
+		for word := range channel.OrDone(ctx, results) {
 			wg.Add(1)
 			go func(word string) {
 				defer wg.Done()

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -66,17 +67,15 @@ func FailIfError(err error) {
 	}
 }
 
-func PlaySound(player string, url string) error {
+func PlaySound(ctx context.Context, player string, url string) error {
 	parts := strings.Split(player, " ")
 	playerExec := parts[0]
 	params := append(parts[1:], url)
-	cmd := exec.Command(playerExec, params...)
-	err := cmd.Start()
-	if err != nil {
+	cmd := exec.CommandContext(ctx, playerExec, params...)
+	if err := cmd.Start(); err != nil {
 		return err
 	}
-	err = cmd.Wait()
-	if err != nil {
+	if err := cmd.Wait(); err != nil {
 		return err
 	}
 	return nil

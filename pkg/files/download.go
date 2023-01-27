@@ -99,7 +99,7 @@ func DownloadFiles(ctx context.Context, urls <-chan string, downloader NewDownlo
 	go func() {
 		defer wg.Done()
 		idx := 0
-		for url := range channel.OrStringDone(ctx, urls) {
+		for url := range channel.OrDone(ctx, urls) {
 			wg.Add(1)
 			go func(idx int, url string) {
 				defer wg.Done()

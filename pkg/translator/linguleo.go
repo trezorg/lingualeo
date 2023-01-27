@@ -20,14 +20,12 @@ func (args *Lingualeo) checkMediaPlayer() {
 		return
 	}
 	if len(args.Player) == 0 {
-		err := messages.Message(messages.RED, "Please set player parameter\n")
-		if err != nil {
+		if err := messages.Message(messages.RED, "Please set player parameter\n"); err != nil {
 			logger.Debug(err)
 		}
 		args.Sound = false
 	} else if !utils.IsCommandAvailable(args.Player) {
-		err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", args.Player)
-		if err != nil {
+		if err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", args.Player); err != nil {
 			logger.Debug(err)
 		}
 		args.Sound = false
@@ -37,8 +35,7 @@ func (args *Lingualeo) checkMediaPlayer() {
 // NewLingualeo initialize lingualeo client
 func NewLingualeo(version string) (Lingualeo, error) {
 	client := prepareCliArgs(version)
-	err := client.checkConfig()
-	if err != nil {
+	if err := client.checkConfig(); err != nil {
 		return client, err
 	}
 	configArgs, err := fromConfigs(&client.Config)
@@ -46,8 +43,7 @@ func NewLingualeo(version string) (Lingualeo, error) {
 		return client, err
 	}
 	client.mergeConfigs(configArgs)
-	err = client.checkArgs()
-	if err != nil {
+	if err = client.checkArgs(); err != nil {
 		return client, err
 	}
 	if client.Debug {
@@ -56,8 +52,7 @@ func NewLingualeo(version string) (Lingualeo, error) {
 	}
 	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	client.checkMediaPlayer()
-	client.API, err = api.NewAPI(client.Email, client.Password, client.Debug)
-	if err != nil {
+	if client.API, err = api.NewAPI(client.Email, client.Password, client.Debug); err != nil {
 		return client, err
 	}
 	return client, nil
@@ -65,21 +60,19 @@ func NewLingualeo(version string) (Lingualeo, error) {
 
 func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OpResult {
 	results := make(chan api.OpResult, len(args.Words))
-	input := channel.ToStringChannel(ctx, args.Words...)
+	input := channel.ToChannel(ctx, args.Words...)
 	go func() {
 		defer close(results)
 		for res := range api.OrOpResultDone(ctx, args.API.TranslateWords(ctx, input)) {
 			if res.Error != nil {
-				err := messages.Message(messages.RED, "%s\n", utils.Capitalize(res.Error.Error()))
-				if err != nil {
+				if err := messages.Message(messages.RED, "%s\n", utils.Capitalize(res.Error.Error())); err != nil {
 					logger.Error(err)
 				}
 				continue
 			}
 			if len(res.Result.GetTranslate()) == 0 {
 				_ = messages.Message(messages.RED, "There are no translations for word: ")
-				err := messages.Message(messages.GREEN, "['%s']\n", res.Result.GetWord())
-				if err != nil {
+				if err := messages.Message(messages.GREEN, "['%s']\n", res.Result.GetWord()); err != nil {
 					logger.Error(err)
 				}
 				continue
@@ -112,12 +105,10 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 		if res.Filename == "" {
 			continue
 		}
-		err := utils.PlaySound(args.Player, res.Filename)
-		if err != nil {
+		if err := utils.PlaySound(ctx, args.Player, res.Filename); err != nil {
 			logger.Error(err)
 		}
-		err = os.Remove(res.Filename)
-		if err != nil {
+		if err := os.Remove(res.Filename); err != nil {
 			logger.Error(err)
 		}
 	}
@@ -125,9 +116,8 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 
 func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for res := range channel.OrStringDone(ctx, urls) {
-		err := utils.PlaySound(args.Player, res)
-		if err != nil {
+	for res := range channel.OrDone(ctx, urls) {
+		if err := utils.PlaySound(ctx, args.Player, res); err != nil {
 			logger.Error(err)
 		}
 	}
