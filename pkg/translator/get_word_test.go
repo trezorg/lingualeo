@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/trezorg/lingualeo/pkg/logger"
+	"github.com/trezorg/lingualeo/internal/logger"
 
 	"github.com/trezorg/lingualeo/internal/fakeapi"
 )
@@ -29,7 +29,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	soundChan, _, resultChan := args.Process(ctx, &wg)
 	wg.Add(1)
 
-	go args.downloadAndPronounce(ctx, soundChan, &wg, fakeapi.FakeDownloader)
+	go args.downloadAndPronounce(ctx, soundChan, &wg, &fakeapi.FakeFileDownloader{})
 
 	for result := range resultChan {
 		fakeapi.CheckResult(t, result, searchWords[0], fakeapi.Expected)

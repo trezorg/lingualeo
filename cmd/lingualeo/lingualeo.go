@@ -2,20 +2,23 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/trezorg/lingualeo/pkg/messages"
 	"github.com/trezorg/lingualeo/pkg/translator"
-	"github.com/trezorg/lingualeo/pkg/utils"
 )
 
 var version = "0.0.1"
 
 func main() {
-	args, err := translator.NewLingualeo(version)
-	utils.FailIfError(err)
+	args, err := translator.New(version)
+	if err != nil {
+		_ = messages.Message(messages.RED, fmt.Sprintf("Error: %v\n", err))
+		os.Exit(1)
+	}
 
 	ctx, done := context.WithCancel(context.Background())
 	defer done()

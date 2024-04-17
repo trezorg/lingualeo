@@ -5,38 +5,24 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/trezorg/lingualeo/pkg/utils"
+	"github.com/trezorg/lingualeo/internal/slice"
 )
 
 type convertibleBoolean bool
 
 func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	asString := strings.Trim(string(data), "\"")
-	if asString == "1" || asString == "true" {
+
+	switch asString {
+	case "1", "true":
 		*bit = true
-	} else if asString == "0" || asString == "false" || asString == "null" {
+	case "0", "false", "null":
 		*bit = false
-	} else {
+	default:
 		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)
 	}
-	return nil
-}
 
-// Result API result interface
-type Result interface {
-	GetWord() string
-	Error() string
-	SetWord(string)
-	GetTranslate() []string
-	GetTranscription() []string
-	SetTranslate([]string, bool)
-	GetSoundURLs() []string
-	FromResponse(body string) error
-	parse()
-	PrintTranslation()
-	PrintAddedTranslation()
-	InDictionary() bool
-	IsRussian() bool
+	return nil
 }
 
 type apiError struct {
@@ -46,101 +32,76 @@ type apiError struct {
 
 // Word translates word structure
 type Word struct {
-	ID      int                `json:"id"`
-	Votes   int                `json:"votes"`
 	Value   string             `json:"value"`
 	Picture string             `json:"pic_url"`
+	ID      int                `json:"id"`
+	Votes   int                `json:"votes"`
 	Exists  convertibleBoolean `json:"ut"`
 }
 
-// OpResult represents operation result
-type OpResult struct {
+// OperationResult represents operation result
+type OperationResult struct {
 	Error  error
 	Result Result
 }
 
-func opResultFromBody(word string, body string) OpResult {
-	res := TranslationResult{Word: word}
+func opResultFromBody(word string, body []byte) OperationResult {
+	res := Result{Word: word}
 	err := res.FromResponse(body)
-	return OpResult{
+	return OperationResult{
 		Error:  err,
-		Result: &res,
+		Result: res,
 	}
 }
 
-// TranslationResult represents API response
-type TranslationResult struct {
+// Result represents API response
+type Result struct {
 	Word             string             `json:"-"`
-	Words            []string           `json:"-"`
-	Exists           convertibleBoolean `json:"is_user"`
 	SoundURL         string             `json:"sound_url"`
 	Transcription    string             `json:"transcription"`
-	Translate        []Word             `json:"translate"`
 	ErrorMsg         string             `json:"error_msg"`
+	Words            []string           `json:"-"`
+	Translate        []Word             `json:"translate"`
+	Exists           convertibleBoolean `json:"is_user"`
 	DirectionEnglish bool               `json:"directionEnglish"`
 }
 
 // FromResponse fills TranslationResult from http response
-func (result *TranslationResult) FromResponse(body string) error {
+func (result *Result) FromResponse(body []byte) error {
 	return fromResponse(result, body)
 }
 
-// GetTranscription returns word transcription
-func (result *TranslationResult) GetTranscription() []string {
-	return []string{result.Transcription}
-}
-
 // PrintTranslation prints transcription
-func (result *TranslationResult) PrintTranslation() {
+func (result *Result) PrintTranslation() {
 	printTranslation(result)
 }
 
 // PrintAddedTranslation prints transcription during adding operation
-func (result *TranslationResult) PrintAddedTranslation() {
+func (result *Result) PrintAddedTranslation() {
 	printAddedTranslation(result)
 }
 
-func (result *TranslationResult) parse() {
+func (result *Result) parse() {
 	sort.Slice(result.Translate, func(i, j int) bool {
 		return result.Translate[i].Votes > result.Translate[j].Votes
 	})
 	for _, translate := range result.Translate {
 		result.Words = append(result.Words, translate.Value)
 	}
-	result.Words = utils.Unique(result.Words)
-}
-
-// GetWord returns word to translate
-func (result *TranslationResult) GetWord() string {
-	return result.Word
-}
-
-// SetWord sets word to translate
-func (result *TranslationResult) SetWord(word string) {
-	result.Word = word
-}
-
-// GetTranslate returns translation for a word
-func (result *TranslationResult) GetTranslate() []string {
-	return result.Words
+	result.Words = slice.Unique(result.Words)
 }
 
 // SetTranslate sets custom translation for a word
-func (result *TranslationResult) SetTranslate(translates []string, replace bool) {
+func (result *Result) SetTranslate(translates []string, replace bool) {
 	if replace {
-		result.Words = utils.Unique(translates)
+		result.Words = slice.Unique(translates)
 	} else {
-		result.Words = utils.Unique(append(result.Words, translates...))
+		result.Words = slice.Unique(append(result.Words, translates...))
 	}
 }
 
-// GetSoundURLs returns sound urls to pronounce
-func (result *TranslationResult) GetSoundURLs() []string {
-	return []string{result.SoundURL}
-}
-
 // InDictionary checks either word is already has been added into the dictionary
-func (result *TranslationResult) InDictionary() bool {
+func (result *Result) InDictionary() bool {
 	if bool(result.Exists) {
 		return true
 	}
@@ -152,17 +113,17 @@ func (result *TranslationResult) InDictionary() bool {
 	return false
 }
 
-func (result *TranslationResult) Error() string {
+func (result *Result) Error() string {
 	return result.ErrorMsg
 }
 
 // IsRussian either word in in Russian language
-func (result *TranslationResult) IsRussian() bool {
+func (result *Result) IsRussian() bool {
 	return result.Transcription == ""
 }
 
 // NoResult negative operation result
 type NoResult struct {
-	Translate []string `json:"translate"`
 	ErrorMsg  string   `json:"error_msg"`
+	Translate []string `json:"translate"`
 }

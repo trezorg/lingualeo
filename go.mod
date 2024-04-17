@@ -1,6 +1,6 @@
 module github.com/trezorg/lingualeo
 
-go 1.17
+go 1.21
 
 require (
 	github.com/BurntSushi/toml v0.3.1
@@ -9,6 +9,7 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0
 	golang.org/x/net v0.22.0
+	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v2 v2.2.8
 )
 

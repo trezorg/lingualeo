@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	responseData = `{"error_msg":"","translate_source":"base","is_user":0,
+	responseData = []byte(`{"error_msg":"","translate_source":"base","is_user":0,
 	"word_forms":[{"word":"accommodation","type":"прил."}],
 	"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png",
 	"translate":[
@@ -20,7 +20,7 @@ var (
 		{"id":2735899,"value":"помещение","votes":268,"is_user":0,"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/620779.png"}
 	],
 	"transcription":"əkəədˈeɪːʃən","word_id":102085,"word_top":0,
-	"sound_url":"http:\/\/audiocdn.lingualeo.com\/v2\/3\/102085-631152000.mp3"}`
+	"sound_url":"http:\/\/audiocdn.lingualeo.com\/v2\/3\/102085-631152000.mp3"}`)
 	Expected   = []string{"жильё", "проживание", "размещение", "помещение"}
 	SearchWord = "accommodation"
 )
@@ -29,25 +29,25 @@ type FakeAPI struct {
 	api.Translator
 }
 
-func (f *FakeAPI) TranslateWord(word string) api.OpResult {
-	res := api.TranslationResult{Word: word}
+func (f *FakeAPI) TranslateWord(word string) api.OperationResult {
+	res := api.Result{Word: word}
 	err := res.FromResponse(responseData)
-	return api.OpResult{Result: &res, Error: err}
+	return api.OperationResult{Result: res, Error: err}
 }
 
-func (f *FakeAPI) AddWord(word string, _ []string) api.OpResult {
-	res := api.TranslationResult{Word: word}
+func (f *FakeAPI) AddWord(word string, _ []string) api.OperationResult {
+	res := api.Result{Word: word}
 	err := res.FromResponse(responseData)
-	return api.OpResult{Result: &res, Error: err}
+	return api.OperationResult{Result: res, Error: err}
 }
 
-func (f *FakeAPI) TranslateWords(ctx context.Context, results <-chan string) <-chan api.OpResult {
-	out := make(chan api.OpResult)
+func (f *FakeAPI) TranslateWords(ctx context.Context, results <-chan string) <-chan api.OperationResult {
+	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for word := range channel.OrStringDone(ctx, results) {
+		for word := range channel.OrDone(ctx, results) {
 			wg.Add(1)
 			go func(word string) {
 				defer wg.Done()
@@ -62,18 +62,18 @@ func (f *FakeAPI) TranslateWords(ctx context.Context, results <-chan string) <-c
 	return out
 }
 
-func (f *FakeAPI) AddWords(ctx context.Context, results <-chan api.Result) <-chan api.OpResult {
-	out := make(chan api.OpResult)
+func (f *FakeAPI) AddWords(ctx context.Context, results <-chan api.Result) <-chan api.OperationResult {
+	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for res := range api.OrResultDone(ctx, results) {
+		for res := range channel.OrDone(ctx, results) {
 			wg.Add(1)
 			result := res
 			go func(result api.Result) {
 				defer wg.Done()
-				out <- f.AddWord(result.GetWord(), result.GetTranslate())
+				out <- f.AddWord(result.Word, result.Words)
 			}(result)
 		}
 	}()

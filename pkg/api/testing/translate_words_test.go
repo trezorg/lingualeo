@@ -20,7 +20,7 @@ func TestTranslateWords(t *testing.T) {
 	searchWords := []string{fakeapi.SearchWord}
 	fakeAPI := fakeapi.FakeAPI{}
 	ctx := context.Background()
-	ch := channel.ToStringChannel(ctx, searchWords...)
+	ch := channel.ToChannel(ctx, searchWords...)
 	out := fakeAPI.TranslateWords(ctx, ch)
 	res := (<-out).Result
 	fakeapi.CheckResult(t, res, searchWords[0], fakeapi.Expected)

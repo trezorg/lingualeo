@@ -18,34 +18,34 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/pkg/channel"
-	"github.com/trezorg/lingualeo/pkg/logger"
 
 	"golang.org/x/net/publicsuffix"
 )
 
 // Translator interface
 type Translator interface {
-	translateWord(word string) OpResult
-	TranslateWords(ctx context.Context, results <-chan string) <-chan OpResult
-	addWord(word string, translate []string) OpResult
-	AddWords(ctx context.Context, results <-chan Result) <-chan OpResult
+	translateWord(word string) OperationResult
+	TranslateWords(ctx context.Context, results <-chan string) <-chan OperationResult
+	addWord(word string, translate []string) OperationResult
+	AddWords(ctx context.Context, results <-chan Result) <-chan OperationResult
 }
 
-// API structure represents api request
+// API structure represents API request
 type API struct {
+	client   *http.Client
 	Email    string
 	Password string
 	Debug    bool
-	client   *http.Client
 }
 
-func checkAuthError(body *string) error {
-	if body == nil || *body == "" {
+func checkAuthError(body []byte) error {
+	if len(body) == 0 {
 		return nil
 	}
 	res := apiError{}
-	if err := getJSONFromString(*body, &res); err != nil {
+	if err := json.Unmarshal(body, &res); err != nil {
 		return err
 	}
 	if res.ErrorCode != 0 {
@@ -54,8 +54,8 @@ func checkAuthError(body *string) error {
 	return nil
 }
 
-// NewAPI constructor
-func NewAPI(email string, password string, debug bool) (*API, error) {
+// New constructor
+func New(email string, password string, debug bool) (*API, error) {
 	client, err := prepareClient()
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func debugResponse(response *http.Response) {
 	}
 }
 
-func request(method string, url string, client *http.Client, body []byte, query string, debug bool) (*string, error) {
+func request(method string, url string, client *http.Client, body []byte, query string, debug bool) ([]byte, error) {
 	var requestBody io.Reader
 	if len(body) > 0 {
 		requestBody = bytes.NewBuffer(body)
@@ -192,13 +192,13 @@ func request(method string, url string, client *http.Client, body []byte, query 
 		return nil, fmt.Errorf(
 			"response status code: %d\nbody:\n%s",
 			resp.StatusCode,
-			*responseBody,
+			string(responseBody),
 		)
 	}
 	return responseBody, err
 }
 
-func (api *API) translateRequest(word string) (*string, error) {
+func (api *API) translateRequest(word string) ([]byte, error) {
 	values := map[string]interface{}{
 		"text":       word,
 		"apiVersion": apiVersion,
@@ -216,7 +216,7 @@ func (api *API) translateRequest(word string) (*string, error) {
 	return request("POST", translateURL, api.client, jsonValue, "", api.Debug)
 }
 
-func (api *API) addRequest(word string, translate []string) (*string, error) {
+func (api *API) addRequest(word string, translate []string) ([]byte, error) {
 	values := map[string]string{
 		"word":  word,
 		"tword": strings.Join(translate, ", "),
@@ -226,30 +226,30 @@ func (api *API) addRequest(word string, translate []string) (*string, error) {
 	return request("POST", addWordURL, api.client, jsonValue, "", api.Debug)
 }
 
-func (api *API) translateWord(word string) OpResult {
+func (api *API) translateWord(word string) OperationResult {
 	body, err := api.translateRequest(word)
 	if err != nil {
-		return OpResult{Error: err}
+		return OperationResult{Error: err}
 	}
-	return opResultFromBody(word, *body)
+	return opResultFromBody(word, body)
 }
 
-func (api *API) addWord(word string, translate []string) OpResult {
+func (api *API) addWord(word string, translate []string) OperationResult {
 	body, err := api.addRequest(word, translate)
 	if err != nil {
-		return OpResult{Error: err}
+		return OperationResult{Error: err}
 	}
-	return opResultFromBody(word, *body)
+	return opResultFromBody(word, body)
 }
 
 // TranslateWords transate words from string channel
-func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-chan OpResult {
-	out := make(chan OpResult)
+func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-chan OperationResult {
+	out := make(chan OperationResult)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for word := range channel.OrStringDone(ctx, results) {
+		for word := range channel.OrDone(ctx, results) {
 			wg.Add(1)
 			go func(word string) {
 				defer wg.Done()
@@ -265,18 +265,18 @@ func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-cha
 }
 
 // AddWords add words
-func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OpResult {
-	out := make(chan OpResult)
+func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OperationResult {
+	out := make(chan OperationResult)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for res := range OrResultDone(ctx, results) {
+		for res := range channel.OrDone(ctx, results) {
 			wg.Add(1)
 			result := res
 			go func(result Result) {
 				defer wg.Done()
-				out <- api.addWord(result.GetWord(), result.GetTranslate())
+				out <- api.addWord(result.Word, result.Words)
 			}(result)
 		}
 	}()

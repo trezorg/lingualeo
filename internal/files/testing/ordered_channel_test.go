@@ -3,11 +3,10 @@ package testing
 import (
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/trezorg/lingualeo/pkg/files"
+	"github.com/trezorg/lingualeo/internal/files"
 )
 
 var count = 1000
@@ -18,7 +17,6 @@ func TestOrderedChannel(t *testing.T) {
 	for i := 0; i < count; i++ {
 		numbers = append(numbers, i)
 	}
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(numbers), func(i, j int) {
 		numbers[i], numbers[j] = numbers[j], numbers[i]
 	})

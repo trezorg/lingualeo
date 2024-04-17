@@ -1,8 +1,6 @@
 package files
 
 import (
-	"context"
-
 	"github.com/trezorg/lingualeo/pkg/heap"
 )
 
@@ -30,28 +28,5 @@ func OrderedChannel(input <-chan File, count int) <-chan File {
 		}
 	}()
 
-	return out
-}
-
-// OrFilesDone gets and return channel. Possibility to stop when context done
-func OrFilesDone(ctx context.Context, input <-chan File) <-chan File {
-	out := make(chan File)
-	go func() {
-		defer close(out)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case v, ok := <-input:
-				if !ok {
-					return
-				}
-				select {
-				case out <- v:
-				case <-ctx.Done():
-				}
-			}
-		}
-	}()
 	return out
 }

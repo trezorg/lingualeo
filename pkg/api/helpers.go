@@ -5,38 +5,28 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/trezorg/lingualeo/pkg/messages"
 
-	"github.com/trezorg/lingualeo/pkg/logger"
+	"github.com/trezorg/lingualeo/internal/logger"
 )
 
-func getJSONFromString(body string, target interface{}) error {
-	return json.Unmarshal([]byte(body), &target)
-}
-
-func readBody(resp *http.Response) (*string, error) {
+func readBody(resp *http.Response) ([]byte, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
 			logger.Error(err)
 		}
 	}()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	res := string(data)
-	return &res, nil
+	return io.ReadAll(resp.Body)
 }
 
-func fromResponse(result Result, body string) error {
-	err := getJSONFromString(body, result)
+func fromResponse(result *Result, body []byte) error {
+	err := json.Unmarshal(body, &result)
 	if err != nil {
 		res := NoResult{}
-		if fErr := getJSONFromString(body, res); fErr != nil {
-			return fmt.Errorf("cannot translate word: %s, %w", result.GetWord(), fErr)
+		if fErr := json.Unmarshal(body, &res); fErr != nil {
+			return fmt.Errorf("cannot translate word: %s, %w", result.Word, fErr)
 		}
 		return err
 	}
@@ -47,7 +37,7 @@ func fromResponse(result Result, body string) error {
 	return nil
 }
 
-func printTranslation(result Result) {
+func printTranslation(result *Result) {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "existing"
@@ -58,16 +48,16 @@ func printTranslation(result Result) {
 	if err != nil {
 		logger.Error(err)
 	}
-	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.GetWord(), strings.Join(result.GetTranscription(), ", "))
+	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription)
 	if err != nil {
 		logger.Error(err)
 	}
-	for _, word := range result.GetTranslate() {
+	for _, word := range result.Words {
 		_ = messages.Message(messages.YELLOW, "%s\n", word)
 	}
 }
 
-func printAddedTranslation(result Result) {
+func printAddedTranslation(result *Result) {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "Updated existing"
@@ -78,7 +68,7 @@ func printAddedTranslation(result Result) {
 	if err != nil {
 		logger.Error(err)
 	}
-	err = messages.Message(messages.GREEN, "['%s']\n", result.GetWord())
+	err = messages.Message(messages.GREEN, "['%s']\n", result.Word)
 	if err != nil {
 		logger.Error(err)
 	}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/trezorg/lingualeo/internal/fakeapi"
 
-	"github.com/trezorg/lingualeo/pkg/files"
+	"github.com/trezorg/lingualeo/internal/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestDownloadWordFile(t *testing.T) {
 
 	close(inChan)
 
-	out := files.DownloadFiles(ctx, inChan, fakeapi.FakeDownloader)
+	out := files.DownloadFiles(ctx, inChan, &fakeapi.FakeFileDownloader{})
 	fileName := (<-out).Filename
 	assert.Equal(t, fileName, fakeapi.TestFile)
 }

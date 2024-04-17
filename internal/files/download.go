@@ -8,8 +8,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/pkg/channel"
-	"github.com/trezorg/lingualeo/pkg/logger"
 )
 
 const fileTemplate = "lingualeo"
@@ -17,8 +17,8 @@ const filePath = "/tmp"
 
 // Downloader interface
 type Downloader interface {
-	DownloadFile() (string, error)
-	GetWriter() (io.WriteCloser, string, error)
+	Download(url string) (string, error)
+	Writer() (io.WriteCloser, string, error)
 }
 
 // NewDownloader function type
@@ -38,16 +38,15 @@ func (f File) GetIndex() int {
 
 // FileDownloader structure
 type FileDownloader struct {
-	URL string
 }
 
-// NewFileDownloader init new downloader
-func NewFileDownloader(url string) Downloader {
-	return &FileDownloader{URL: url}
+// NewFileDownloader initialize new file downloader
+func NewFileDownloader() *FileDownloader {
+	return &FileDownloader{}
 }
 
-// GetWriter prepares WriteCloser for temporary file
-func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
+// Writer prepares WriteCloser for temporary file
+func (f *FileDownloader) Writer() (io.WriteCloser, string, error) {
 	fl, err := os.CreateTemp(filePath, fileTemplate)
 	if err != nil {
 		return nil, "", err
@@ -59,9 +58,9 @@ func (f *FileDownloader) GetWriter() (io.WriteCloser, string, error) {
 	return fd, fl.Name(), nil
 }
 
-// DownloadFile downloads file
-func (f *FileDownloader) DownloadFile() (string, error) {
-	fd, filename, err := f.GetWriter()
+// Download downloads file
+func (f *FileDownloader) Download(url string) (string, error) {
+	fd, filename, err := f.Writer()
 	if err != nil {
 		return "", err
 	}
@@ -71,9 +70,9 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 			logger.Error(cErr)
 		}
 	}()
-	resp, err := http.Get(f.URL)
+	resp, err := http.Get(url)
 	if err != nil {
-		return "", fmt.Errorf("cannot read url: %s, %w", f.URL, err)
+		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
 	defer func() {
 		cErr := resp.Body.Close()
@@ -91,19 +90,19 @@ func (f *FileDownloader) DownloadFile() (string, error) {
 	return filename, nil
 }
 
-// DownloadFiles download files from urls channel
-func DownloadFiles(ctx context.Context, urls <-chan string, downloader NewDownloader) <-chan File {
+// DownloadFiles download files from URLs channel
+func DownloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan File {
 	out := make(chan File)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		idx := 0
-		for url := range channel.OrStringDone(ctx, urls) {
+		for url := range channel.OrDone(ctx, urls) {
 			wg.Add(1)
 			go func(idx int, url string) {
 				defer wg.Done()
-				filename, err := downloader(url).DownloadFile()
+				filename, err := downloader.Download(url)
 				out <- File{Error: err, Filename: filename, Index: idx}
 			}(idx, url)
 			idx++

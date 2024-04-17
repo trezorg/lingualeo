@@ -3,8 +3,6 @@ package fakeapi
 import (
 	"bufio"
 	"io"
-
-	"github.com/trezorg/lingualeo/pkg/files"
 )
 
 var TestFile = "/tmp/test.file"
@@ -17,19 +15,15 @@ func (twc *testWriteCloser) Close() error {
 	return nil
 }
 
-type fakeFileDownloader struct {
+type FakeFileDownloader struct {
 }
 
-func (f *fakeFileDownloader) GetWriter() (io.WriteCloser, string, error) {
+func (f *FakeFileDownloader) Writer() (io.WriteCloser, string, error) {
 	var b *testWriteCloser
 	return b, TestFile, nil
 }
 
-func (f *fakeFileDownloader) DownloadFile() (string, error) {
-	_, fl, err := f.GetWriter()
+func (f *FakeFileDownloader) Download(_ string) (string, error) {
+	_, fl, err := f.Writer()
 	return fl, err
-}
-
-func FakeDownloader(string) files.Downloader {
-	return &fakeFileDownloader{}
 }

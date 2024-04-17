@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
-	"strings"
 
-	"github.com/trezorg/lingualeo/pkg/utils"
+	"github.com/trezorg/lingualeo/internal/files"
+	"github.com/trezorg/lingualeo/internal/slice"
 
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"
@@ -36,7 +37,15 @@ type configFile struct {
 	filename string
 }
 
-func (cf *configFile) getType() configType {
+func userHome() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return usr.HomeDir, nil
+}
+
+func (cf *configFile) filenameType() configType {
 	ext := filepath.Ext(cf.filename)
 	if ext == ".yml" || ext == ".yaml" {
 		return yamlType
@@ -48,7 +57,7 @@ func (cf *configFile) getType() configType {
 }
 
 func (cf *configFile) decode(data []byte, args *Lingualeo) error {
-	return decodeMapping[cf.getType()](data, args)
+	return decodeMapping[cf.filenameType()](data, args)
 }
 
 func (cf *configFile) decodeFile(args *Lingualeo) error {
@@ -63,7 +72,7 @@ func newConfigFile(filename string) *configFile {
 	return &configFile{filename: filename}
 }
 
-func prepareCliArgs(version string) Lingualeo {
+func prepareArgs(version string) (Lingualeo, error) {
 
 	args := Lingualeo{}
 
@@ -77,10 +86,10 @@ func prepareCliArgs(version string) Lingualeo {
 			}
 			return fmt.Errorf("there are no words to translate")
 		}
-		args.Words = utils.Unique(c.Args().Slice())
+		args.Words = slice.Unique(c.Args().Slice())
 		args.Translation = translate.Value()
 		if args.Add && len(args.Translation) > 0 && len(args.Words) > 1 {
-			return fmt.Errorf("you should add only one word with custom transcation")
+			return fmt.Errorf("you should add only one word with custom translation")
 		}
 		return nil
 	}
@@ -229,14 +238,10 @@ func prepareCliArgs(version string) Lingualeo {
 		},
 	}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		if strings.Contains(err.Error(), "help requested") {
-			os.Exit(0)
-		}
-		utils.FailIfError(err)
+	if err := app.Run(os.Args); err != nil {
+		return args, err
 	}
-	return args
+	return args, nil
 
 }
 
@@ -264,8 +269,8 @@ func readJSONConfig(data []byte, args *Lingualeo) error {
 	return nil
 }
 
-func getConfigFiles(filename *string) ([]string, error) {
-	home, err := utils.GetUserHome()
+func configFiles(filename *string) ([]string, error) {
+	home, err := userHome()
 	if err != nil {
 		return nil, err
 	}
@@ -276,30 +281,29 @@ func getConfigFiles(filename *string) ([]string, error) {
 		homeConfigFile, _ = filepath.Abs(filepath.Join(home, configFilename))
 		currentConfigFile, _ = filepath.Abs(configFilename)
 		for _, fullConfigFileName := range [2]string{homeConfigFile, currentConfigFile} {
-			if utils.FileExists(fullConfigFileName) {
+			if files.Exists(fullConfigFileName) {
 				configs = append(configs, fullConfigFileName)
 			}
 		}
 	}
 	if filename != nil && len(*filename) > 0 {
 		argsConfig, _ := filepath.Abs(*filename)
-		if utils.FileExists(argsConfig) {
+		if files.Exists(argsConfig) {
 			configs = append(configs, argsConfig)
 		}
 	}
-	configs = utils.Unique(configs)
+	configs = slice.Unique(configs)
 	return configs, nil
 }
 
 func fromConfigs(filename *string) (*Lingualeo, error) {
-	configs, err := getConfigFiles(filename)
+	configs, err := configFiles(filename)
 	if err != nil {
 		return nil, err
 	}
 	args := Lingualeo{}
 	for _, name := range configs {
-		err = newConfigFile(name).decodeFile(&args)
-		if err != nil {
+		if err = newConfigFile(name).decodeFile(&args); err != nil {
 			return nil, err
 		}
 	}
@@ -309,7 +313,7 @@ func fromConfigs(filename *string) (*Lingualeo, error) {
 func (args *Lingualeo) checkConfig() error {
 	if len(args.Config) > 0 {
 		filename, _ := filepath.Abs(args.Config)
-		if !utils.FileExists(filename) {
+		if !files.Exists(filename) {
 			return fmt.Errorf("there is no the config file or file is a directory: %s", filename)
 		}
 	}

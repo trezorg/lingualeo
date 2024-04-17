@@ -29,7 +29,7 @@ player: %s
 	)
 	args := &Lingualeo{}
 	decoder := newConfigFile("test.yaml")
-	require.Equal(t, yamlType, decoder.getType())
+	require.Equal(t, yamlType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
 	require.NoError(t, err, config)
 	assert.Equal(t, email, args.Email)
@@ -60,7 +60,7 @@ func TestReadJsonConfig(t *testing.T) {
 	)
 	args := &Lingualeo{}
 	decoder := newConfigFile("test.json")
-	require.Equal(t, jsonType, decoder.getType())
+	require.Equal(t, jsonType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
 	require.NoError(t, err, config)
 	assert.Equal(t, email, args.Email)
@@ -91,7 +91,7 @@ player = "%s"
 	)
 	args := &Lingualeo{}
 	decoder := newConfigFile("test.ini")
-	require.Equal(t, tomlType, decoder.getType())
+	require.Equal(t, tomlType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
 	require.NoError(t, err, config)
 	assert.Equal(t, email, args.Email)
@@ -129,7 +129,7 @@ player: "%s"
 	args := &Lingualeo{}
 
 	decoder := newConfigFile("test.ini")
-	require.Equal(t, tomlType, decoder.getType())
+	require.Equal(t, tomlType, decoder.filenameType())
 	err := decoder.decode([]byte(tomlConfig), args)
 	require.NoError(t, err, tomlConfig)
 
@@ -141,7 +141,7 @@ player: "%s"
 	assert.False(t, args.Add)
 
 	decoder = newConfigFile("test.yaml")
-	require.Equal(t, yamlType, decoder.getType())
+	require.Equal(t, yamlType, decoder.filenameType())
 	err = decoder.decode([]byte(yamlConfig), args)
 	require.NoError(t, err, yamlConfig)
 
