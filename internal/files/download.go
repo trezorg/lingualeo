@@ -1,28 +1,18 @@
 package files
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/trezorg/lingualeo/internal/logger"
-	"github.com/trezorg/lingualeo/pkg/channel"
 )
 
-const fileTemplate = "lingualeo"
-const filePath = "/tmp"
-
-// Downloader interface
-type Downloader interface {
-	Download(url string) (string, error)
-	Writer() (io.WriteCloser, string, error)
-}
-
-// NewDownloader function type
-type NewDownloader func(url string) Downloader
+const (
+	fileTemplate = "lingualeo"
+	filePath     = "/tmp"
+)
 
 // File represents file for downloading
 type File struct {
@@ -37,8 +27,7 @@ func (f File) GetIndex() int {
 }
 
 // FileDownloader structure
-type FileDownloader struct {
-}
+type FileDownloader struct{}
 
 // NewFileDownloader initialize new file downloader
 func NewFileDownloader() *FileDownloader {
@@ -88,29 +77,4 @@ func (f *FileDownloader) Download(url string) (string, error) {
 		return "", err
 	}
 	return filename, nil
-}
-
-// DownloadFiles download files from URLs channel
-func DownloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan File {
-	out := make(chan File)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		idx := 0
-		for url := range channel.OrDone(ctx, urls) {
-			wg.Add(1)
-			go func(idx int, url string) {
-				defer wg.Done()
-				filename, err := downloader.Download(url)
-				out <- File{Error: err, Filename: filename, Index: idx}
-			}(idx, url)
-			idx++
-		}
-	}()
-	go func() {
-		defer close(out)
-		wg.Wait()
-	}()
-	return out
 }

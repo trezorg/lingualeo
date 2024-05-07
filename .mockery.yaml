@@ -1,0 +1,18 @@
+testonly: false
+with-expecter: true
+# inpackage: true
+# dir: mocks/{{ replaceAll .InterfaceDirRelative "internal" "internal_" }}
+# mockname: "{{.InterfaceName}}"
+# outpkg: "{{.PackageName}}"
+filename: "{{.InterfaceName}}.go"
+all: true
+packages:
+  github.com/trezorg/lingualeo/pkg/translator:
+    config:
+      recursive: true
+      with-expecter: true
+      mockname: "Mock_{{.InterfaceName}}"
+      # outpkg: mocks
+      dir: ./{{ replaceAll .InterfaceDirRelative "internal" "internal_" }}
+      filename: "mock_{{.InterfaceName}}.go"
+      inpackage: true

@@ -37,8 +37,16 @@ func (args *Lingualeo) checkMediaPlayer() {
 	}
 }
 
+// Translator interface
+//
+//go:generate mockery
+type Translator interface {
+	TranslateWord(word string) api.OperationResult
+	AddWord(word string, translate []string) api.OperationResult
+}
+
 type Lingualeo struct {
-	API               api.Translator
+	Translator        Translator
 	LogLevel          string `yaml:"log_level" json:"log_level" toml:"log_level"`
 	Password          string `yaml:"password" json:"password" toml:"password"`
 	Config            string
@@ -81,11 +89,56 @@ func New(version string) (Lingualeo, error) {
 	}
 	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
 	client.checkMediaPlayer()
-	client.API, err = api.New(client.Email, client.Password, client.Debug)
+	client.Translator, err = api.New(client.Email, client.Password, client.Debug)
 	if err != nil {
 		return client, err
 	}
 	return client, nil
+}
+
+// translateWords translate words from string channel
+func translateWords(ctx context.Context, translator Translator, results <-chan string) <-chan api.OperationResult {
+	out := make(chan api.OperationResult)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for word := range channel.OrDone(ctx, results) {
+			wg.Add(1)
+			go func(word string) {
+				defer wg.Done()
+				out <- translator.TranslateWord(word)
+			}(word)
+		}
+	}()
+	go func() {
+		defer close(out)
+		wg.Wait()
+	}()
+	return out
+}
+
+// addWords add words
+func addWords(ctx context.Context, translator Translator, results <-chan api.Result) <-chan api.OperationResult {
+	out := make(chan api.OperationResult)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for res := range channel.OrDone(ctx, results) {
+			wg.Add(1)
+			result := res
+			go func(result api.Result) {
+				defer wg.Done()
+				out <- translator.AddWord(result.Word, result.Words)
+			}(result)
+		}
+	}()
+	go func() {
+		defer close(out)
+		wg.Wait()
+	}()
+	return out
 }
 
 func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResult {
@@ -93,7 +146,8 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationR
 	input := channel.ToChannel(ctx, args.Words...)
 	go func() {
 		defer close(results)
-		for res := range channel.OrDone(ctx, args.API.TranslateWords(ctx, input)) {
+		ch := translateWords(ctx, args.Translator, input)
+		for res := range channel.OrDone(ctx, ch) {
 			if res.Error != nil {
 				err := messages.Message(
 					messages.RED,
@@ -130,9 +184,9 @@ func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	return false
 }
 
-func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup, downloader files.Downloader) {
+func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup, downloader Downloader) {
 	defer wg.Done()
-	fileChannel := files.OrderedChannel(files.DownloadFiles(ctx, urls, downloader), len(urls))
+	fileChannel := files.OrderedChannel(DownloadFiles(ctx, urls, downloader), len(urls))
 	for res := range channel.OrDone(ctx, fileChannel) {
 		if res.Error != nil {
 			logger.Error(res.Error)
@@ -174,7 +228,8 @@ func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sy
 // AddToDictionary adds words to dictionary
 func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for res := range args.API.AddWords(ctx, resultsToAdd) {
+	ch := addWords(ctx, args.Translator, resultsToAdd)
+	for res := range ch {
 		if res.Error != nil {
 			logger.Error(res.Error)
 			continue

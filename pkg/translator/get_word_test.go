@@ -6,13 +6,28 @@ import (
 	"testing"
 
 	"github.com/trezorg/lingualeo/internal/logger"
+	"github.com/trezorg/lingualeo/pkg/api"
 
 	"github.com/trezorg/lingualeo/internal/fakeapi"
 )
 
-func TestProcessTranslationResponseJson(t *testing.T) {
+func translateWordResult(word string) api.OperationResult {
+	res := api.Result{Word: word}
+	err := res.FromResponse(fakeapi.ResponseData)
+	return api.OperationResult{Result: res, Error: err}
+}
 
+func TestProcessTranslationResponseJson(t *testing.T) {
+	downloader := NewMock_Downloader(t)
+	testFile := "/tmp/test.file"
 	count := 1000 // max for race checking
+	translator := NewMock_Translator(t)
+
+	res := translateWordResult(fakeapi.SearchWord)
+
+	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
+	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
+
 	logger.InitLogger("FATAL", true)
 	searchWords := make([]string, 0, count)
 
@@ -20,21 +35,19 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		searchWords = append(searchWords, fakeapi.SearchWord)
 	}
 	ctx := context.Background()
-	fakeAPI := fakeapi.FakeAPI{}
 
-	args := Lingualeo{Sound: true, Words: searchWords, Add: false, API: &fakeAPI}
+	args := Lingualeo{Sound: true, Words: searchWords, Add: false, Translator: translator}
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	soundChan, _, resultChan := args.Process(ctx, &wg)
 	wg.Add(1)
 
-	go args.downloadAndPronounce(ctx, soundChan, &wg, &fakeapi.FakeFileDownloader{})
+	go args.downloadAndPronounce(ctx, soundChan, &wg, downloader)
 
 	for result := range resultChan {
 		fakeapi.CheckResult(t, result, searchWords[0], fakeapi.Expected)
 	}
 
 	wg.Wait()
-
 }

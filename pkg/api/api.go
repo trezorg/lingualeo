@@ -24,14 +24,6 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-// Translator interface
-type Translator interface {
-	translateWord(word string) OperationResult
-	TranslateWords(ctx context.Context, results <-chan string) <-chan OperationResult
-	addWord(word string, translate []string) OperationResult
-	AddWords(ctx context.Context, results <-chan Result) <-chan OperationResult
-}
-
 // API structure represents API request
 type API struct {
 	client   *http.Client
@@ -226,7 +218,7 @@ func (api *API) addRequest(word string, translate []string) ([]byte, error) {
 	return request("POST", addWordURL, api.client, jsonValue, "", api.Debug)
 }
 
-func (api *API) translateWord(word string) OperationResult {
+func (api *API) TranslateWord(word string) OperationResult {
 	body, err := api.translateRequest(word)
 	if err != nil {
 		return OperationResult{Error: err}
@@ -234,7 +226,7 @@ func (api *API) translateWord(word string) OperationResult {
 	return opResultFromBody(word, body)
 }
 
-func (api *API) addWord(word string, translate []string) OperationResult {
+func (api *API) AddWord(word string, translate []string) OperationResult {
 	body, err := api.addRequest(word, translate)
 	if err != nil {
 		return OperationResult{Error: err}
@@ -253,7 +245,7 @@ func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-cha
 			wg.Add(1)
 			go func(word string) {
 				defer wg.Done()
-				out <- api.translateWord(word)
+				out <- api.TranslateWord(word)
 			}(word)
 		}
 	}()
@@ -276,7 +268,7 @@ func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan Oper
 			result := res
 			go func(result Result) {
 				defer wg.Done()
-				out <- api.addWord(result.Word, result.Words)
+				out <- api.AddWord(result.Word, result.Words)
 			}(result)
 		}
 	}()

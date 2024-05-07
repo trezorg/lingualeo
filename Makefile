@@ -17,6 +17,7 @@ DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 SOURCES := $(shell find $(DEST) -name '*.go' 2>/dev/null)
 HAS_GOLANGCI := $(shell command -v golangci-lint;)
 HAS_GOIMPORTS := $(shell command -v goimports;)
+HAS_MOCKERY := $(shell command -v mockery;)
 
 TARGETS		?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le linux/s390x
 DIST_DIRS	= find * -type d -exec
@@ -66,7 +67,7 @@ fmt:
 goimports:
 ifndef HAS_GOIMPORTS
 	echo "installing goimports"
-	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports@latest
 endif
 	goimports -d $(shell find . -path ./.go -prune -o -type f -iname "*.go")
 	find . -iname "*.go"
@@ -76,9 +77,16 @@ vet:
 
 golangci:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.58.0
 endif
 	golangci-lint run
+
+generate:
+ifndef HAS_MOCKERY
+	echo "installing mockery"
+	go install github.com/vektra/mockery/v2@latest
+endif
+	go generate ./...
 
 cover: work
 	go test $(TESTARGS) -tags=unit -cover -coverpkg=./ ./...
@@ -86,14 +94,19 @@ cover: work
 
 prepare:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.49.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.58.0
 endif
 	echo "golangci-lint already installed"
 ifndef HAS_GOIMPORTS
 	echo "installing goimports"
-	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports@latest
 endif
 	echo "goimports already installed"
+ifndef HAS_MOCKERY
+	echo "installing mockery"
+	go install github.com/vektra/mockery/v2@latest
+endif
+	echo "mockery already installed"
 
 shell:
 	$(SHELL) -i
@@ -104,4 +117,4 @@ clean: work
 version:
 	@echo ${VERSION}
 
-.PHONY: install build cover work fmt test version clean prepare
+.PHONY: install build cover work fmt test version clean prepare generate
