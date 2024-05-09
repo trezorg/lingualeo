@@ -7,16 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/pkg/channel"
@@ -116,22 +114,22 @@ func (api *API) auth() error {
 func debugRequest(request *http.Request) {
 	dump, err := httputil.DumpRequestOut(request, true)
 	if err != nil {
-		logrus.Error(err)
+		slog.Error("cannot dump http request", "error", err)
 	} else {
-		logrus.SetOutput(os.Stderr)
-		logrus.Debug(string(dump))
-		logrus.SetOutput(os.Stdout)
+		logger.SetHandler(logger.DebugHandler())
+		slog.Debug(string(dump))
+		logger.SetHandler(logger.DefaultHandler())
 	}
 }
 
 func debugResponse(response *http.Response) {
 	dump, err := httputil.DumpResponse(response, true)
 	if err != nil {
-		logrus.Error(err)
+		slog.Error("cannot dump http response", "error", err)
 	} else {
-		logrus.SetOutput(os.Stderr)
-		logrus.Debug(string(dump))
-		logrus.SetOutput(os.Stdout)
+		logger.SetHandler(logger.DebugHandler())
+		slog.Debug(string(dump))
+		logger.SetHandler(logger.DefaultHandler())
 	}
 }
 
@@ -172,12 +170,12 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	defer func() {
 		dErr := resp.Body.Close()
 		if dErr != nil {
-			logger.Error(dErr)
+			slog.Error("cannot close response body", "error", dErr)
 		}
 	}()
 	responseBody, err := readBody(resp)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot read response body", "error", err)
 		return nil, err
 	}
 	if resp.StatusCode != 200 {

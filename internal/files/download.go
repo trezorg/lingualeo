@@ -3,10 +3,9 @@ package files
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
-
-	"github.com/trezorg/lingualeo/internal/logger"
 )
 
 const (
@@ -56,7 +55,7 @@ func (f *FileDownloader) Download(url string) (string, error) {
 	defer func() {
 		cErr := fd.Close()
 		if cErr != nil {
-			logger.Error(cErr)
+			slog.Error("cannot close write file descriptor", "error", cErr)
 		}
 	}()
 	resp, err := http.Get(url)
@@ -66,7 +65,7 @@ func (f *FileDownloader) Download(url string) (string, error) {
 	defer func() {
 		cErr := resp.Body.Close()
 		if cErr != nil {
-			logger.Error(cErr)
+			slog.Error("cannot close response body", "error", cErr)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {

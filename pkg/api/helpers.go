@@ -4,18 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/trezorg/lingualeo/pkg/messages"
-
-	"github.com/trezorg/lingualeo/internal/logger"
 )
 
 func readBody(resp *http.Response) ([]byte, error) {
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			logger.Error(err)
+			slog.Error("cannot close response body", "error", err)
 		}
 	}()
 	return io.ReadAll(resp.Body)
@@ -46,11 +45,11 @@ func printTranslation(result *Result) {
 	}
 	err := messages.Message(messages.RED, "Found %s word:\n", strTitle)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot show message", "error", err)
 	}
 	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot show message", "error", err)
 	}
 	for _, word := range result.Words {
 		_ = messages.Message(messages.YELLOW, "%s\n", word)
@@ -66,10 +65,10 @@ func printAddedTranslation(result *Result) {
 	}
 	err := messages.Message(messages.RED, "%s word: ", strTitle)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot show message", "error", err)
 	}
 	err = messages.Message(messages.GREEN, "['%s']\n", result.Word)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot show message", "error", err)
 	}
 }
