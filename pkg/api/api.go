@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/pkg/channel"
 
 	"golang.org/x/net/publicsuffix"
@@ -172,12 +172,12 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	defer func() {
 		dErr := resp.Body.Close()
 		if dErr != nil {
-			logger.Error(dErr)
+			slog.Error("cannot close response body", "error", dErr)
 		}
 	}()
 	responseBody, err := readBody(resp)
 	if err != nil {
-		logger.Error(err)
+		slog.Error("cannot read response body", "error", err)
 		return nil, err
 	}
 	if resp.StatusCode != 200 {

@@ -2,6 +2,7 @@ package translator
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
 
-	logger.InitLogger("FATAL", true)
+	logger.Prepare(slog.LevelError + 1)
 	searchWords := make([]string, 0, count)
 
 	for i := 0; i < count; i++ {

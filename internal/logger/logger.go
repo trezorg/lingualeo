@@ -1,52 +1,37 @@
 package logger
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
-	"sync"
-
-	"github.com/sirupsen/logrus"
 )
 
-var log *logrus.Entry
-var onceLog sync.Once
+var levelVar = new(slog.LevelVar)
 
-type utcFormatter struct {
-	logrus.Formatter
-}
-
-func (u utcFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	e.Time = e.Time.UTC()
-	return u.Formatter.Format(e)
-}
-
-func initLogger(logLevel string, logPrettyPrint bool) {
-
-	level, err := logrus.ParseLevel(logLevel)
-	if err != nil {
-		logrus.Fatalf("Cannot parse log level: %s", logLevel)
+func ParseLevel(level string) (slog.Level, error) {
+	switch level {
+	case "DEBUG":
+		return slog.LevelDebug, nil
+	case "INFO":
+		return slog.LevelInfo, nil
+	case "WARNING", "WARN":
+		return slog.LevelWarn, nil
+	case "ERROR":
+		return slog.LevelError, nil
+	default:
+		return slog.LevelError, fmt.Errorf("unknown log level: %s", level)
 	}
-
-	logrus.SetFormatter(utcFormatter{&logrus.JSONFormatter{
-		PrettyPrint:     logPrettyPrint,
-		TimestampFormat: "2006-01-02 15:04:05 -0700",
-	}})
-	logrus.SetReportCaller(true)
-	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(level)
-	log = logrus.WithFields(logrus.Fields{"service": "lingualeo"})
 }
 
-func Error(args ...interface{}) {
-	log.Error(args...)
+func SetLevel(level slog.Level) {
+	levelVar.Set(level)
 }
 
-func Debug(args ...interface{}) {
-	log.Debug(args...)
-}
-
-func InitLogger(logLevel string, logPrettyPrint bool) *logrus.Entry {
-	onceLog.Do(func() {
-		initLogger(logLevel, logPrettyPrint)
+func Prepare(level slog.Level) {
+	SetLevel(level)
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: levelVar,
 	})
-	return log
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }

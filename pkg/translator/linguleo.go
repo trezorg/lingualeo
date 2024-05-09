@@ -2,6 +2,7 @@ package translator
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -25,13 +26,13 @@ func (args *Lingualeo) checkMediaPlayer() {
 	if len(args.Player) == 0 {
 		err := messages.Message(messages.RED, "Please set player parameter\n")
 		if err != nil {
-			logger.Debug(err)
+			slog.Error("cannot show message", "error", err)
 		}
 		args.Sound = false
 	} else if !isCommandAvailable(args.Player) {
 		err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", args.Player)
 		if err != nil {
-			logger.Debug(err)
+			slog.Error("cannot show message", "error", err)
 		}
 		args.Sound = false
 	}
@@ -87,7 +88,11 @@ func New(version string) (Lingualeo, error) {
 		client.LogLevel = logrus.DebugLevel.String()
 		client.LogPrettyPrint = true
 	}
-	logger.InitLogger(client.LogLevel, client.LogPrettyPrint)
+	level, err := logger.ParseLevel(client.LogLevel)
+	if err != nil {
+		return client, err
+	}
+	logger.Prepare(level)
 	client.checkMediaPlayer()
 	client.Translator, err = api.New(client.Email, client.Password, client.Debug)
 	if err != nil {
@@ -155,7 +160,7 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationR
 					cases.Title(language.Make(strings.ToLower(res.Error.Error()))),
 				)
 				if err != nil {
-					logger.Error(err)
+					slog.Error("cannot show message", "error", err)
 				}
 				continue
 			}
@@ -163,7 +168,7 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationR
 				_ = messages.Message(messages.RED, "There are no translations for word: ")
 				err := messages.Message(messages.GREEN, "['%s']\n", res.Result.Word)
 				if err != nil {
-					logger.Error(err)
+					slog.Error("cannot show message", "error", err)
 				}
 				continue
 			}
@@ -189,7 +194,7 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 	fileChannel := files.OrderedChannel(DownloadFiles(ctx, urls, downloader), len(urls))
 	for res := range channel.OrDone(ctx, fileChannel) {
 		if res.Error != nil {
-			logger.Error(res.Error)
+			slog.Error("cannot download", "error", res.Error)
 			continue
 		}
 		if res.Filename == "" {
@@ -197,21 +202,21 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 		}
 		err := PlaySound(args.Player, res.Filename)
 		if err != nil {
-			logger.Error(err)
+			slog.Error("cannot play filename", "filename", res.Filename, "error", err)
 		}
 		err = os.Remove(res.Filename)
 		if err != nil {
-			logger.Error(err)
+			slog.Error("cannot remove filename", "filename", res.Filename, "error", err)
 		}
 	}
 }
 
 func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for res := range channel.OrDone(ctx, urls) {
-		err := PlaySound(args.Player, res)
+	for url := range channel.OrDone(ctx, urls) {
+		err := PlaySound(args.Player, url)
 		if err != nil {
-			logger.Error(err)
+			slog.Error("cannot play url", "url", url, "error", err)
 		}
 	}
 }
@@ -231,7 +236,7 @@ func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan 
 	ch := addWords(ctx, args.Translator, resultsToAdd)
 	for res := range ch {
 		if res.Error != nil {
-			logger.Error(res.Error)
+			slog.Error("cannot add word to dictionary", "word", res.Result.Word, "error", res.Error)
 			continue
 		}
 		res.Result.PrintAddedTranslation()
@@ -254,7 +259,7 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 
 		for result := range args.translateWords(ctx) {
 			if result.Error != nil {
-				logger.Error(result.Error)
+				slog.Error("cannot translate word", "word", result.Result.Word, "error", result.Error)
 				continue
 			}
 			if args.Sound {
@@ -312,7 +317,7 @@ func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context, resultFu
 	var englishWords []string
 	for result := range channel.OrDone(ctx, args.translateToChan(ctx)) {
 		if err := resultFunc(result); err != nil {
-			logger.Error(err)
+			slog.Error("cannot translate word", "word", result.Word, "error", err)
 		}
 		for _, word := range result.Words {
 			if args.ReverseTranslate && isEnglishWord(word) {
@@ -324,7 +329,7 @@ func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context, resultFu
 		args.Words = englishWords
 		for result := range channel.OrDone(ctx, args.translateToChan(ctx)) {
 			if err := resultFunc(result); err != nil {
-				logger.Error(err)
+				slog.Error("cannot translate word", "word", result.Word, "error", err)
 			}
 		}
 	}
