@@ -24,7 +24,6 @@ DIST_DIRS	= find * -type d -exec
 
 TEMP_DIR	:=$(shell mktemp -d)
 
-GOOS		?= $(shell go env GOOS)
 VERSION		?= $(shell git describe --tags 2> /dev/null || \
 			   git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 GOARCH		:= amd64
@@ -32,6 +31,9 @@ TAGS		:=
 LDFLAGS		:= "-w -s -X 'main.version=${VERSION}'"
 CMD_PACKAGE := ./cmd/lingualeo
 BINARY 		:= ./lingualeo
+LDFLAGS		:= "-w -s -X 'main.version=${VERSION}'"
+GOOS		?= $(shell go env GOOS)
+GOARCH		?= $(shell go env GOARCH)
 
 # CTI targets
 
@@ -41,23 +43,20 @@ $(GOBIN):
 
 work: $(GOBIN)
 
-build: clean cache check test
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-	-ldflags $(LDFLAGS) \
-	-o $(BINARY) \
-	$(CMD_PACKAGE)
+build:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags $(LDFLAGS) -o build/lingualeo-$(GOOS)-$(GOARCH) $(CMD_PACKAGE)
 
 cache:
 	go clean --cache
 
-install: clean check test
+install: clean lint test
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go install \
 	-ldflags $(LDFLAGS) \
 	$(CMD_PACKAGE)
 
 test: unit
 
-check: work prepare fmt vet goimports golangci
+lint: work prepare fmt vet goimports golangci
 unit: work
 	go test -tags=unit $(TESTARGS) ./...
 
@@ -117,4 +116,4 @@ clean: work
 version:
 	@echo ${VERSION}
 
-.PHONY: install build cover work fmt test version clean prepare generate
+.PHONY: install build cover work fmt test version clean prepare generate lint
