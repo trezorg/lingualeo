@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -12,12 +11,9 @@ import (
 	"net/http/cookiejar"
 	"net/http/httputil"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/trezorg/lingualeo/internal/logger"
-	"github.com/trezorg/lingualeo/pkg/channel"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -206,10 +202,10 @@ func (api *API) translateRequest(word string) ([]byte, error) {
 	return request("POST", translateURL, api.client, jsonValue, "", api.Debug)
 }
 
-func (api *API) addRequest(word string, translate []string) ([]byte, error) {
+func (api *API) addRequest(word string, translate string) ([]byte, error) {
 	values := map[string]string{
 		"word":  word,
-		"tword": strings.Join(translate, ", "),
+		"tword": translate,
 		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
@@ -224,55 +220,10 @@ func (api *API) TranslateWord(word string) OperationResult {
 	return opResultFromBody(word, body)
 }
 
-func (api *API) AddWord(word string, translate []string) OperationResult {
+func (api *API) AddWord(word string, translate string) OperationResult {
 	body, err := api.addRequest(word, translate)
 	if err != nil {
 		return OperationResult{Error: err}
 	}
 	return opResultFromBody(word, body)
-}
-
-// TranslateWords transate words from string channel
-func (api *API) TranslateWords(ctx context.Context, results <-chan string) <-chan OperationResult {
-	out := make(chan OperationResult)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for word := range channel.OrDone(ctx, results) {
-			wg.Add(1)
-			go func(word string) {
-				defer wg.Done()
-				out <- api.TranslateWord(word)
-			}(word)
-		}
-	}()
-	go func() {
-		defer close(out)
-		wg.Wait()
-	}()
-	return out
-}
-
-// AddWords add words
-func (api *API) AddWords(ctx context.Context, results <-chan Result) <-chan OperationResult {
-	out := make(chan OperationResult)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for res := range channel.OrDone(ctx, results) {
-			wg.Add(1)
-			result := res
-			go func(result Result) {
-				defer wg.Done()
-				out <- api.AddWord(result.Word, result.Words)
-			}(result)
-		}
-	}()
-	go func() {
-		defer close(out)
-		wg.Wait()
-	}()
-	return out
 }

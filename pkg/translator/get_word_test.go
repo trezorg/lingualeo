@@ -29,7 +29,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
 
-	logger.Prepare(slog.LevelError + 1)
+	logger.Prepare(slog.LevelError + 10)
 	searchWords := make([]string, 0, count)
 
 	for i := 0; i < count; i++ {

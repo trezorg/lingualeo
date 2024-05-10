@@ -61,6 +61,7 @@ type Result struct {
 	Transcription    string             `json:"transcription"`
 	ErrorMsg         string             `json:"error_msg"`
 	Words            []string           `json:"-"`
+	AddWords         []string           `json:"-"`
 	Translate        []Word             `json:"translate"`
 	Exists           convertibleBoolean `json:"is_user"`
 	DirectionEnglish bool               `json:"directionEnglish"`
@@ -91,13 +92,9 @@ func (result *Result) parse() {
 	result.Words = slice.Unique(result.Words)
 }
 
-// SetTranslate sets custom translation for a word
-func (result *Result) SetTranslate(translates []string, replace bool) {
-	if replace {
-		result.Words = slice.Unique(translates)
-	} else {
-		result.Words = slice.Unique(append(result.Words, translates...))
-	}
+// SetTranslation sets custom translation for a word
+func (result *Result) SetTranslation(translates []string) {
+	result.AddWords = slice.Unique(translates)
 }
 
 // InDictionary checks either word is already has been added into the dictionary

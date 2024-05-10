@@ -16,8 +16,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type configType int
-type decodeFunc func(data []byte, args *Lingualeo) error
+type (
+	configType int
+	decodeFunc func(data []byte, args *Lingualeo) error
+)
 
 const (
 	yamlType = configType(1)
@@ -25,13 +27,11 @@ const (
 	tomlType = configType(3)
 )
 
-var (
-	decodeMapping = map[configType]decodeFunc{
-		yamlType: readYamlConfig,
-		jsonType: readJSONConfig,
-		tomlType: readTomlConfig,
-	}
-)
+var decodeMapping = map[configType]decodeFunc{
+	yamlType: readYamlConfig,
+	jsonType: readJSONConfig,
+	tomlType: readTomlConfig,
+}
 
 type configFile struct {
 	filename string
@@ -73,7 +73,6 @@ func newConfigFile(filename string) *configFile {
 }
 
 func prepareArgs(version string) (Lingualeo, error) {
-
 	args := Lingualeo{}
 
 	var translate cli.StringSlice
@@ -87,7 +86,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 			return fmt.Errorf("there are no words to translate")
 		}
 		args.Words = slice.Unique(c.Args().Slice())
-		args.Translation = translate.Value()
+		args.Translation = slice.Unique(translate.Value())
 		if args.Add && len(args.Translation) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom translation")
 		}
@@ -212,18 +211,6 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Aliases: []string{"a"},
 			Usage:   "Add to lingualeo dictionary",
 			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        "force",
-					Aliases:     []string{"f"},
-					Usage:       "Force add to lingualeo dictionary",
-					Destination: &args.Force,
-				},
-				&cli.BoolFlag{
-					Name:        "replace",
-					Aliases:     []string{"r"},
-					Usage:       "Custom translation. Replace word instead of adding",
-					Destination: &args.TranslateReplace,
-				},
 				&cli.StringSliceFlag{
 					Name:        "translate",
 					Aliases:     []string{"t"},
@@ -242,7 +229,6 @@ func prepareArgs(version string) (Lingualeo, error) {
 		return args, err
 	}
 	return args, nil
-
 }
 
 func readTomlConfig(data []byte, args *Lingualeo) error {
@@ -343,9 +329,6 @@ func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
 	if len(args.Player) == 0 && len(a.Player) > 0 {
 		args.Player = a.Player
 	}
-	if a.Force {
-		args.Force = a.Force
-	}
 	if a.Add {
 		args.Add = a.Add
 	}
@@ -363,9 +346,6 @@ func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
 	}
 	if a.ReverseTranslate {
 		args.ReverseTranslate = a.ReverseTranslate
-	}
-	if a.TranslateReplace {
-		args.TranslateReplace = a.TranslateReplace
 	}
 	if len(args.LogLevel) == 0 && len(a.LogLevel) > 0 {
 		args.LogLevel = a.LogLevel

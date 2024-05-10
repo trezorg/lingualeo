@@ -21,7 +21,7 @@ func (_m *Mock_Translator) EXPECT() *Mock_Translator_Expecter {
 }
 
 // AddWord provides a mock function with given fields: word, translate
-func (_m *Mock_Translator) AddWord(word string, translate []string) api.OperationResult {
+func (_m *Mock_Translator) AddWord(word string, translate string) api.OperationResult {
 	ret := _m.Called(word, translate)
 
 	if len(ret) == 0 {
@@ -29,7 +29,7 @@ func (_m *Mock_Translator) AddWord(word string, translate []string) api.Operatio
 	}
 
 	var r0 api.OperationResult
-	if rf, ok := ret.Get(0).(func(string, []string) api.OperationResult); ok {
+	if rf, ok := ret.Get(0).(func(string, string) api.OperationResult); ok {
 		r0 = rf(word, translate)
 	} else {
 		r0 = ret.Get(0).(api.OperationResult)
@@ -45,14 +45,14 @@ type Mock_Translator_AddWord_Call struct {
 
 // AddWord is a helper method to define mock.On call
 //   - word string
-//   - translate []string
+//   - translate string
 func (_e *Mock_Translator_Expecter) AddWord(word interface{}, translate interface{}) *Mock_Translator_AddWord_Call {
 	return &Mock_Translator_AddWord_Call{Call: _e.mock.On("AddWord", word, translate)}
 }
 
-func (_c *Mock_Translator_AddWord_Call) Run(run func(word string, translate []string)) *Mock_Translator_AddWord_Call {
+func (_c *Mock_Translator_AddWord_Call) Run(run func(word string, translate string)) *Mock_Translator_AddWord_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].([]string))
+		run(args[0].(string), args[1].(string))
 	})
 	return _c
 }
@@ -62,7 +62,7 @@ func (_c *Mock_Translator_AddWord_Call) Return(_a0 api.OperationResult) *Mock_Tr
 	return _c
 }
 
-func (_c *Mock_Translator_AddWord_Call) RunAndReturn(run func(string, []string) api.OperationResult) *Mock_Translator_AddWord_Call {
+func (_c *Mock_Translator_AddWord_Call) RunAndReturn(run func(string, string) api.OperationResult) *Mock_Translator_AddWord_Call {
 	_c.Call.Return(run)
 	return _c
 }

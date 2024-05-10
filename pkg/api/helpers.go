@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/trezorg/lingualeo/pkg/messages"
 )
@@ -67,7 +68,8 @@ func printAddedTranslation(result *Result) {
 	if err != nil {
 		slog.Error("cannot show message", "error", err)
 	}
-	err = messages.Message(messages.GREEN, "['%s']\n", result.Word)
+
+	err = messages.Message(messages.GREEN, "['%s'] ['%s']\n", result.Word, strings.Join(result.AddWords, ", "))
 	if err != nil {
 		slog.Error("cannot show message", "error", err)
 	}

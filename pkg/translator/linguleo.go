@@ -41,7 +41,7 @@ func (args *Lingualeo) checkMediaPlayer() {
 //go:generate mockery
 type Translator interface {
 	TranslateWord(word string) api.OperationResult
-	AddWord(word string, translate []string) api.OperationResult
+	AddWord(word string, translate string) api.OperationResult
 }
 
 type Lingualeo struct {
@@ -54,11 +54,9 @@ type Lingualeo struct {
 	Words             []string
 	Translation       []string
 	Add               bool `yaml:"add" json:"add" toml:"add"`
-	TranslateReplace  bool `yaml:"translate_replace" json:"translate_replace" toml:"translate_replace"`
 	Sound             bool `yaml:"sound" json:"sound" toml:"sound"`
 	Debug             bool `yaml:"debug" json:"debug" toml:"debug"`
 	DownloadSoundFile bool `yaml:"download" json:"download" toml:"download"`
-	Force             bool `yaml:"force" json:"force" toml:"force"`
 	LogPrettyPrint    bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
 	ReverseTranslate  bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
 }
@@ -129,12 +127,16 @@ func addWords(ctx context.Context, translator Translator, results <-chan api.Res
 	go func() {
 		defer wg.Done()
 		for res := range channel.OrDone(ctx, results) {
-			wg.Add(1)
-			result := res
-			go func(result api.Result) {
-				defer wg.Done()
-				out <- translator.AddWord(result.Word, result.Words)
-			}(result)
+			for _, translate := range res.AddWords {
+				wg.Add(1)
+				result := res
+				go func(word, transate string) {
+					defer wg.Done()
+					added := translator.AddWord(word, transate)
+					added.Result.AddWords = []string{transate}
+					out <- added
+				}(result.Word, translate)
+			}
 		}
 	}()
 	go func() {
@@ -177,11 +179,9 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationR
 }
 
 func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
-	if !result.InDictionary() || args.Force {
-		// Custom translation
-		if len(args.Translation) > 0 {
-			result.SetTranslate(args.Translation, args.TranslateReplace)
-		}
+	// Custom translation
+	if len(args.Translation) > 0 {
+		result.SetTranslation(args.Translation)
 		return true
 	}
 	return false
@@ -244,7 +244,7 @@ func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan 
 // Process starts translation process
 func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan string, <-chan api.Result, <-chan api.Result) {
 	soundChan := make(chan string, len(args.Words))
-	addWordChan := make(chan api.Result, len(args.Words))
+	addWordChan := make(chan api.Result, len(args.Translation))
 	resultsChan := make(chan api.Result, len(args.Words))
 
 	go func() {
