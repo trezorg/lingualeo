@@ -181,6 +181,12 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Destination: &args.Sound,
 		},
 		&cli.BoolFlag{
+			Name:        "picture",
+			Aliases:     []string{"pc"},
+			Usage:       "Open translate pictures",
+			Destination: &args.Picture,
+		},
+		&cli.BoolFlag{
 			Name:        "download",
 			Aliases:     []string{"dl"},
 			Usage:       "Download file to play sound. In case a player is not able to play url directly",
@@ -338,6 +344,9 @@ func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
 	}
 	if a.Sound {
 		args.Sound = a.Sound
+	}
+	if a.Picture {
+		args.Picture = a.Picture
 	}
 	if a.DownloadSoundFile {
 		args.DownloadSoundFile = a.DownloadSoundFile

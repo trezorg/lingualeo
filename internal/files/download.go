@@ -28,8 +28,8 @@ func (f File) GetIndex() int {
 // FileDownloader structure
 type FileDownloader struct{}
 
-// NewFileDownloader initialize new file downloader
-func NewFileDownloader() *FileDownloader {
+// New initialize new file downloader
+func New() *FileDownloader {
 	return &FileDownloader{}
 }
 
@@ -76,4 +76,8 @@ func (f *FileDownloader) Download(url string) (string, error) {
 		return "", err
 	}
 	return filename, nil
+}
+
+func (f *FileDownloader) Remove(path string) error {
+	return os.Remove(path)
 }

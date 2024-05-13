@@ -3,15 +3,17 @@ package translator
 import (
 	"context"
 	"log/slog"
-	"os"
+	"net/url"
 	"strings"
 	"sync"
 
 	"github.com/trezorg/lingualeo/internal/files"
+	"github.com/trezorg/lingualeo/internal/visualizer/browser"
 	"github.com/trezorg/lingualeo/pkg/api"
 	"github.com/trezorg/lingualeo/pkg/channel"
 
 	"github.com/trezorg/lingualeo/internal/logger"
+	"github.com/trezorg/lingualeo/internal/player"
 	"github.com/trezorg/lingualeo/pkg/messages"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -45,7 +47,10 @@ type Translator interface {
 }
 
 type Lingualeo struct {
-	Translator        Translator
+	Translator
+	Downloader
+	Pronouncer
+	Visualizer
 	LogLevel          string `yaml:"log_level" json:"log_level" toml:"log_level"`
 	Password          string `yaml:"password" json:"password" toml:"password"`
 	Config            string
@@ -55,6 +60,7 @@ type Lingualeo struct {
 	Translation       []string
 	Add               bool `yaml:"add" json:"add" toml:"add"`
 	Sound             bool `yaml:"sound" json:"sound" toml:"sound"`
+	Picture           bool `yaml:"picture" json:"picture" toml:"picture"`
 	Debug             bool `yaml:"debug" json:"debug" toml:"debug"`
 	DownloadSoundFile bool `yaml:"download" json:"download" toml:"download"`
 	LogPrettyPrint    bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
@@ -94,6 +100,9 @@ func New(version string) (Lingualeo, error) {
 	if err != nil {
 		return client, err
 	}
+	client.Pronouncer = player.New(client.Player)
+	client.Downloader = files.New()
+	client.Visualizer = browser.New()
 	return client, nil
 }
 
@@ -110,6 +119,28 @@ func translateWords(ctx context.Context, translator Translator, results <-chan s
 				defer wg.Done()
 				out <- translator.TranslateWord(word)
 			}(word)
+		}
+	}()
+	go func() {
+		defer close(out)
+		wg.Wait()
+	}()
+	return out
+}
+
+// visualizeWords visualize words from URL channel
+func visualizeWords(ctx context.Context, visualizer Visualizer, results <-chan *url.URL) <-chan error {
+	out := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for u := range channel.OrDone(ctx, results) {
+			wg.Add(1)
+			go func(u *url.URL) {
+				defer wg.Done()
+				out <- visualizer.Show(u)
+			}(u)
 		}
 	}()
 	go func() {
@@ -187,9 +218,9 @@ func (args *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	return false
 }
 
-func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup, downloader Downloader) {
+func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	fileChannel := files.OrderedChannel(DownloadFiles(ctx, urls, downloader), len(urls))
+	fileChannel := files.OrderedChannel(downloadFiles(ctx, urls, args.Downloader), len(urls))
 	for res := range channel.OrDone(ctx, fileChannel) {
 		if res.Error != nil {
 			slog.Error("cannot download", "error", res.Error)
@@ -198,12 +229,10 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 		if res.Filename == "" {
 			continue
 		}
-		err := PlaySound(args.Player, res.Filename)
-		if err != nil {
+		if err := args.Play(res.Filename); err != nil {
 			slog.Error("cannot play filename", "filename", res.Filename, "error", err)
 		}
-		err = os.Remove(res.Filename)
-		if err != nil {
+		if err := args.Downloader.Remove(res.Filename); err != nil {
 			slog.Error("cannot remove filename", "filename", res.Filename, "error", err)
 		}
 	}
@@ -212,7 +241,7 @@ func (args *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan str
 func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for url := range channel.OrDone(ctx, urls) {
-		err := PlaySound(args.Player, url)
+		err := args.Play(url)
 		if err != nil {
 			slog.Error("cannot play url", "url", url, "error", err)
 		}
@@ -222,7 +251,7 @@ func (args *Lingualeo) pronounce(ctx context.Context, urls <-chan string, wg *sy
 // Pronounce downloads and pronounce words
 func (args *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wg *sync.WaitGroup) {
 	if args.DownloadSoundFile {
-		args.downloadAndPronounce(ctx, urls, wg, &files.FileDownloader{})
+		args.downloadAndPronounce(ctx, urls, wg)
 	} else {
 		args.pronounce(ctx, urls, wg)
 	}
@@ -241,9 +270,28 @@ func (args *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan 
 	}
 }
 
+// Visualize show words prictures
+func (args *Lingualeo) Visualize(ctx context.Context, urls <-chan *url.URL, wg *sync.WaitGroup) {
+	defer wg.Done()
+	ch := visualizeWords(ctx, args.Visualizer, urls)
+	for err := range ch {
+		if err != nil {
+			slog.Error("cannot show word picture", "error", err)
+		}
+	}
+}
+
+type Channels struct {
+	sound     <-chan string
+	visualize <-chan *url.URL
+	add       <-chan api.Result
+	results   <-chan api.Result
+}
+
 // Process starts translation process
-func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan string, <-chan api.Result, <-chan api.Result) {
+func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
 	soundChan := make(chan string, len(args.Words))
+	visualizeChan := make(chan *url.URL, len(args.Words))
 	addWordChan := make(chan api.Result, len(args.Translation))
 	resultsChan := make(chan api.Result, len(args.Words))
 
@@ -251,6 +299,7 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 		defer func() {
 			wg.Done()
 			close(soundChan)
+			close(visualizeChan)
 			close(addWordChan)
 			close(resultsChan)
 		}()
@@ -263,6 +312,19 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 			if args.Sound {
 				soundChan <- result.Result.SoundURL
 			}
+			if args.Picture {
+				for _, p := range result.Result.Translate {
+					if p.Picture == "" {
+						continue
+					}
+					url, err := url.Parse(p.Picture)
+					if err != nil {
+						slog.Error("cannot parse picture url", "url", p.Picture, "error", err)
+						continue
+					}
+					visualizeChan <- url
+				}
+			}
 
 			if args.Add {
 				if resultsToAdd := args.prepareResultToAdd(&result.Result); resultsToAdd {
@@ -273,7 +335,12 @@ func (args *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) (<-chan 
 		}
 	}()
 
-	return soundChan, addWordChan, resultsChan
+	return Channels{
+		sound:     soundChan,
+		visualize: visualizeChan,
+		add:       addWordChan,
+		results:   resultsChan,
+	}
 }
 
 type processResult func(api.Result) error
@@ -286,21 +353,25 @@ func ProcessResultImpl(result api.Result) error {
 func (args *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	soundChan, addWordChan, resultsChan := args.Process(ctx, &wg)
+	channels := args.Process(ctx, &wg)
 	if args.Sound {
 		wg.Add(1)
-		go args.Pronounce(ctx, soundChan, &wg)
+		go args.Pronounce(ctx, channels.sound, &wg)
 	}
 	if args.Add {
 		wg.Add(1)
-		go args.AddToDictionary(ctx, addWordChan, &wg)
+		go args.AddToDictionary(ctx, channels.add, &wg)
+	}
+	if args.Picture {
+		wg.Add(1)
+		go args.Visualize(ctx, channels.visualize, &wg)
 	}
 
 	ch := make(chan api.Result, len(args.Words))
 
 	go func() {
 		defer close(ch)
-		for result := range channel.OrDone(ctx, resultsChan) {
+		for result := range channel.OrDone(ctx, channels.results) {
 			ch <- result
 		}
 		wg.Wait()

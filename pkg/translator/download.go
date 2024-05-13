@@ -13,10 +13,11 @@ import (
 //go:generate mockery
 type Downloader interface {
 	Download(url string) (string, error)
+	Remove(path string) error
 }
 
-// DownloadFiles download files from URLs channel
-func DownloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan files.File {
+// downloadFiles download files from URLs channel
+func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan files.File {
 	out := make(chan files.File)
 	var wg sync.WaitGroup
 	wg.Add(1)

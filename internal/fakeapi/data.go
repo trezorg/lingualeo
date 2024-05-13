@@ -1,6 +1,7 @@
 package fakeapi
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
@@ -9,7 +10,17 @@ import (
 )
 
 var (
-	SoundURL     = "http://audiocdn.lingualeo.com/v2/3/102085-631152000.mp3"
+	SoundURL    = "http://audiocdn.lingualeo.com/v2/3/102085-631152000.mp3"
+	u1, _       = url.Parse("http://contentcdn.lingualeo.com/uploads/picture/31064.png")
+	u2, _       = url.Parse("http://contentcdn.lingualeo.com/uploads/picture/335521.png")
+	u3, _       = url.Parse("http://contentcdn.lingualeo.com/uploads/picture/374830.png")
+	u4, _       = url.Parse("http://contentcdn.lingualeo.com/uploads/picture/620779.png")
+	PictureUrls = []*url.URL{
+		u1,
+		u2,
+		u3,
+		u4,
+	}
 	ResponseData = []byte(`{"error_msg":"","translate_source":"base","is_user":0,
 	"word_forms":[{"word":"accommodation","type":"прил."}],
 	"pic_url":"http:\/\/contentcdn.lingualeo.com\/uploads\/picture\/3589594.png",
