@@ -164,7 +164,7 @@ func (args *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationR
 				}
 				continue
 			}
-			if len(res.Result.Words) == 0 {
+			if len(res.Result.Translate) == 0 {
 				_ = messages.Message(messages.RED, "There are no translations for word: ")
 				err := messages.Message(messages.GREEN, "['%s']\n", res.Result.Word)
 				if err != nil {
@@ -317,9 +317,9 @@ func (args *Lingualeo) TranslateWithReverseRussian(ctx context.Context, resultFu
 		if err := resultFunc(result); err != nil {
 			slog.Error("cannot translate word", "word", result.Word, "error", err)
 		}
-		for _, word := range result.Words {
-			if args.ReverseTranslate && isEnglishWord(word) {
-				englishWords = append(englishWords, word)
+		for _, word := range result.Translate {
+			if args.ReverseTranslate && isEnglishWord(word.Value) {
+				englishWords = append(englishWords, word.Value)
 			}
 		}
 	}

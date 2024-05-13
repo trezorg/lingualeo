@@ -216,6 +216,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 					Aliases:     []string{"t"},
 					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
 					Destination: &translate,
+					Required:    true,
 				},
 			},
 			Action: func(c *cli.Context) error {

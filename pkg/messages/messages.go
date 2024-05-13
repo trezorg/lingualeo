@@ -16,6 +16,8 @@ const (
 	GREEN Color = "@{g}"
 	// YELLOW color
 	YELLOW Color = "@{y}"
+	// WHITE color
+	WHITE Color = "@{w}"
 )
 
 // Message shows a message with color package

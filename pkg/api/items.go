@@ -32,11 +32,13 @@ type apiError struct {
 
 // Word translates word structure
 type Word struct {
-	Value   string             `json:"value"`
-	Picture string             `json:"pic_url"`
-	ID      int                `json:"id"`
-	Votes   int                `json:"votes"`
-	Exists  convertibleBoolean `json:"ut"`
+	Value     string             `json:"value"`
+	Picture   string             `json:"pic_url"`
+	Context   string             `json:"ctx"`
+	Translate string             `json:"tr"`
+	ID        int                `json:"id"`
+	Votes     int                `json:"votes"`
+	Exists    convertibleBoolean `json:"ut"`
 }
 
 // OperationResult represents operation result
@@ -56,15 +58,16 @@ func opResultFromBody(word string, body []byte) OperationResult {
 
 // Result represents API response
 type Result struct {
-	Word             string             `json:"-"`
-	SoundURL         string             `json:"sound_url"`
-	Transcription    string             `json:"transcription"`
-	ErrorMsg         string             `json:"error_msg"`
-	Words            []string           `json:"-"`
-	AddWords         []string           `json:"-"`
-	Translate        []Word             `json:"translate"`
-	Exists           convertibleBoolean `json:"is_user"`
-	DirectionEnglish bool               `json:"directionEnglish"`
+	Word                     string             `json:"-"`
+	SoundURL                 string             `json:"sound_url"`
+	Transcription            string             `json:"transcription"`
+	ErrorMsg                 string             `json:"error_msg"`
+	Pos                      string             `json:"pos"`
+	AddWords                 []string           `json:"-"`
+	Translate                []Word             `json:"translate"`
+	Exists                   convertibleBoolean `json:"is_user"`
+	DirectionEnglish         bool               `json:"directionEnglish"`
+	InvertTranslateDirection bool               `json:"invertTranslateDirection"`
 }
 
 // FromResponse fills TranslationResult from http response
@@ -83,13 +86,10 @@ func (result *Result) PrintAddedTranslation() {
 }
 
 func (result *Result) parse() {
+	result.Translate = slice.UniqueFunc(result.Translate, func(w Word) string { return w.Value })
 	sort.Slice(result.Translate, func(i, j int) bool {
 		return result.Translate[i].Votes > result.Translate[j].Votes
 	})
-	for _, translate := range result.Translate {
-		result.Words = append(result.Words, translate.Value)
-	}
-	result.Words = slice.Unique(result.Words)
 }
 
 // SetTranslation sets custom translation for a word

@@ -44,16 +44,24 @@ func printTranslation(result *Result) {
 	} else {
 		strTitle = "new"
 	}
-	err := messages.Message(messages.RED, "Found %s word:\n", strTitle)
-	if err != nil {
+	if err := messages.Message(messages.RED, "Found %s word:\n", strTitle); err != nil {
 		slog.Error("cannot show message", "error", err)
 	}
-	err = messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription)
-	if err != nil {
+	if err := messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription); err != nil {
 		slog.Error("cannot show message", "error", err)
 	}
-	for _, word := range result.Words {
-		_ = messages.Message(messages.YELLOW, "%s\n", word)
+	for _, word := range result.Translate {
+		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
+			slog.Error("cannot show message", "error", err)
+		}
+		if len(word.Context) > 0 {
+			if err := messages.Message(messages.WHITE, " (%s)", word.Context); err != nil {
+				slog.Error("cannot show message", "error", err)
+			}
+		}
+		if err := messages.Message(messages.YELLOW, "\n"); err != nil {
+			slog.Error("cannot show message", "error", err)
+		}
 	}
 }
 

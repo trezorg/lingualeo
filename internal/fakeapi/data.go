@@ -26,10 +26,15 @@ var (
 )
 
 func CheckResult(t *testing.T, res api.Result, searchWord string, expected []string) {
+	words := make([]string, 0, len(res.Translate))
+	for _, tr := range res.Translate {
+		words = append(words, tr.Value)
+	}
+
 	assert.Equalf(t, res.Word, searchWord, "Incorrect search word: %s", searchWord)
-	assert.Len(t, res.Words, 4, "Incorrect number of translated words: %d. Expected: %d", len(res.Words), len(expected))
-	assert.Equalf(t, res.Words, expected, "Incorrect translated words order: %s. Expected: %s",
+	assert.Len(t, res.Translate, 4, "Incorrect number of translated words: %d. Expected: %d", len(res.Translate), len(expected))
+	assert.Equalf(t, words, expected, "Incorrect translated words order: %s. Expected: %s",
 		strings.Join(expected, ", "),
-		strings.Join(res.Words, ", "),
+		strings.Join(words, ", "),
 	)
 }
