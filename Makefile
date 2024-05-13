@@ -44,15 +44,13 @@ $(GOBIN):
 work: $(GOBIN)
 
 build:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags $(LDFLAGS) -o build/lingualeo-$(GOOS)-$(GOARCH) $(CMD_PACKAGE)
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags $(LDFLAGS) -o build/lingualeo-$(GOOS)-$(GOARCH) $(CMD_PACKAGE)
 
 cache:
 	go clean --cache
 
-install: clean lint test
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go install \
-	-ldflags $(LDFLAGS) \
-	$(CMD_PACKAGE)
+install:
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go install -ldflags $(LDFLAGS) $(CMD_PACKAGE)
 
 test: unit
 
