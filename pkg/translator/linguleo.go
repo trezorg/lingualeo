@@ -68,7 +68,7 @@ type Lingualeo struct {
 }
 
 // New initialize lingualeo client
-func New(version string) (Lingualeo, error) {
+func New(version string, options ...Option) (Lingualeo, error) {
 	client, err := prepareArgs(version)
 	if err != nil {
 		return client, err
@@ -82,8 +82,7 @@ func New(version string) (Lingualeo, error) {
 		return client, err
 	}
 	client.mergeConfigs(configArgs)
-	err = client.checkArgs()
-	if err != nil {
+	if err = client.checkArgs(); err != nil {
 		return client, err
 	}
 	if client.Debug {
@@ -96,13 +95,26 @@ func New(version string) (Lingualeo, error) {
 	}
 	logger.Prepare(level)
 	client.checkMediaPlayer()
-	client.Translator, err = api.New(client.Email, client.Password, client.Debug)
-	if err != nil {
-		return client, err
+
+	for _, option := range options {
+		if err = option(&client); err != nil {
+			return client, err
+		}
 	}
-	client.Pronouncer = player.New(client.Player)
-	client.Downloader = files.New()
-	client.Visualizer = browser.New()
+	if client.Translator == nil {
+		if client.Translator, err = api.New(client.Email, client.Password, client.Debug); err != nil {
+			return client, err
+		}
+	}
+	if client.Pronouncer == nil {
+		client.Pronouncer = player.New(client.Player)
+	}
+	if client.Downloader == nil {
+		client.Downloader = files.New()
+	}
+	if client.Visualizer == nil {
+		client.Visualizer = browser.New()
+	}
 	return client, nil
 }
 
