@@ -87,6 +87,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 		}
 		args.Words = slice.Unique(c.Args().Slice())
 		args.Translation = slice.Unique(translate.Value())
+		args.VisualiseType = *c.Generic("visualize-type").(*VisualiseType)
 		if args.Add && len(args.Translation) > 0 && len(args.Words) > 1 {
 			return fmt.Errorf("you should add only one word with custom translation")
 		}
@@ -181,10 +182,16 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Destination: &args.Sound,
 		},
 		&cli.BoolFlag{
-			Name:        "picture",
-			Aliases:     []string{"pc"},
+			Name:        "visualize",
+			Aliases:     []string{"vs"},
 			Usage:       "Open translate pictures",
-			Destination: &args.Picture,
+			Destination: &args.Visualise,
+		},
+		&cli.GenericFlag{
+			Name:    "visualize-type",
+			Aliases: []string{"vst"},
+			Usage:   "Open picture either with default xgd-open or terminal graphic protocol (kitty, iterm, sizel)",
+			Value:   &VisualiseTypeDefault,
 		},
 		&cli.BoolFlag{
 			Name:        "download",
@@ -232,10 +239,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
-		return args, err
-	}
-	return args, nil
+	return args, app.Run(os.Args)
 }
 
 func readTomlConfig(data []byte, args *Lingualeo) error {
@@ -303,9 +307,9 @@ func fromConfigs(filename *string) (*Lingualeo, error) {
 	return &args, nil
 }
 
-func (args *Lingualeo) checkConfig() error {
-	if len(args.Config) > 0 {
-		filename, _ := filepath.Abs(args.Config)
+func (l *Lingualeo) checkConfig() error {
+	if len(l.Config) > 0 {
+		filename, _ := filepath.Abs(l.Config)
 		if !files.Exists(filename) {
 			return fmt.Errorf("there is no the config file or file is a directory: %s", filename)
 		}
@@ -313,51 +317,54 @@ func (args *Lingualeo) checkConfig() error {
 	return nil
 }
 
-func (args *Lingualeo) checkArgs() error {
-	if len(args.Email) == 0 {
+func (l *Lingualeo) checkArgs() error {
+	if len(l.Email) == 0 {
 		return fmt.Errorf("mo email argument has been supplied")
 	}
-	if len(args.Password) == 0 {
+	if len(l.Password) == 0 {
 		return fmt.Errorf("no password argument has been supplied")
 	}
-	if len(args.Words) == 0 {
+	if len(l.Words) == 0 {
 		return fmt.Errorf("no words to translate have been supplied")
 	}
 	return nil
 }
 
-func (args *Lingualeo) mergeConfigs(a *Lingualeo) {
-	if len(args.Email) == 0 && len(a.Email) > 0 {
-		args.Email = a.Email
+func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
+	if len(l.Email) == 0 && len(a.Email) > 0 {
+		l.Email = a.Email
 	}
-	if len(args.Password) == 0 && len(a.Password) > 0 {
-		args.Password = a.Password
+	if len(l.Password) == 0 && len(a.Password) > 0 {
+		l.Password = a.Password
 	}
-	if len(args.Player) == 0 && len(a.Player) > 0 {
-		args.Player = a.Player
+	if len(l.Player) == 0 && len(a.Player) > 0 {
+		l.Player = a.Player
 	}
 	if a.Add {
-		args.Add = a.Add
+		l.Add = a.Add
 	}
 	if a.Debug {
-		args.Debug = a.Debug
+		l.Debug = a.Debug
 	}
 	if a.Sound {
-		args.Sound = a.Sound
+		l.Sound = a.Sound
 	}
-	if a.Picture {
-		args.Picture = a.Picture
+	if a.Visualise {
+		l.Visualise = a.Visualise
+	}
+	if len(a.VisualiseType) > 0 {
+		l.VisualiseType = a.VisualiseType
 	}
 	if a.DownloadSoundFile {
-		args.DownloadSoundFile = a.DownloadSoundFile
+		l.DownloadSoundFile = a.DownloadSoundFile
 	}
 	if a.LogPrettyPrint {
-		args.LogPrettyPrint = a.LogPrettyPrint
+		l.LogPrettyPrint = a.LogPrettyPrint
 	}
 	if a.ReverseTranslate {
-		args.ReverseTranslate = a.ReverseTranslate
+		l.ReverseTranslate = a.ReverseTranslate
 	}
-	if len(args.LogLevel) == 0 && len(a.LogLevel) > 0 {
-		args.LogLevel = a.LogLevel
+	if len(l.LogLevel) == 0 && len(a.LogLevel) > 0 {
+		l.LogLevel = a.LogLevel
 	}
 }

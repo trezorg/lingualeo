@@ -81,3 +81,21 @@ func (f *FileDownloader) Download(url string) (string, error) {
 func (f *FileDownloader) Remove(path string) error {
 	return os.Remove(path)
 }
+
+// DownloadBytes downloads file into bytes slice
+func (f *FileDownloader) DownloadBytes(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
+	}
+	defer func() {
+		cErr := resp.Body.Close()
+		if cErr != nil {
+			slog.Error("cannot close response body", "error", cErr)
+		}
+	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", resp.Status)
+	}
+	return io.ReadAll(resp.Body)
+}

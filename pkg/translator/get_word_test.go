@@ -46,7 +46,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		Sound:             true,
 		Words:             searchWords,
 		Add:               false,
-		Picture:           true,
+		Visualise:         true,
 		DownloadSoundFile: true,
 		Translator:        translator,
 		Downloader:        downloader,
