@@ -3,6 +3,7 @@ module github.com/trezorg/lingualeo
 go 1.22
 
 require (
+	github.com/BourgeoisBear/rasterm v1.1.1
 	github.com/BurntSushi/toml v0.3.1
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli/v2 v2.2.0
@@ -13,10 +14,8 @@ require (
 )
 
 require (
-	github.com/BourgeoisBear/rasterm v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dolmen-go/kittyimg v0.0.0-20220904140504-22f6493b700f // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
