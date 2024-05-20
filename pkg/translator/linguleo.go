@@ -128,7 +128,11 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		case Default:
 			client.Visualizer = browser.New()
 		case Term:
-			client.Visualizer = term.New()
+			if term.Mode() == term.Unknown {
+				client.Visualizer = browser.New()
+			} else {
+				client.Visualizer = term.New()
+			}
 		default:
 			err = fmt.Errorf("unknown visualize type: %s", client.VisualiseType)
 		}

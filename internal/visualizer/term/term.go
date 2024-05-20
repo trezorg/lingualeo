@@ -13,16 +13,16 @@ import (
 	"github.com/BourgeoisBear/rasterm"
 )
 
-type Mode string
+type GraphicMode string
 
 const (
-	Sixel   Mode = "sixel"
-	Iterm   Mode = "iterm"
-	Kitty   Mode = "kitty"
-	Unknown Mode = "unknown"
+	Sixel   GraphicMode = "sixel"
+	Iterm   GraphicMode = "iterm"
+	Kitty   GraphicMode = "kitty"
+	Unknown GraphicMode = "unknown"
 )
 
-func getMode() Mode {
+func Mode() GraphicMode {
 	if rasterm.IsKittyCapable() {
 		return Kitty
 	}
@@ -59,42 +59,32 @@ func showImage(w io.Writer, r io.Reader) error {
 		return err
 	}
 
-	switch getMode() {
+	switch Mode() {
 	case Iterm:
-
 		// WEZ/ITERM SUPPORT ALL FORMATS, SO NO NEED TO RE-ENCODE TO PNG
 		err = rasterm.ItermCopyFileInline(w, reader, ln)
-
 	case Sixel:
-
 		if iPaletted, bOK := img.(*image.Paletted); bOK {
 			err = rasterm.SixelWriteImage(w, iPaletted)
 		} else {
-			slog.Debug("not paletted image, skipping")
+			err = fmt.Errorf("not paletted image, skipping")
 		}
-
 	case Kitty:
-
 		if format == "png" {
-			// fmt.Println("Kitty PNG Local File")
-			// eF := rasterm.KittyWritePNGLocal(w, fpath, rasterm.KittyImgOpts{})
-			// fmt.Println("\nKitty PNG Inline")
 			if err = rasterm.KittyCopyPNGInline(w, reader, rasterm.KittyImgOpts{}); err != nil {
 				return err
 			}
-			// err = errors.Join(eI, eF)
 		} else {
 			if err = rasterm.KittyWriteImage(w, img, rasterm.KittyImgOpts{}); err != nil {
 				return err
 			}
 		}
-
 	default:
 		return nil
-
 	}
-
-	fmt.Println("")
+	if err == nil {
+		fmt.Println("")
+	}
 	return err
 }
 
