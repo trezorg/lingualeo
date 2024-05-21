@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/trezorg/lingualeo/internal/slice"
-	"github.com/trezorg/lingualeo/pkg/messages"
 )
 
 type convertibleBoolean bool
@@ -86,88 +85,40 @@ type Result struct {
 }
 
 // FromResponse fills TranslationResult from http response
-func (result *Result) FromResponse(body []byte) error {
-	err := json.Unmarshal(body, &result)
+func (r *Result) FromResponse(body []byte) error {
+	err := json.Unmarshal(body, &r)
 	if err != nil {
 		res := NoResult{}
 		if fErr := json.Unmarshal(body, &res); fErr != nil {
-			return fmt.Errorf("cannot translate word: %s, %w", result.Word, fErr)
+			return fmt.Errorf("cannot translate word: %s, %w", r.Word, fErr)
 		}
 		return err
 	}
-	if len(result.Error()) > 0 {
-		return result
+	if len(r.Error()) > 0 {
+		return r
 	}
-	result.parse()
+	r.parse()
 	return nil
 }
 
-// PrintTranslation prints transcription
-func (result *Result) PrintTranslation() {
-	var strTitle string
-	if result.InDictionary() {
-		strTitle = "existing"
-	} else {
-		strTitle = "new"
-	}
-	if err := messages.Message(messages.RED, "Found %s word:\n", strTitle); err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
-	if err := messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription); err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
-	for _, word := range result.Translate {
-		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
-			slog.Error("cannot show message", "error", err)
-		}
-		if len(word.Context) > 0 {
-			if err := messages.Message(messages.WHITE, " (%s)", word.Context); err != nil {
-				slog.Error("cannot show message", "error", err)
-			}
-		}
-		if err := messages.Message(messages.YELLOW, "\n"); err != nil {
-			slog.Error("cannot show message", "error", err)
-		}
-	}
-}
-
-// PrintAddedTranslation prints transcription during adding operation
-func (result *Result) PrintAddedTranslation() {
-	var strTitle string
-	if result.InDictionary() {
-		strTitle = "Updated existing"
-	} else {
-		strTitle = "Added new"
-	}
-	err := messages.Message(messages.RED, "%s word: ", strTitle)
-	if err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
-
-	err = messages.Message(messages.GREEN, "['%s'] ['%s']\n", result.Word, strings.Join(result.AddWords, ", "))
-	if err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
-}
-
-func (result *Result) parse() {
-	result.Translate = slice.UniqueFunc(result.Translate, func(w Word) string { return w.Value })
-	sort.Slice(result.Translate, func(i, j int) bool {
-		return result.Translate[i].Votes > result.Translate[j].Votes
+func (r *Result) parse() {
+	r.Translate = slice.UniqueFunc(r.Translate, func(w Word) string { return w.Value })
+	sort.Slice(r.Translate, func(i, j int) bool {
+		return r.Translate[i].Votes > r.Translate[j].Votes
 	})
 }
 
 // SetTranslation sets custom translation for a word
-func (result *Result) SetTranslation(translates []string) {
-	result.AddWords = slice.Unique(translates)
+func (r *Result) SetTranslation(translates []string) {
+	r.AddWords = slice.Unique(translates)
 }
 
 // InDictionary checks either word is already has been added into the dictionary
-func (result *Result) InDictionary() bool {
-	if bool(result.Exists) {
+func (r *Result) InDictionary() bool {
+	if bool(r.Exists) {
 		return true
 	}
-	for _, word := range result.Translate {
+	for _, word := range r.Translate {
 		if bool(word.Exists) {
 			return true
 		}
@@ -175,13 +126,13 @@ func (result *Result) InDictionary() bool {
 	return false
 }
 
-func (result *Result) Error() string {
-	return result.ErrorMsg
+func (r *Result) Error() string {
+	return r.ErrorMsg
 }
 
 // IsRussian either word in in Russian language
-func (result *Result) IsRussian() bool {
-	return result.Transcription == ""
+func (r *Result) IsRussian() bool {
+	return r.Transcription == ""
 }
 
 // NoResult negative operation result

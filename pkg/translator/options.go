@@ -9,9 +9,9 @@ func WithTranslator(t Translator) Option {
 	}
 }
 
-func WithVisualizer(v Visualizer) Option {
+func WithOutputer(o Outputer) Option {
 	return func(l *Lingualeo) error {
-		l.Visualizer = v
+		l.Outputer = o
 		return nil
 	}
 }

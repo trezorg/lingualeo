@@ -23,16 +23,13 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	count := 1000 // max for race checking
 	translator := NewMock_Translator(t)
 	player := NewMock_Pronouncer(t)
-	visualizer := NewMock_Visualizer(t)
+	outputer := NewMock_Outputer(t)
 	res := translateWordResult(fakeapi.SearchWord)
 
 	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	downloader.EXPECT().Remove(testFile).Return(nil).Times(count)
 	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
 	player.EXPECT().Play(testFile).Return(nil).Times(count)
-	for _, u := range fakeapi.PictureUrls {
-		visualizer.EXPECT().Show(u).Return(nil).Times(count)
-	}
 
 	logger.Prepare(slog.LevelError + 10)
 	searchWords := make([]string, 0, count)
@@ -51,7 +48,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		Translator:        translator,
 		Downloader:        downloader,
 		Pronouncer:        player,
-		Visualizer:        visualizer,
+		Outputer:          outputer,
 	}
 
 	ch := args.translateToChan(ctx)

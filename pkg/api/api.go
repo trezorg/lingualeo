@@ -91,16 +91,16 @@ func prepareClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (api *API) auth() error {
+func (a *API) auth() error {
 	values := map[string]string{
-		"email":    api.Email,
-		"password": api.Password,
+		"email":    a.Email,
+		"password": a.Password,
 	}
 	jsonValue, err := json.Marshal(values)
 	if err != nil {
 		return nil
 	}
-	responseBody, err := request("POST", authURL, api.client, jsonValue, "", api.Debug)
+	responseBody, err := request("POST", authURL, a.client, jsonValue, "", a.Debug)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	return responseBody, err
 }
 
-func (api *API) translateRequest(word string) ([]byte, error) {
+func (a *API) translateRequest(word string) ([]byte, error) {
 	values := map[string]interface{}{
 		"text":       word,
 		"apiVersion": apiVersion,
@@ -199,29 +199,29 @@ func (api *API) translateRequest(word string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return request("POST", translateURL, api.client, jsonValue, "", api.Debug)
+	return request("POST", translateURL, a.client, jsonValue, "", a.Debug)
 }
 
-func (api *API) addRequest(word string, translate string) ([]byte, error) {
+func (a *API) addRequest(word string, translate string) ([]byte, error) {
 	values := map[string]string{
 		"word":  word,
 		"tword": translate,
 		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
-	return request("POST", addWordURL, api.client, jsonValue, "", api.Debug)
+	return request("POST", addWordURL, a.client, jsonValue, "", a.Debug)
 }
 
-func (api *API) TranslateWord(word string) OperationResult {
-	body, err := api.translateRequest(word)
+func (a *API) TranslateWord(word string) OperationResult {
+	body, err := a.translateRequest(word)
 	if err != nil {
 		return OperationResult{Error: err}
 	}
 	return opResultFromBody(word, body)
 }
 
-func (api *API) AddWord(word string, translate string) OperationResult {
-	body, err := api.addRequest(word, translate)
+func (a *API) AddWord(word string, translate string) OperationResult {
+	body, err := a.addRequest(word, translate)
 	if err != nil {
 		return OperationResult{Error: err}
 	}

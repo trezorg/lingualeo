@@ -34,6 +34,5 @@ func main() {
 		}
 	}()
 
-	args.TranslateWithReverseRussian(ctx, translator.ProcessResultImpl)
-
+	args.TranslateWithReverseRussian(ctx)
 }
