@@ -1,6 +1,6 @@
 module github.com/trezorg/lingualeo
 
-go 1.22
+go 1.25
 
 require (
 	github.com/BourgeoisBear/rasterm v1.1.1
