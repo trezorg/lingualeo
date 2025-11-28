@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	authURL      = "https://api.lingualeo.com/login"
+	authURL      = "https://lingualeo.com/api/auth"
 	translateURL = "https://api.lingualeo.com/getTranslates"
 	addWordURL   = "https://api.lingualeo.com/addWord"
 	apiVersion   = "1.0.1"
