@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 )
@@ -24,14 +25,13 @@ func New(player string) Player {
 	}
 }
 
-func (p Player) Play(url string) error {
-	params := append(p.params[:len(p.params):len(p.params)], url)
-	cmd := exec.Command(p.player, params...)
+func (p Player) Play(ctx context.Context, url string) error {
+	params := append([]string{}, p.params...)
+	params = append(params, url)
+	//nolint:gosec // the player command is invoked deliberately with user-provided URLs
+	cmd := exec.CommandContext(ctx, p.player, params...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	return nil
+	return cmd.Wait()
 }

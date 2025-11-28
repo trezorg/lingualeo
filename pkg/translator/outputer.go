@@ -2,12 +2,13 @@ package translator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"strings"
 
-	api "github.com/trezorg/lingualeo/pkg/api"
+	"github.com/trezorg/lingualeo/pkg/api"
 	"github.com/trezorg/lingualeo/pkg/messages"
 )
 
@@ -15,18 +16,20 @@ type Outputer interface {
 	Output(ctx context.Context, r api.Result) error
 }
 
+var errParsePictureURL = errors.New("cannot parse picture url")
+
 func parseURL(s string) (*url.URL, error) {
 	if s == "" {
 		return nil, nil
 	}
 	u, err := url.Parse(s)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse picture url: %s", s)
+		return nil, fmt.Errorf("%w: %s", errParsePictureURL, s)
 	}
 	return u, nil
 }
 
-func (o Output) Output(ctx context.Context, result api.Result) error {
+func (Output) Output(ctx context.Context, result api.Result) error {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "existing"
@@ -44,7 +47,6 @@ func (o Output) Output(ctx context.Context, result api.Result) error {
 		case <-ctx.Done():
 			return nil
 		default:
-			break
 		}
 		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
 			slog.Error("cannot show message", "error", err)
@@ -81,12 +83,10 @@ func (o OutputVisualizer) Output(ctx context.Context, result api.Result) error {
 		slog.Error("cannot show message", "error", err)
 	}
 	for _, word := range result.Translate {
-
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			break
 		}
 
 		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
@@ -108,7 +108,7 @@ func (o OutputVisualizer) Output(ctx context.Context, result api.Result) error {
 		if u == nil {
 			continue
 		}
-		if err = o.Show(u); err != nil {
+		if err = o.Show(ctx, u); err != nil {
 			slog.Error("cannot visualize picture", "error", err)
 			continue
 		}

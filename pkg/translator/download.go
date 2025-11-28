@@ -20,23 +20,20 @@ type Downloader interface {
 func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan files.File {
 	out := make(chan files.File)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		idx := 0
 		for url := range channel.OrDone(ctx, urls) {
-			wg.Add(1)
-			go func(idx int, url string) {
-				defer wg.Done()
+			idxCopy := idx
+			wg.Go(func() {
 				filename, err := downloader.Download(url)
-				out <- files.File{Error: err, Filename: filename, Index: idx}
-			}(idx, url)
+				out <- files.File{Error: err, Filename: filename, Index: idxCopy}
+			})
 			idx++
 		}
-	}()
+	})
 	go func() {
-		defer close(out)
 		wg.Wait()
+		close(out)
 	}()
 	return out
 }

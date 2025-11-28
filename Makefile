@@ -74,14 +74,14 @@ vet:
 
 golangci:
 ifndef HAS_GOLANGCI
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.58.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.6.2
 endif
 	golangci-lint run
 
 generate:
 ifndef HAS_MOCKERY
 	echo "installing mockery"
-	go install github.com/vektra/mockery/v2@latest
+	go install github.com/vektra/mockery/v3@latest
 endif
 	go generate ./...
 

@@ -21,7 +21,7 @@ const (
 )
 
 // Message shows a message with color package
-func Message(c Color, message string, params ...interface{}) error {
+func Message(c Color, message string, params ...any) error {
 	msg := fmt.Sprintf("%s%s", c, message)
 	_, err := color.Printf(msg, params...)
 	return err

@@ -16,15 +16,23 @@ func OrderedChannel(input <-chan File, count int) <-chan File {
 		check := func(obj *heap.IndexedItem) bool {
 			return obj != nil && slideIndex == (*obj).GetIndex()
 		}
+		sendResult := func(orderResult *heap.IndexedItem) {
+			if orderResult == nil {
+				return
+			}
+			if file, ok := (*orderResult).(File); ok {
+				out <- file
+			}
+		}
 		for result := range input {
 			results.Add(result)
 			for orderResult := results.PullWithCondition(check); orderResult != nil; orderResult = results.PullWithCondition(check) {
 				slideIndex++
-				out <- (*orderResult).(File)
+				sendResult(orderResult)
 			}
 		}
 		for orderResult := results.Pull(); orderResult != nil; orderResult = results.Pull() {
-			out <- (*orderResult).(File)
+			sendResult(orderResult)
 		}
 	}()
 

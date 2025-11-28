@@ -2,8 +2,9 @@ package api
 
 import (
 	"bytes"
-	"crypto/tls"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,6 +17,19 @@ import (
 	"github.com/trezorg/lingualeo/internal/logger"
 
 	"golang.org/x/net/publicsuffix"
+)
+
+const (
+	maxIdleConns        = 10
+	maxIdleConnsPerHost = 10
+	maxRedirects        = 10
+	requestTimeout      = 10 * time.Second
+)
+
+var (
+	errAPIAuth           = errors.New("api authentication error")
+	errAPIResponseStatus = errors.New("unexpected response status code")
+	errAPIRedirectLimit  = errors.New("too many redirects")
 )
 
 // API structure represents API request
@@ -35,7 +49,7 @@ func checkAuthError(body []byte) error {
 		return err
 	}
 	if res.ErrorCode != 0 {
-		return fmt.Errorf("%s: Status code: %d", res.ErrorMsg, res.ErrorCode)
+		return fmt.Errorf("%w: %s (code %d)", errAPIAuth, res.ErrorMsg, res.ErrorCode)
 	}
 	return nil
 }
@@ -64,18 +78,17 @@ func prepareClient() (*http.Client, error) {
 		return nil, err
 	}
 	netTransport := &http.Transport{
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		MaxIdleConns:        10,
-		MaxIdleConnsPerHost: 10,
+		MaxIdleConns:        maxIdleConns,
+		MaxIdleConnsPerHost: maxIdleConnsPerHost,
 	}
 
 	client := &http.Client{
-		Timeout:   10 * time.Second,
+		Timeout:   requestTimeout,
 		Jar:       jar,
 		Transport: netTransport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return fmt.Errorf("too many redirects")
+			if len(via) >= maxRedirects {
+				return errAPIRedirectLimit
 			}
 			if len(via) == 0 {
 				return nil
@@ -98,7 +111,7 @@ func (a *API) auth() error {
 	}
 	jsonValue, err := json.Marshal(values)
 	if err != nil {
-		return nil
+		return err
 	}
 	responseBody, err := request("POST", authURL, a.client, jsonValue, "", a.Debug)
 	if err != nil {
@@ -134,7 +147,7 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	if len(body) > 0 {
 		requestBody = bytes.NewBuffer(body)
 	}
-	req, err := http.NewRequest(method, url, requestBody)
+	req, err := http.NewRequestWithContext(context.Background(), method, url, requestBody)
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +187,10 @@ func request(method string, url string, client *http.Client, body []byte, query 
 		slog.Error("cannot read response body", "error", err)
 		return nil, err
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf(
-			"response status code: %d\nbody:\n%s",
+			"%w: status code: %d\nbody:\n%s",
+			errAPIResponseStatus,
 			resp.StatusCode,
 			string(responseBody),
 		)
@@ -185,11 +199,11 @@ func request(method string, url string, client *http.Client, body []byte, query 
 }
 
 func (a *API) translateRequest(word string) ([]byte, error) {
-	values := map[string]interface{}{
+	values := map[string]any{
 		"text":       word,
 		"apiVersion": apiVersion,
-		"ctx": map[string]interface{}{
-			"config": map[string]interface{}{
+		"ctx": map[string]any{
+			"config": map[string]any{
 				"isCheckData": true,
 				"isLogging":   true,
 			},

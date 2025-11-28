@@ -1,12 +1,13 @@
 package browser
 
 import (
+	"context"
 	"net/url"
 	"os/exec"
 	"runtime"
 )
 
-func open(u *url.URL) error {
+func open(ctx context.Context, u *url.URL) error {
 	var cmd string
 	var args []string
 	switch runtime.GOOS {
@@ -19,13 +20,13 @@ func open(u *url.URL) error {
 		cmd = "xdg-open"
 	}
 	args = append(args, u.String())
-	return exec.Command(cmd, args...).Start()
+	return exec.CommandContext(ctx, cmd, args...).Start()
 }
 
-type Visualizer func(u *url.URL) error
+type Visualizer func(ctx context.Context, u *url.URL) error
 
-func (v Visualizer) Show(u *url.URL) error {
-	return v(u)
+func (v Visualizer) Show(ctx context.Context, u *url.URL) error {
+	return v(ctx, u)
 }
 
 func New() Visualizer {

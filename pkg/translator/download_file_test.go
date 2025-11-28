@@ -1,7 +1,6 @@
 package translator
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,11 +16,9 @@ func TestDownloadWordFile(t *testing.T) {
 	inChan := make(chan string, 1)
 	inChan <- url
 
-	ctx := context.Background()
-
 	close(inChan)
 
-	out := downloadFiles(ctx, inChan, downloader)
+	out := downloadFiles(t.Context(), inChan, downloader)
 	fileName := (<-out).Filename
 	assert.Equal(t, fileName, testFile)
 }

@@ -2,6 +2,8 @@ package term
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"image"
 	"io"
@@ -20,6 +22,13 @@ const (
 	Iterm   GraphicMode = "iterm"
 	Kitty   GraphicMode = "kitty"
 	Unknown GraphicMode = "unknown"
+)
+
+var (
+	errBadStatus       = errors.New("bad status")
+	errCannotReadURL   = errors.New("cannot read URL")
+	errCannotReadImage = errors.New("cannot read image from url")
+	errNotPaletted     = errors.New("not paletted image, skipping")
 )
 
 func Mode() GraphicMode {
@@ -67,7 +76,7 @@ func showImage(w io.Writer, r io.Reader) error {
 		if iPaletted, bOK := img.(*image.Paletted); bOK {
 			err = rasterm.SixelWriteImage(w, iPaletted)
 		} else {
-			err = fmt.Errorf("not paletted image, skipping")
+			err = errNotPaletted
 		}
 	case Kitty:
 		if format == "png" {
@@ -79,19 +88,28 @@ func showImage(w io.Writer, r io.Reader) error {
 				return err
 			}
 		}
+	case Unknown:
+		return nil
 	default:
+		slog.Error("unsupported graphic mode", "mode", Mode())
 		return nil
 	}
 	if err == nil {
-		fmt.Println("")
+		if _, printErr := fmt.Fprintln(os.Stdout, ""); printErr != nil {
+			slog.Error("cannot print newline", "error", printErr)
+		}
 	}
 	return err
 }
 
-func open(u *url.URL) error {
-	resp, err := http.Get(u.String())
+func open(ctx context.Context, u *url.URL) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return fmt.Errorf("cannot read URL: %s, %w", u, err)
+		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
 	}
 	defer func() {
 		if cErr := resp.Body.Close(); cErr != nil {
@@ -99,18 +117,18 @@ func open(u *url.URL) error {
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return fmt.Errorf("%w: %s", errBadStatus, resp.Status)
 	}
 	if err = showImage(os.Stdout, resp.Body); err != nil {
-		return fmt.Errorf("cannot read image from url: %s. %w", u, err)
+		return fmt.Errorf("%w: %s, %w", errCannotReadImage, u.String(), err)
 	}
 	return nil
 }
 
-type Visualizer func(u *url.URL) error
+type Visualizer func(ctx context.Context, u *url.URL) error
 
-func (v Visualizer) Show(u *url.URL) error {
-	return v(u)
+func (v Visualizer) Show(ctx context.Context, u *url.URL) error {
+	return v(ctx, u)
 }
 
 func New() Visualizer {

@@ -1,6 +1,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -34,7 +35,7 @@ func New() *FileDownloader {
 }
 
 // Writer prepares WriteCloser for temporary file
-func (f *FileDownloader) Writer() (io.WriteCloser, string, error) {
+func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
 	fl, err := os.CreateTemp(filePath, fileTemplate)
 	if err != nil {
 		return nil, "", err
@@ -58,7 +59,11 @@ func (f *FileDownloader) Download(url string) (string, error) {
 			slog.Error("cannot close write file descriptor", "error", cErr)
 		}
 	}()
-	resp, err := http.Get(url)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
@@ -78,13 +83,17 @@ func (f *FileDownloader) Download(url string) (string, error) {
 	return filename, nil
 }
 
-func (f *FileDownloader) Remove(path string) error {
+func (*FileDownloader) Remove(path string) error {
 	return os.Remove(path)
 }
 
 // DownloadBytes downloads file into bytes slice
-func (f *FileDownloader) DownloadBytes(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+func (*FileDownloader) DownloadBytes(url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}

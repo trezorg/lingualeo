@@ -2,6 +2,7 @@ package translator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -32,6 +33,14 @@ var decodeMapping = map[configType]decodeFunc{
 	jsonType: readJSONConfig,
 	tomlType: readTomlConfig,
 }
+
+var (
+	errNoWords                 = errors.New("there are no words to translate")
+	errAddCustomTranslation    = errors.New("custom translation requires exactly one word")
+	errConfigFileMissing       = errors.New("config file is missing or invalid")
+	errEmailArgumentMissing    = errors.New("email argument is missing")
+	errPasswordArgumentMissing = errors.New("password argument is missing")
+)
 
 type configFile struct {
 	filename string
@@ -74,26 +83,31 @@ func newConfigFile(filename string) *configFile {
 
 func prepareArgs(version string) (Lingualeo, error) {
 	args := Lingualeo{}
+	translate := cli.StringSlice{}
+	defaultCommand := buildDefaultCommand(&args, &translate)
+	app := newLingualeoApp(version, &args, translate, defaultCommand)
+	return args, app.Run(os.Args)
+}
 
-	var translate cli.StringSlice
-
-	defaultCommand := func(c *cli.Context) error {
+func buildDefaultCommand(args *Lingualeo, translate *cli.StringSlice) func(*cli.Context) error {
+	return func(c *cli.Context) error {
 		if c.NArg() == 0 {
-			err := cli.ShowAppHelp(c)
-			if err != nil {
-				return fmt.Errorf("there are no words to translate, %w", err)
+			if err := cli.ShowAppHelp(c); err != nil {
+				return fmt.Errorf("%w: %w", errNoWords, err)
 			}
-			return fmt.Errorf("there are no words to translate")
+			return errNoWords
 		}
 		args.Words = slice.Unique(c.Args().Slice())
 		args.Translation = slice.Unique(translate.Value())
 		args.VisualiseType = *c.Generic("visualize-type").(*VisualiseType)
 		if args.Add && len(args.Translation) > 0 && len(args.Words) > 1 {
-			return fmt.Errorf("you should add only one word with custom translation")
+			return errAddCustomTranslation
 		}
 		return nil
 	}
+}
 
+func newLingualeoApp(version string, args *Lingualeo, translate cli.StringSlice, defaultCommand func(*cli.Context) error) *cli.App {
 	app := cli.NewApp()
 	app.Version = version
 	app.HideHelp = false
@@ -131,15 +145,46 @@ func prepareArgs(version string) (Lingualeo, error) {
 	JSON format example:
 
 	{
-		"email": "email@gmail.com",
-		"password": "password",
-		"add": false,
-		"sound": true,
-		"player": "mplayer",
-		"download": false,
+		"email": "email@gmail.com"
+		"password": "password"
+		"add": false
+		"sound": true
+		"player": "mplayer"
+		"download": false
 	}
 	`
-	app.Flags = []cli.Flag{
+	app.Flags = buildLingualeoFlags(args)
+	app.Commands = []*cli.Command{
+		{
+			Name:    "add",
+			Aliases: []string{"a"},
+			Usage:   "Add to lingualeo dictionary",
+			Flags: []cli.Flag{
+				&cli.StringSliceFlag{
+					Name:        "translate",
+					Aliases:     []string{"t"},
+					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
+					Destination: &translate,
+					Required:    true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				args.Add = true
+				return defaultCommand(c)
+			},
+		},
+	}
+	return app
+}
+
+func buildLingualeoFlags(args *Lingualeo) []cli.Flag {
+	base := baseLingualeoFlags(args)
+	base = append(base, genericLingualeoFlags()...)
+	return append(base, boolLingualeoFlags(args)...)
+}
+
+func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "email",
 			Aliases:     []string{"e"},
@@ -175,6 +220,22 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Usage:       "Log level",
 			Destination: &args.LogLevel,
 		},
+	}
+}
+
+func genericLingualeoFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.GenericFlag{
+			Name:    "visualize-type",
+			Aliases: []string{"vst"},
+			Usage:   "Open picture either with default xgd-open or terminal graphic protocol (kitty, iterm, sizel)",
+			Value:   &VisualiseTypeDefault,
+		},
+	}
+}
+
+func boolLingualeoFlags(args *Lingualeo) []cli.Flag {
+	return []cli.Flag{
 		&cli.BoolFlag{
 			Name:        "sound",
 			Aliases:     []string{"s"},
@@ -186,12 +247,6 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Aliases:     []string{"vs"},
 			Usage:       "Open translate pictures",
 			Destination: &args.Visualise,
-		},
-		&cli.GenericFlag{
-			Name:    "visualize-type",
-			Aliases: []string{"vst"},
-			Usage:   "Open picture either with default xgd-open or terminal graphic protocol (kitty, iterm, sizel)",
-			Value:   &VisualiseTypeDefault,
 		},
 		&cli.BoolFlag{
 			Name:        "download",
@@ -218,30 +273,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 			Destination: &args.ReverseTranslate,
 		},
 	}
-	app.Commands = []*cli.Command{
-		{
-			Name:    "add",
-			Aliases: []string{"a"},
-			Usage:   "Add to lingualeo dictionary",
-			Flags: []cli.Flag{
-				&cli.StringSliceFlag{
-					Name:        "translate",
-					Aliases:     []string{"t"},
-					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
-					Destination: &translate,
-					Required:    true,
-				},
-			},
-			Action: func(c *cli.Context) error {
-				args.Add = true
-				return defaultCommand(c)
-			},
-		},
-	}
-
-	return args, app.Run(os.Args)
 }
-
 func readTomlConfig(data []byte, args *Lingualeo) error {
 	_, err := toml.Decode(string(data), args)
 	if err != nil {
@@ -311,7 +343,7 @@ func (l *Lingualeo) checkConfig() error {
 	if len(l.Config) > 0 {
 		filename, _ := filepath.Abs(l.Config)
 		if !files.Exists(filename) {
-			return fmt.Errorf("there is no the config file or file is a directory: %s", filename)
+			return fmt.Errorf("%w: %s", errConfigFileMissing, filename)
 		}
 	}
 	return nil
@@ -319,13 +351,13 @@ func (l *Lingualeo) checkConfig() error {
 
 func (l *Lingualeo) checkArgs() error {
 	if len(l.Email) == 0 {
-		return fmt.Errorf("mo email argument has been supplied")
+		return errEmailArgumentMissing
 	}
 	if len(l.Password) == 0 {
-		return fmt.Errorf("no password argument has been supplied")
+		return errPasswordArgumentMissing
 	}
 	if len(l.Words) == 0 {
-		return fmt.Errorf("no words to translate have been supplied")
+		return errNoWords
 	}
 	return nil
 }

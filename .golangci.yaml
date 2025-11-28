@@ -1,0 +1,190 @@
+version: "2"
+run:
+  concurrency: 4
+linters:
+  default: none
+  enable:
+    - asasalint
+    - bodyclose
+    - containedctx
+    - copyloopvar
+    - dogsled
+    - err113
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - govet
+    - grouper
+    - ineffassign
+    - misspell
+    - mnd
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+  settings:
+    cyclop:
+      max-complexity: 15
+    goconst:
+      match-constant: false
+    gocritic:
+      disabled-checks:
+        - commentFormatting
+    gosec:
+      config:
+        G306: "0644"
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    lll:
+      line-length: 160
+    mnd:
+      ignored-numbers:
+        - "0644"
+        - "0755"
+        - "2"
+        - "8"
+        - "16"
+        - "32"
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: var-naming
+          disabled: true
+        - name: line-length-limit
+          arguments:
+            - 160
+          severity: error
+        - name: empty-lines
+          disabled: true
+        - name: struct-tag
+          arguments:
+            - validate,gte
+        - name: cognitive-complexity
+          arguments:
+            - 30
+        - name: argument-limit
+          arguments:
+            - 10
+        - name: add-constant
+          arguments:
+            - allowFloats: 0.0,0.,1.0,1.,2.0,2.
+              allowInts: 0,1,2,8,16,32
+              allowStrs: '""'
+              ignoreFuncs: os\.*,fmt\.Println,make,strconv\.FormatInt
+              maxLitCount: "3"
+          disabled: true
+        - name: dot-imports
+          arguments:
+            - allowedPackages:
+                - github.com/onsi/ginkgo/v2
+                - github.com/onsi/gomega
+        - name: cyclomatic
+          arguments:
+            - 20
+        - name: max-public-structs
+          arguments:
+            - 15
+        - name: flag-parameter
+          disabled: true
+    staticcheck:
+      checks:
+        - -ST1000
+        - -ST1003
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        - all
+      dot-import-whitelist:
+        - github.com/Boli-AI-Algo-Trading/algo-management/pkg/iterslice
+    usestdlibvars:
+      time-month: true
+      time-layout: true
+      crypto-hash: true
+      default-rpc-path: true
+      tls-signature-scheme: true
+      constant-kind: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: "SA1019:"
+      - linters:
+          - err113
+        path-except: pkg\/
+      - linters:
+          - err113
+          - errcheck
+          - forbidigo
+          - funlen
+          - gocyclo
+          - gosec
+          - govet
+          - lll
+          - mnd
+          - prealloc
+          - revive
+          - staticcheck
+        path: _test\.go
+      - linters:
+          - revive
+        path: internal/generate/
+      - linters:
+          - forbidigo
+          - revive
+        path: internal/swagger/
+      - linters:
+          - goconst
+        path: (.+)_test\.go
+      - linters:
+          - revive
+        path: internal/lock/dummy
+    paths:
+      - .*\_gen\.go$
+      - .*\.gen\.go$
+      - .*\_gen\_test\.go$
+      - .*\.gen\_test\.go$
+      - .*\.pb\.go$
+      - generate
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -20,15 +20,15 @@ func (h *IndexedHeap) Swap(i, j int)      { h.messages[i], h.messages[j] = h.mes
 
 // Push and Pop use pointer receivers because they modify the slice's length,
 // not just its contents.
-func (h *IndexedHeap) Push(x interface{}) {
-	(*h).messages = append((*h).messages, x.(IndexedItem))
+func (h *IndexedHeap) Push(x any) {
+	h.messages = append(h.messages, x.(IndexedItem))
 }
 
-func (h *IndexedHeap) Pop() interface{} {
-	old := (*h).messages
+func (h *IndexedHeap) Pop() any {
+	old := h.messages
 	n := len(old)
 	x := old[n-1]
-	(*h).messages = old[0 : n-1]
+	h.messages = old[0 : n-1]
 	return x
 }
 
@@ -52,16 +52,21 @@ func (h *IndexedHeap) Pull() *IndexedItem {
 	if h.Len() == 0 {
 		return nil
 	}
-	message, _ := heap.Pop(h).(IndexedItem)
-	return &message
+	raw := heap.Pop(h)
+	if message, ok := raw.(IndexedItem); ok {
+		return &message
+	}
+	return nil
 }
 
 func (h *IndexedHeap) PullWithCondition(check func(*IndexedItem) bool) *IndexedItem {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if check(h.pick()) {
-		message, _ := heap.Pop(h).(IndexedItem)
-		return &message
+	if check(h.peek()) {
+		raw := heap.Pop(h)
+		if message, ok := raw.(IndexedItem); ok {
+			return &message
+		}
 	}
 	return nil
 }
@@ -69,12 +74,12 @@ func (h *IndexedHeap) PullWithCondition(check func(*IndexedItem) bool) *IndexedI
 func (h *IndexedHeap) Pick() *IndexedItem {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
-	return h.pick()
+	return h.peek()
 }
 
-func (h *IndexedHeap) pick() *IndexedItem {
+func (h *IndexedHeap) peek() *IndexedItem {
 	if h.Len() > 0 {
-		message := (*h).messages[0]
+		message := h.messages[0]
 		return &message
 	}
 	return nil

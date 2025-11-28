@@ -12,9 +12,8 @@ import (
 var count = 1000
 
 func TestOrderedChannel(t *testing.T) {
-
 	numbers := make([]int, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		numbers = append(numbers, i)
 	}
 	rand.Shuffle(len(numbers), func(i, j int) {
@@ -22,7 +21,7 @@ func TestOrderedChannel(t *testing.T) {
 	})
 
 	messages := make(chan files.File, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		messages <- files.File{
 			Error:    nil,
 			Filename: "",
@@ -33,11 +32,11 @@ func TestOrderedChannel(t *testing.T) {
 	require.Equal(t, count, len(messages), "Channel should have size: %d. But has: %d", count, len(messages))
 
 	chn := files.OrderedChannel(messages, count)
-	min := 0
+	minIdx := 0
 
 	for message := range chn {
 		idx := message.GetIndex()
-		require.Truef(t, min <= idx, "Value %d is not less or equal than %d", min, idx)
-		min = idx
+		require.Truef(t, minIdx <= idx, "Value %d is not less or equal than %d", minIdx, idx)
+		minIdx = idx
 	}
 }

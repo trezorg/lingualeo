@@ -1,7 +1,6 @@
 package translator
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 
@@ -29,16 +28,14 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	downloader.EXPECT().Remove(testFile).Return(nil).Times(count)
 	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
-	player.EXPECT().Play(testFile).Return(nil).Times(count)
+	player.EXPECT().Play(t.Context(), testFile).Return(nil).Times(count)
 
 	logger.Prepare(slog.LevelError + 10)
 	searchWords := make([]string, 0, count)
 
-	for i := 0; i < count; i++ {
+	for range count {
 		searchWords = append(searchWords, fakeapi.SearchWord)
 	}
-	ctx := context.Background()
-
 	args := Lingualeo{
 		Sound:             true,
 		Words:             searchWords,
@@ -51,7 +48,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		Outputer:          outputer,
 	}
 
-	ch := args.translateToChan(ctx)
+	ch := args.translateToChan(t.Context())
 
 	for result := range ch {
 		fakeapi.CheckResult(t, result, searchWords[0], fakeapi.Expected)

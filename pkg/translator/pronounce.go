@@ -1,6 +1,7 @@
 package translator
 
 import (
+	"context"
 	"os/exec"
 	"strings"
 )
@@ -9,7 +10,7 @@ import (
 //
 //go:generate mockery
 type Pronouncer interface {
-	Play(url string) error
+	Play(ctx context.Context, url string) error
 }
 
 func isCommandAvailable(name string) bool {

@@ -1,6 +1,8 @@
 package translator
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -9,7 +11,7 @@ import (
 //
 //go:generate mockery
 type Visualizer interface {
-	Show(u *url.URL) error
+	Show(ctx context.Context, u *url.URL) error
 }
 type VisualiseType string
 
@@ -23,6 +25,8 @@ var (
 	VisualiseTypeDefault = Default
 )
 
+var errVisualiseTypeAllowed = errors.New("allowed visualise types")
+
 func (v *VisualiseType) Set(value string) error {
 	vt := VisualiseType(value)
 	switch vt {
@@ -30,7 +34,7 @@ func (v *VisualiseType) Set(value string) error {
 		*v = vt
 		return nil
 	default:
-		return fmt.Errorf("allowed: %s", VisualiseTypes)
+		return fmt.Errorf("%w: %v", errVisualiseTypeAllowed, VisualiseTypes)
 	}
 }
 

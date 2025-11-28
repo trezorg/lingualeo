@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,6 +15,11 @@ import (
 
 type convertibleBoolean bool
 
+var (
+	errBooleanUnmarshal = errors.New("boolean unmarshal error")
+	errTranslateWord    = errors.New("cannot translate word")
+)
+
 func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	asString := strings.Trim(string(data), "\"")
 
@@ -23,7 +29,7 @@ func (bit *convertibleBoolean) UnmarshalJSON(data []byte) error {
 	case "0", "false", "null":
 		*bit = false
 	default:
-		return fmt.Errorf("boolean unmarshal error: invalid input %s", asString)
+		return fmt.Errorf("%w: invalid input %s", errBooleanUnmarshal, asString)
 	}
 
 	return nil
@@ -84,18 +90,37 @@ type Result struct {
 	InvertTranslateDirection bool               `json:"invertTranslateDirection"`
 }
 
+// ResultError wraps translation results that failed on the API side.
+type ResultError struct {
+	Result Result
+}
+
+func (e ResultError) Error() string {
+	if len(e.Result.ErrorMsg) == 0 {
+		return errTranslateWord.Error()
+	}
+	if len(e.Result.Word) > 0 {
+		return fmt.Sprintf("%s: %s", e.Result.Word, e.Result.ErrorMsg)
+	}
+	return e.Result.ErrorMsg
+}
+
+func (ResultError) Unwrap() error {
+	return errTranslateWord
+}
+
 // FromResponse fills TranslationResult from http response
 func (r *Result) FromResponse(body []byte) error {
 	err := json.Unmarshal(body, &r)
 	if err != nil {
 		res := NoResult{}
 		if fErr := json.Unmarshal(body, &res); fErr != nil {
-			return fmt.Errorf("cannot translate word: %s, %w", r.Word, fErr)
+			return fmt.Errorf("%w: %s, %w", errTranslateWord, r.Word, fErr)
 		}
 		return err
 	}
-	if len(r.Error()) > 0 {
-		return r
+	if r.HasError() {
+		return ResultError{Result: *r}
 	}
 	r.parse()
 	return nil
@@ -126,8 +151,8 @@ func (r *Result) InDictionary() bool {
 	return false
 }
 
-func (r *Result) Error() string {
-	return r.ErrorMsg
+func (r *Result) HasError() bool {
+	return len(r.ErrorMsg) > 0
 }
 
 // IsRussian either word in in Russian language

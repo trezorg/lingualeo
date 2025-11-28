@@ -3,93 +3,92 @@ name: Go
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.22
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.25
 
-    - name: Test
-      run: make clean cache generate lint test
+      - name: Test
+        run: make clean cache generate lint test
 
-    - name: Build
-      run: bash ./build.sh
+      - name: Build
+        run: bash ./build.sh
 
-    - name: Create Release
-      id: release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        id: release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
-    - name: Upload Release Asset Linux AMD64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-linux-amd64
-        asset_name: lingualeo-linux-amd64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Linux AMD64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-linux-amd64
+          asset_name: lingualeo-linux-amd64
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset Linux ARM64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-linux-arm64
-        asset_name: lingualeo-linux-arm64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Linux ARM64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-linux-arm64
+          asset_name: lingualeo-linux-arm64
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset Darwin AMD64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-darwin-amd64
-        asset_name: lingualeo-darwin-amd64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Darwin AMD64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-darwin-amd64
+          asset_name: lingualeo-darwin-amd64
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset Darwin ARM64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-darwin-arm64
-        asset_name: lingualeo-darwin-arm64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Darwin ARM64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-darwin-arm64
+          asset_name: lingualeo-darwin-arm64
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset Windows AMD64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-windows-amd64
-        asset_name: lingualeo-windows-amd64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Windows AMD64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-windows-amd64
+          asset_name: lingualeo-windows-amd64
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset Windows ARM64
-      uses: actions/upload-release-asset@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./build/lingualeo-windows-arm64
-        asset_name: lingualeo-windows-arm64
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset Windows ARM64
+        uses: actions/upload-release-asset@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ./build/lingualeo-windows-arm64
+          asset_name: lingualeo-windows-arm64
+          asset_content_type: application/octet-stream
