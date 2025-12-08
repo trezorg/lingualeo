@@ -32,10 +32,10 @@ type Translator interface {
 var errUnknownVisualiseType = errors.New("unknown visualize type")
 
 type Lingualeo struct {
-	Translator
-	Downloader
-	Pronouncer
-	Outputer
+	Translator        `json:"-" yaml:"-" toml:"-"`
+	Downloader        `json:"-" yaml:"-" toml:"-"`
+	Pronouncer        `json:"-" yaml:"-" toml:"-"`
+	Outputer          `json:"-" yaml:"-" toml:"-"`
 	Email             string        `yaml:"email" json:"email" toml:"email"`
 	VisualiseType     VisualiseType `yaml:"visualize_type" json:"visualize_type" toml:"visualize_type"`
 	Config            string
