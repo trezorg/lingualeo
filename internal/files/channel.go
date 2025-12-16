@@ -1,7 +1,7 @@
 package files
 
 import (
-	"github.com/trezorg/lingualeo/pkg/heap"
+	"github.com/trezorg/lingualeo/internal/heap"
 )
 
 // OrderedChannel gets channel and returns channel ordered by GetIndex

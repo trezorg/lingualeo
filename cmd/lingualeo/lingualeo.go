@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/trezorg/lingualeo/pkg/messages"
-	"github.com/trezorg/lingualeo/pkg/translator"
+	"github.com/trezorg/lingualeo/internal/messages"
+	"github.com/trezorg/lingualeo/internal/translator"
 )
 
 var version = "0.0.1"

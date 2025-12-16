@@ -25,7 +25,7 @@ var (
 	VisualiseTypeDefault = Default
 )
 
-var errVisualiseTypeAllowed = errors.New("allowed visualise types")
+var errVisualiseTypeAllowed = errors.New("allowed visualize types")
 
 func (v *VisualiseType) Set(value string) error {
 	vt := VisualiseType(value)

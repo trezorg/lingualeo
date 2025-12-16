@@ -8,15 +8,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/trezorg/lingualeo/internal/api"
+	"github.com/trezorg/lingualeo/internal/channel"
 	"github.com/trezorg/lingualeo/internal/files"
+	"github.com/trezorg/lingualeo/internal/messages"
 	"github.com/trezorg/lingualeo/internal/visualizer/browser"
 	"github.com/trezorg/lingualeo/internal/visualizer/term"
-	"github.com/trezorg/lingualeo/pkg/api"
-	"github.com/trezorg/lingualeo/pkg/channel"
 
 	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/internal/player"
-	"github.com/trezorg/lingualeo/pkg/messages"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

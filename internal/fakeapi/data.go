@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/trezorg/lingualeo/pkg/api"
+	"github.com/trezorg/lingualeo/internal/api"
 )
 
 var (

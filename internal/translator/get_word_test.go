@@ -4,10 +4,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/trezorg/lingualeo/internal/logger"
-	"github.com/trezorg/lingualeo/pkg/api"
-
+	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/fakeapi"
+	"github.com/trezorg/lingualeo/internal/logger"
 )
 
 func translateWordResult(word string) api.OperationResult {

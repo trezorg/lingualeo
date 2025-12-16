@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/trezorg/lingualeo/pkg/api"
-	"github.com/trezorg/lingualeo/pkg/messages"
+	"github.com/trezorg/lingualeo/internal/api"
+	"github.com/trezorg/lingualeo/internal/messages"
 )
 
 type Outputer interface {

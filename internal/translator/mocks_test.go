@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	mock "github.com/stretchr/testify/mock"
-	"github.com/trezorg/lingualeo/pkg/api"
+	"github.com/trezorg/lingualeo/internal/api"
 )
 
 // NewMock_Downloader creates a new instance of Mock_Downloader. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

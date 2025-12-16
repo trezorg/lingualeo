@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/trezorg/lingualeo/internal/channel"
 	"github.com/trezorg/lingualeo/internal/files"
-	"github.com/trezorg/lingualeo/pkg/channel"
 )
 
 // Downloader interface
