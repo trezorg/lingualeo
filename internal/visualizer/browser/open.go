@@ -9,7 +9,7 @@ import (
 
 func open(ctx context.Context, u *url.URL) error {
 	var cmd string
-	var args []string
+	args := make([]string, 0, 1)
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
