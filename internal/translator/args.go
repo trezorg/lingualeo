@@ -363,40 +363,30 @@ func (l *Lingualeo) checkArgs() error {
 }
 
 func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
-	if len(l.Email) == 0 && len(a.Email) > 0 {
-		l.Email = a.Email
+	l.Email = mergeString(l.Email, a.Email)
+	l.Password = mergeString(l.Password, a.Password)
+	l.Player = mergeString(l.Player, a.Player)
+	l.Add = mergeBool(l.Add, a.Add)
+	l.Debug = mergeBool(l.Debug, a.Debug)
+	l.Sound = mergeBool(l.Sound, a.Sound)
+	l.Visualise = mergeBool(l.Visualise, a.Visualise)
+	l.VisualiseType = VisualiseType(mergeString(string(l.VisualiseType), string(a.VisualiseType)))
+	l.DownloadSoundFile = mergeBool(l.DownloadSoundFile, a.DownloadSoundFile)
+	l.LogPrettyPrint = mergeBool(l.LogPrettyPrint, a.LogPrettyPrint)
+	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
+	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
+}
+
+func mergeString(dst, src string) string {
+	if len(dst) == 0 && len(src) > 0 {
+		return src
 	}
-	if len(l.Password) == 0 && len(a.Password) > 0 {
-		l.Password = a.Password
+	return dst
+}
+
+func mergeBool(dst, src bool) bool {
+	if !dst && src {
+		return src
 	}
-	if len(l.Player) == 0 && len(a.Player) > 0 {
-		l.Player = a.Player
-	}
-	if a.Add {
-		l.Add = a.Add
-	}
-	if a.Debug {
-		l.Debug = a.Debug
-	}
-	if a.Sound {
-		l.Sound = a.Sound
-	}
-	if a.Visualise {
-		l.Visualise = a.Visualise
-	}
-	if len(a.VisualiseType) > 0 {
-		l.VisualiseType = a.VisualiseType
-	}
-	if a.DownloadSoundFile {
-		l.DownloadSoundFile = a.DownloadSoundFile
-	}
-	if a.LogPrettyPrint {
-		l.LogPrettyPrint = a.LogPrettyPrint
-	}
-	if a.ReverseTranslate {
-		l.ReverseTranslate = a.ReverseTranslate
-	}
-	if len(l.LogLevel) == 0 && len(a.LogLevel) > 0 {
-		l.LogLevel = a.LogLevel
-	}
+	return dst
 }
