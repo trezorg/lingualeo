@@ -25,8 +25,8 @@ import (
 //
 //go:generate mockery
 type Translator interface {
-	TranslateWord(word string) api.OperationResult
-	AddWord(word string, translate string) api.OperationResult
+	TranslateWord(ctx context.Context, word string) api.OperationResult
+	AddWord(ctx context.Context, word string, translate string) api.OperationResult
 }
 
 var errUnknownVisualiseType = errors.New("unknown visualize type")
@@ -113,7 +113,7 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		}
 	}
 	if client.Translator == nil {
-		if client.Translator, err = api.New(client.Email, client.Password, client.Debug); err != nil {
+		if client.Translator, err = api.New(context.Background(), client.Email, client.Password, client.Debug); err != nil {
 			return client, err
 		}
 	}
@@ -136,7 +136,7 @@ func translateWords(ctx context.Context, translator Translator, results <-chan s
 	wg.Go(func() {
 		for word := range channel.OrDone(ctx, results) {
 			wg.Go(func() {
-				out <- translator.TranslateWord(word)
+				out <- translator.TranslateWord(ctx, word)
 			})
 		}
 	})
@@ -156,7 +156,7 @@ func addWords(ctx context.Context, translator Translator, results <-chan api.Res
 			for _, translate := range res.AddWords {
 				translation := translate
 				wg.Go(func() {
-					added := translator.AddWord(res.Word, translation)
+					added := translator.AddWord(ctx, res.Word, translation)
 					added.Result.AddWords = []string{translation}
 					out <- added
 				})

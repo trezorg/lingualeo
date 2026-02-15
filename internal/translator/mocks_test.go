@@ -178,16 +178,16 @@ func (_m *Mock_Translator) EXPECT() *Mock_Translator_Expecter {
 }
 
 // AddWord provides a mock function for the type Mock_Translator
-func (_mock *Mock_Translator) AddWord(word string, translate string) api.OperationResult {
-	ret := _mock.Called(word, translate)
+func (_mock *Mock_Translator) AddWord(ctx context.Context, word string, translate string) api.OperationResult {
+	ret := _mock.Called(ctx, word, translate)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddWord")
 	}
 
 	var r0 api.OperationResult
-	if returnFunc, ok := ret.Get(0).(func(string, string) api.OperationResult); ok {
-		r0 = returnFunc(word, translate)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) api.OperationResult); ok {
+		r0 = returnFunc(ctx, word, translate)
 	} else {
 		r0 = ret.Get(0).(api.OperationResult)
 	}
@@ -200,17 +200,80 @@ type Mock_Translator_AddWord_Call struct {
 }
 
 // AddWord is a helper method to define mock.On call
+//   - ctx context.Context
 //   - word string
 //   - translate string
-func (_e *Mock_Translator_Expecter) AddWord(word interface{}, translate interface{}) *Mock_Translator_AddWord_Call {
-	return &Mock_Translator_AddWord_Call{Call: _e.mock.On("AddWord", word, translate)}
+func (_e *Mock_Translator_Expecter) AddWord(ctx interface{}, word interface{}, translate interface{}) *Mock_Translator_AddWord_Call {
+	return &Mock_Translator_AddWord_Call{Call: _e.mock.On("AddWord", ctx, word, translate)}
 }
 
-func (_c *Mock_Translator_AddWord_Call) Run(run func(word string, translate string)) *Mock_Translator_AddWord_Call {
+func (_c *Mock_Translator_AddWord_Call) Run(run func(ctx context.Context, word string, translate string)) *Mock_Translator_AddWord_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *Mock_Translator_AddWord_Call) Return(operationResult api.OperationResult) *Mock_Translator_AddWord_Call {
+	_c.Call.Return(operationResult)
+	return _c
+}
+
+func (_c *Mock_Translator_AddWord_Call) RunAndReturn(run func(ctx context.Context, word string, translate string) api.OperationResult) *Mock_Translator_AddWord_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TranslateWord provides a mock function for the type Mock_Translator
+func (_mock *Mock_Translator) TranslateWord(ctx context.Context, word string) api.OperationResult {
+	ret := _mock.Called(ctx, word)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TranslateWord")
+	}
+
+	var r0 api.OperationResult
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) api.OperationResult); ok {
+		r0 = returnFunc(ctx, word)
+	} else {
+		r0 = ret.Get(0).(api.OperationResult)
+	}
+	return r0
+}
+
+// Mock_Translator_TranslateWord_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TranslateWord'
+type Mock_Translator_TranslateWord_Call struct {
+	*mock.Call
+}
+
+// TranslateWord is a helper method to define mock.On call
+//   - ctx context.Context
+//   - word string
+func (_e *Mock_Translator_Expecter) TranslateWord(ctx interface{}, word interface{}) *Mock_Translator_TranslateWord_Call {
+	return &Mock_Translator_TranslateWord_Call{Call: _e.mock.On("TranslateWord", ctx, word)}
+}
+
+func (_c *Mock_Translator_TranslateWord_Call) Run(run func(ctx context.Context, word string)) *Mock_Translator_TranslateWord_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -224,63 +287,12 @@ func (_c *Mock_Translator_AddWord_Call) Run(run func(word string, translate stri
 	return _c
 }
 
-func (_c *Mock_Translator_AddWord_Call) Return(operationResult api.OperationResult) *Mock_Translator_AddWord_Call {
-	_c.Call.Return(operationResult)
-	return _c
-}
-
-func (_c *Mock_Translator_AddWord_Call) RunAndReturn(run func(word string, translate string) api.OperationResult) *Mock_Translator_AddWord_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// TranslateWord provides a mock function for the type Mock_Translator
-func (_mock *Mock_Translator) TranslateWord(word string) api.OperationResult {
-	ret := _mock.Called(word)
-
-	if len(ret) == 0 {
-		panic("no return value specified for TranslateWord")
-	}
-
-	var r0 api.OperationResult
-	if returnFunc, ok := ret.Get(0).(func(string) api.OperationResult); ok {
-		r0 = returnFunc(word)
-	} else {
-		r0 = ret.Get(0).(api.OperationResult)
-	}
-	return r0
-}
-
-// Mock_Translator_TranslateWord_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TranslateWord'
-type Mock_Translator_TranslateWord_Call struct {
-	*mock.Call
-}
-
-// TranslateWord is a helper method to define mock.On call
-//   - word string
-func (_e *Mock_Translator_Expecter) TranslateWord(word interface{}) *Mock_Translator_TranslateWord_Call {
-	return &Mock_Translator_TranslateWord_Call{Call: _e.mock.On("TranslateWord", word)}
-}
-
-func (_c *Mock_Translator_TranslateWord_Call) Run(run func(word string)) *Mock_Translator_TranslateWord_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
 func (_c *Mock_Translator_TranslateWord_Call) Return(operationResult api.OperationResult) *Mock_Translator_TranslateWord_Call {
 	_c.Call.Return(operationResult)
 	return _c
 }
 
-func (_c *Mock_Translator_TranslateWord_Call) RunAndReturn(run func(word string) api.OperationResult) *Mock_Translator_TranslateWord_Call {
+func (_c *Mock_Translator_TranslateWord_Call) RunAndReturn(run func(ctx context.Context, word string) api.OperationResult) *Mock_Translator_TranslateWord_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -55,7 +55,7 @@ func checkAuthError(body []byte) error {
 }
 
 // New constructor
-func New(email string, password string, debug bool) (*API, error) {
+func New(ctx context.Context, email string, password string, debug bool) (*API, error) {
 	client, err := prepareClient()
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func New(email string, password string, debug bool) (*API, error) {
 		Debug:    debug,
 		client:   client,
 	}
-	return api, api.auth()
+	return api, api.auth(ctx)
 }
 
 func prepareClient() (*http.Client, error) {
@@ -104,7 +104,7 @@ func prepareClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (a *API) auth() error {
+func (a *API) auth(ctx context.Context) error {
 	values := map[string]string{
 		"email":    a.Email,
 		"password": a.Password,
@@ -113,7 +113,7 @@ func (a *API) auth() error {
 	if err != nil {
 		return err
 	}
-	responseBody, err := request("POST", authURL, a.client, jsonValue, "", a.Debug)
+	responseBody, err := request(ctx, "POST", authURL, a.client, jsonValue, "", a.Debug)
 	if err != nil {
 		return err
 	}
@@ -142,12 +142,12 @@ func debugResponse(response *http.Response) {
 	}
 }
 
-func request(method string, url string, client *http.Client, body []byte, query string, debug bool) ([]byte, error) {
+func request(ctx context.Context, method string, url string, client *http.Client, body []byte, query string, debug bool) ([]byte, error) {
 	var requestBody io.Reader
 	if len(body) > 0 {
 		requestBody = bytes.NewBuffer(body)
 	}
-	req, err := http.NewRequestWithContext(context.Background(), method, url, requestBody)
+	req, err := http.NewRequestWithContext(ctx, method, url, requestBody)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func request(method string, url string, client *http.Client, body []byte, query 
 	return responseBody, err
 }
 
-func (a *API) translateRequest(word string) ([]byte, error) {
+func (a *API) translateRequest(ctx context.Context, word string) ([]byte, error) {
 	values := map[string]any{
 		"text":       word,
 		"apiVersion": apiVersion,
@@ -213,29 +213,29 @@ func (a *API) translateRequest(word string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return request("POST", translateURL, a.client, jsonValue, "", a.Debug)
+	return request(ctx, "POST", translateURL, a.client, jsonValue, "", a.Debug)
 }
 
-func (a *API) addRequest(word string, translate string) ([]byte, error) {
+func (a *API) addRequest(ctx context.Context, word string, translate string) ([]byte, error) {
 	values := map[string]string{
 		"word":  word,
 		"tword": translate,
 		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
-	return request("POST", addWordURL, a.client, jsonValue, "", a.Debug)
+	return request(ctx, "POST", addWordURL, a.client, jsonValue, "", a.Debug)
 }
 
-func (a *API) TranslateWord(word string) OperationResult {
-	body, err := a.translateRequest(word)
+func (a *API) TranslateWord(ctx context.Context, word string) OperationResult {
+	body, err := a.translateRequest(ctx, word)
 	if err != nil {
 		return OperationResult{Error: err}
 	}
 	return opResultFromBody(word, body)
 }
 
-func (a *API) AddWord(word string, translate string) OperationResult {
-	body, err := a.addRequest(word, translate)
+func (a *API) AddWord(ctx context.Context, word string, translate string) OperationResult {
+	body, err := a.addRequest(ctx, word, translate)
 	if err != nil {
 		return OperationResult{Error: err}
 	}

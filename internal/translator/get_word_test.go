@@ -26,7 +26,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 
 	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	downloader.EXPECT().Remove(testFile).Return(nil).Times(count)
-	translator.EXPECT().TranslateWord(fakeapi.SearchWord).Return(res).Times(count)
+	translator.EXPECT().TranslateWord(t.Context(), fakeapi.SearchWord).Return(res).Times(count)
 	player.EXPECT().Play(t.Context(), testFile).Return(nil).Times(count)
 
 	logger.Prepare(slog.LevelError + 10)
