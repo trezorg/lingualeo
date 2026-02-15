@@ -481,16 +481,16 @@ func (_m *Mock_Visualizer) EXPECT() *Mock_Visualizer_Expecter {
 }
 
 // Show provides a mock function for the type Mock_Visualizer
-func (_mock *Mock_Visualizer) Show(u *url.URL) error {
-	ret := _mock.Called(u)
+func (_mock *Mock_Visualizer) Show(ctx context.Context, u *url.URL) error {
+	ret := _mock.Called(ctx, u)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Show")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*url.URL) error); ok {
-		r0 = returnFunc(u)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *url.URL) error); ok {
+		r0 = returnFunc(ctx, u)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -503,19 +503,25 @@ type Mock_Visualizer_Show_Call struct {
 }
 
 // Show is a helper method to define mock.On call
+//   - ctx context.Context
 //   - u *url.URL
-func (_e *Mock_Visualizer_Expecter) Show(u interface{}) *Mock_Visualizer_Show_Call {
-	return &Mock_Visualizer_Show_Call{Call: _e.mock.On("Show", u)}
+func (_e *Mock_Visualizer_Expecter) Show(ctx interface{}, u interface{}) *Mock_Visualizer_Show_Call {
+	return &Mock_Visualizer_Show_Call{Call: _e.mock.On("Show", ctx, u)}
 }
 
-func (_c *Mock_Visualizer_Show_Call) Run(run func(u *url.URL)) *Mock_Visualizer_Show_Call {
+func (_c *Mock_Visualizer_Show_Call) Run(run func(ctx context.Context, u *url.URL)) *Mock_Visualizer_Show_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *url.URL
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(*url.URL)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *url.URL
+		if args[1] != nil {
+			arg1 = args[1].(*url.URL)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -526,7 +532,7 @@ func (_c *Mock_Visualizer_Show_Call) Return(err error) *Mock_Visualizer_Show_Cal
 	return _c
 }
 
-func (_c *Mock_Visualizer_Show_Call) RunAndReturn(run func(u *url.URL) error) *Mock_Visualizer_Show_Call {
+func (_c *Mock_Visualizer_Show_Call) RunAndReturn(run func(ctx context.Context, u *url.URL) error) *Mock_Visualizer_Show_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -32,7 +32,6 @@ TAGS		:=
 LDFLAGS		:= "-w -s -X 'main.version=${VERSION}'"
 CMD_PACKAGE := ./cmd/lingualeo
 BINARY 		:= ./lingualeo
-LDFLAGS		:= "-w -s -X 'main.version=${VERSION}'"
 GOOS		?= $(shell go env GOOS)
 GOARCH		?= $(shell go env GOARCH)
 
