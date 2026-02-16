@@ -12,7 +12,7 @@ import (
 //
 //go:generate mockery
 type Downloader interface {
-	Download(url string) (string, error)
+	Download(ctx context.Context, url string) (string, error)
 	Remove(path string) error
 }
 
@@ -25,7 +25,7 @@ func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloade
 		for url := range channel.OrDone(ctx, urls) {
 			idxCopy := idx
 			wg.Go(func() {
-				filename, err := downloader.Download(url)
+				filename, err := downloader.Download(ctx, url)
 				out <- files.File{Error: err, Filename: filename, Index: idxCopy}
 			})
 			idx++

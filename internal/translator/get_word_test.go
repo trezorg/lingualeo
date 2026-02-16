@@ -25,7 +25,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	outputer := NewMock_Outputer(t)
 	res := translateWordResult(fakeapi.SearchWord)
 
-	downloader.EXPECT().Download(fakeapi.SoundURL).Return(testFile, nil).Times(count)
+	downloader.EXPECT().Download(t.Context(), fakeapi.SoundURL).Return(testFile, nil).Times(count)
 	downloader.EXPECT().Remove(testFile).Return(nil).Times(count)
 	translator.EXPECT().TranslateWord(t.Context(), fakeapi.SearchWord).Return(res).Times(count)
 	player.EXPECT().Play(t.Context(), testFile).Return(nil).Times(count)

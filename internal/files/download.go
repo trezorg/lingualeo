@@ -7,12 +7,14 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/trezorg/lingualeo/internal/validator"
 )
 
 const (
-	fileTemplate = "lingualeo"
+	fileTemplate       = "lingualeo"
+	defaultHTTPTimeout = 30 * time.Second
 )
 
 // File represents file for downloading
@@ -28,11 +30,17 @@ func (f File) GetIndex() int {
 }
 
 // FileDownloader structure
-type FileDownloader struct{}
+type FileDownloader struct {
+	client *http.Client
+}
 
 // New initialize new file downloader
 func New() *FileDownloader {
-	return &FileDownloader{}
+	return &FileDownloader{
+		client: &http.Client{
+			Timeout: defaultHTTPTimeout,
+		},
+	}
 }
 
 // Writer prepares WriteCloser for temporary file
@@ -45,7 +53,7 @@ func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
 }
 
 // Download downloads file
-func (f *FileDownloader) Download(url string) (string, error) {
+func (f *FileDownloader) Download(ctx context.Context, url string) (string, error) {
 	if err := validator.ValidateURL(url); err != nil {
 		return "", fmt.Errorf("invalid download URL: %w", err)
 	}
@@ -59,11 +67,11 @@ func (f *FileDownloader) Download(url string) (string, error) {
 			slog.Error("cannot close write file descriptor", "error", cErr)
 		}
 	}()
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
@@ -88,15 +96,15 @@ func (*FileDownloader) Remove(path string) error {
 }
 
 // DownloadBytes downloads file into bytes slice
-func (*FileDownloader) DownloadBytes(url string) ([]byte, error) {
+func (f *FileDownloader) DownloadBytes(ctx context.Context, url string) ([]byte, error) {
 	if err := validator.ValidateURL(url); err != nil {
 		return nil, fmt.Errorf("invalid download URL: %w", err)
 	}
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := f.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}

@@ -11,7 +11,7 @@ func TestDownloadWordFile(t *testing.T) {
 	url := "http://test.com/file"
 	testFile := "/tmp/test.file"
 
-	downloader.EXPECT().Download(url).Return(testFile, nil).Once()
+	downloader.EXPECT().Download(t.Context(), url).Return(testFile, nil).Once()
 
 	inChan := make(chan string, 1)
 	inChan <- url

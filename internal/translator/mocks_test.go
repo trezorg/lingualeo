@@ -40,8 +40,8 @@ func (_m *Mock_Downloader) EXPECT() *Mock_Downloader_Expecter {
 }
 
 // Download provides a mock function for the type Mock_Downloader
-func (_mock *Mock_Downloader) Download(url string) (string, error) {
-	ret := _mock.Called(url)
+func (_mock *Mock_Downloader) Download(ctx context.Context, url string) (string, error) {
+	ret := _mock.Called(ctx, url)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Download")
@@ -49,16 +49,16 @@ func (_mock *Mock_Downloader) Download(url string) (string, error) {
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) (string, error)); ok {
-		return returnFunc(url)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return returnFunc(ctx, url)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) string); ok {
-		r0 = returnFunc(url)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = returnFunc(ctx, url)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
-		r1 = returnFunc(url)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, url)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -71,19 +71,25 @@ type Mock_Downloader_Download_Call struct {
 }
 
 // Download is a helper method to define mock.On call
+//   - ctx context.Context
 //   - url string
-func (_e *Mock_Downloader_Expecter) Download(url interface{}) *Mock_Downloader_Download_Call {
-	return &Mock_Downloader_Download_Call{Call: _e.mock.On("Download", url)}
+func (_e *Mock_Downloader_Expecter) Download(ctx interface{}, url interface{}) *Mock_Downloader_Download_Call {
+	return &Mock_Downloader_Download_Call{Call: _e.mock.On("Download", ctx, url)}
 }
 
-func (_c *Mock_Downloader_Download_Call) Run(run func(url string)) *Mock_Downloader_Download_Call {
+func (_c *Mock_Downloader_Download_Call) Run(run func(ctx context.Context, url string)) *Mock_Downloader_Download_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -94,7 +100,7 @@ func (_c *Mock_Downloader_Download_Call) Return(s string, err error) *Mock_Downl
 	return _c
 }
 
-func (_c *Mock_Downloader_Download_Call) RunAndReturn(run func(url string) (string, error)) *Mock_Downloader_Download_Call {
+func (_c *Mock_Downloader_Download_Call) RunAndReturn(run func(ctx context.Context, url string) (string, error)) *Mock_Downloader_Download_Call {
 	_c.Call.Return(run)
 	return _c
 }
