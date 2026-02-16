@@ -54,12 +54,15 @@ install:
 
 test: unit
 
-lint: work prepare fmt vet goimports golangci
+lint: work prepare fmt fix vet goimports golangci
 unit: work
 	go test -tags=unit $(TESTARGS) ./...
 
 fmt:
 	go fmt ./...
+
+fix:
+	go fix ./...
 
 goimports:
 ifndef HAS_GOIMPORTS
@@ -114,4 +117,4 @@ clean: work
 version:
 	@echo ${VERSION}
 
-.PHONY: install build cover work fmt test version clean prepare generate lint
+.PHONY: install build cover work fmt fix test version clean prepare generate lint
