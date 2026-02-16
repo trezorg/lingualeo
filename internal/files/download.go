@@ -37,15 +37,11 @@ func New() *FileDownloader {
 
 // Writer prepares WriteCloser for temporary file
 func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
-	fl, err := os.CreateTemp(os.TempDir(), fileTemplate)
+	fd, err := os.CreateTemp(os.TempDir(), fileTemplate)
 	if err != nil {
 		return nil, "", err
 	}
-	fd, err := os.Create(fl.Name())
-	if err != nil {
-		return nil, "", err
-	}
-	return fd, fl.Name(), nil
+	return fd, fd.Name(), nil
 }
 
 // Download downloads file
