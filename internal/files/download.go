@@ -13,7 +13,6 @@ import (
 
 const (
 	fileTemplate = "lingualeo"
-	filePath     = "/tmp"
 )
 
 // File represents file for downloading
@@ -38,7 +37,7 @@ func New() *FileDownloader {
 
 // Writer prepares WriteCloser for temporary file
 func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
-	fl, err := os.CreateTemp(filePath, fileTemplate)
+	fl, err := os.CreateTemp(os.TempDir(), fileTemplate)
 	if err != nil {
 		return nil, "", err
 	}
