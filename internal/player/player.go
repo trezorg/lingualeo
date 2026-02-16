@@ -4,10 +4,13 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+	"syscall"
+	"time"
 )
 
 const (
-	separator = " "
+	separator       = " "
+	shutdownTimeout = 2 * time.Second
 )
 
 type Player struct {
@@ -33,5 +36,29 @@ func (p Player) Play(ctx context.Context, url string) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	return cmd.Wait()
+
+	// Wait for process in goroutine, handle context cancellation
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		// Graceful shutdown: SIGTERM first, then SIGKILL after timeout
+		if cmd.Process != nil {
+			_ = cmd.Process.Signal(syscall.SIGTERM)
+		}
+		select {
+		case <-done:
+			return ctx.Err()
+		case <-time.After(shutdownTimeout):
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			return <-done
+		}
+	}
 }
