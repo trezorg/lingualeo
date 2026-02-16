@@ -33,7 +33,9 @@ func parseURL(s string) (*url.URL, error) {
 	return u, nil
 }
 
-func (Output) Output(ctx context.Context, result api.Result) error {
+// printTranslation outputs the common translation result formatting.
+// It prints the word status header, word with transcription, and all translations.
+func printTranslation(ctx context.Context, result api.Result) {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "existing"
@@ -49,7 +51,7 @@ func (Output) Output(ctx context.Context, result api.Result) error {
 	for _, word := range result.Translate {
 		select {
 		case <-ctx.Done():
-			return nil
+			return
 		default:
 		}
 		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
@@ -64,6 +66,10 @@ func (Output) Output(ctx context.Context, result api.Result) error {
 			slog.Error("cannot show message", "error", err)
 		}
 	}
+}
+
+func (Output) Output(ctx context.Context, result api.Result) error {
+	printTranslation(ctx, result)
 	return nil
 }
 
@@ -74,35 +80,12 @@ type OutputVisualizer struct {
 type Output struct{}
 
 func (o OutputVisualizer) Output(ctx context.Context, result api.Result) error {
-	var strTitle string
-	if result.InDictionary() {
-		strTitle = "existing"
-	} else {
-		strTitle = "new"
-	}
-	if err := messages.Message(messages.RED, "Found %s word:\n", strTitle); err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
-	if err := messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription); err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
+	printTranslation(ctx, result)
 	for _, word := range result.Translate {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-		}
-
-		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
-			slog.Error("cannot show message", "error", err)
-		}
-		if len(word.Context) > 0 {
-			if err := messages.Message(messages.WHITE, " (%s)", word.Context); err != nil {
-				slog.Error("cannot show message", "error", err)
-			}
-		}
-		if err := messages.Message(messages.YELLOW, "\n"); err != nil {
-			slog.Error("cannot show message", "error", err)
 		}
 		u, err := parseURL(word.Picture)
 		if err != nil {
