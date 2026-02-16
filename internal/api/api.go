@@ -33,6 +33,15 @@ var (
 )
 
 // API structure represents API request
+// Client interface defines the contract for Lingualeo API operations.
+// Use this interface for mocking API calls in tests.
+//
+//go:generate mockery
+type Client interface {
+	TranslateWord(ctx context.Context, word string) OperationResult
+	AddWord(ctx context.Context, word string, translate string) OperationResult
+}
+
 type API struct {
 	client   *http.Client
 	Email    string

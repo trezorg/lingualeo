@@ -3,6 +3,13 @@ template: testify
 template-data:
   unroll-variadic: true
 packages:
+  github.com/trezorg/lingualeo/internal/api:
+    config:
+      structname: Mock_{{.InterfaceName}}
+      filename: mocks.go
+      dir: "{{.InterfaceDir}}/mock"
+      pkgname: mock
+      recursive: true
   github.com/trezorg/lingualeo/internal/translator:
     config:
       # dir: ./{{ replaceAll .InterfaceDirRelative "internal" "internal_" }}

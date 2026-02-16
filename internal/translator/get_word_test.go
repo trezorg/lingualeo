@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/trezorg/lingualeo/internal/api"
+	"github.com/trezorg/lingualeo/internal/api/mock"
 	"github.com/trezorg/lingualeo/internal/fakeapi"
 	"github.com/trezorg/lingualeo/internal/logger"
 )
@@ -19,7 +20,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	downloader := NewMock_Downloader(t)
 	testFile := "/tmp/test.file"
 	count := 1000 // max for race checking
-	translator := NewMock_Translator(t)
+	translator := mock.NewMock_Client(t)
 	player := NewMock_Pronouncer(t)
 	outputer := NewMock_Outputer(t)
 	res := translateWordResult(fakeapi.SearchWord)
@@ -41,7 +42,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		Add:               false,
 		Visualise:         true,
 		DownloadSoundFile: true,
-		Translator:        translator,
+		Client:            translator,
 		Downloader:        downloader,
 		Pronouncer:        player,
 		Outputer:          outputer,

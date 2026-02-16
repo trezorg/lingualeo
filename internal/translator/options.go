@@ -1,10 +1,12 @@
 package translator
 
+import "github.com/trezorg/lingualeo/internal/api"
+
 type Option func(*Lingualeo) error
 
-func WithTranslator(t Translator) Option {
+func WithTranslator(t api.Client) Option {
 	return func(l *Lingualeo) error {
-		l.Translator = t
+		l.Client = t
 		return nil
 	}
 }

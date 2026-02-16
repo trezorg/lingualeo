@@ -21,18 +21,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Translator interface
-//
-//go:generate mockery
-type Translator interface {
-	TranslateWord(ctx context.Context, word string) api.OperationResult
-	AddWord(ctx context.Context, word string, translate string) api.OperationResult
-}
-
 var errUnknownVisualiseType = errors.New("unknown visualize type")
 
 type Lingualeo struct {
-	Translator        `json:"-" yaml:"-" toml:"-"`
+	api.Client        `json:"-" yaml:"-" toml:"-"`
 	Downloader        `json:"-" yaml:"-" toml:"-"`
 	Pronouncer        `json:"-" yaml:"-" toml:"-"`
 	Outputer          `json:"-" yaml:"-" toml:"-"`
@@ -112,8 +104,8 @@ func New(version string, options ...Option) (Lingualeo, error) {
 			return client, err
 		}
 	}
-	if client.Translator == nil {
-		if client.Translator, err = api.New(context.Background(), client.Email, client.Password, client.Debug); err != nil {
+	if client.Client == nil {
+		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug); err != nil {
 			return client, err
 		}
 	}
@@ -130,7 +122,7 @@ func New(version string, options ...Option) (Lingualeo, error) {
 }
 
 // translateWords translate words from string channel
-func translateWords(ctx context.Context, translator Translator, results <-chan string) <-chan api.OperationResult {
+func translateWords(ctx context.Context, translator api.Client, results <-chan string) <-chan api.OperationResult {
 	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
 	wg.Go(func() {
@@ -148,7 +140,7 @@ func translateWords(ctx context.Context, translator Translator, results <-chan s
 }
 
 // addWords add words
-func addWords(ctx context.Context, translator Translator, results <-chan api.Result) <-chan api.OperationResult {
+func addWords(ctx context.Context, translator api.Client, results <-chan api.Result) <-chan api.OperationResult {
 	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
 	wg.Go(func() {
@@ -194,7 +186,7 @@ func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResu
 	input := channel.ToChannel(ctx, l.Words...)
 	go func() {
 		defer close(results)
-		ch := translateWords(ctx, l.Translator, input)
+		ch := translateWords(ctx, l.Client, input)
 		for res := range channel.OrDone(ctx, ch) {
 			if res.Error != nil {
 				err := messages.Message(
@@ -268,7 +260,7 @@ func (l *Lingualeo) Pronounce(ctx context.Context, urls <-chan string) {
 
 // AddToDictionary adds words to dictionary
 func (l *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result) {
-	ch := addWords(ctx, l.Translator, resultsToAdd)
+	ch := addWords(ctx, l.Client, resultsToAdd)
 	for res := range ch {
 		if res.Error != nil {
 			slog.Error("cannot add word to dictionary", "word", res.Result.Word, "error", res.Error)
