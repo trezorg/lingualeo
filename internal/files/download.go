@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/trezorg/lingualeo/internal/validator"
 )
 
 const (
@@ -49,6 +51,9 @@ func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
 
 // Download downloads file
 func (f *FileDownloader) Download(url string) (string, error) {
+	if err := validator.ValidateURL(url); err != nil {
+		return "", fmt.Errorf("invalid download URL: %w", err)
+	}
 	fd, filename, err := f.Writer()
 	if err != nil {
 		return "", err
@@ -89,6 +94,9 @@ func (*FileDownloader) Remove(path string) error {
 
 // DownloadBytes downloads file into bytes slice
 func (*FileDownloader) DownloadBytes(url string) ([]byte, error) {
+	if err := validator.ValidateURL(url); err != nil {
+		return nil, fmt.Errorf("invalid download URL: %w", err)
+	}
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)

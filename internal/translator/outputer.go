@@ -10,6 +10,7 @@ import (
 
 	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/messages"
+	"github.com/trezorg/lingualeo/internal/validator"
 )
 
 type Outputer interface {
@@ -21,6 +22,9 @@ var errParsePictureURL = errors.New("cannot parse picture url")
 func parseURL(s string) (*url.URL, error) {
 	if s == "" {
 		return nil, nil
+	}
+	if err := validator.ValidateURL(s); err != nil {
+		return nil, fmt.Errorf("%w: %s: %w", errParsePictureURL, s, err)
 	}
 	u, err := url.Parse(s)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/trezorg/lingualeo/internal/files"
 	"github.com/trezorg/lingualeo/internal/slice"
+	"github.com/trezorg/lingualeo/internal/validator"
 
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"
@@ -39,6 +40,7 @@ var (
 	errAddCustomTranslation    = errors.New("custom translation requires exactly one word")
 	errConfigFileMissing       = errors.New("config file is missing or invalid")
 	errEmailArgumentMissing    = errors.New("email argument is missing")
+	errEmailInvalid            = errors.New("email argument is invalid")
 	errPasswordArgumentMissing = errors.New("password argument is missing")
 )
 
@@ -352,6 +354,9 @@ func (l *Lingualeo) checkConfig() error {
 func (l *Lingualeo) checkArgs() error {
 	if len(l.Email) == 0 {
 		return errEmailArgumentMissing
+	}
+	if err := validator.ValidateEmail(l.Email); err != nil {
+		return fmt.Errorf("%w: %w", errEmailInvalid, err)
 	}
 	if len(l.Password) == 0 {
 		return errPasswordArgumentMissing
