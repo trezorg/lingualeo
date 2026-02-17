@@ -3,7 +3,7 @@ module github.com/trezorg/lingualeo
 go 1.25
 
 require (
-	github.com/BourgeoisBear/rasterm v1.1.1
+	github.com/BourgeoisBear/rasterm v1.1.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.2.0
