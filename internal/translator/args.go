@@ -42,6 +42,10 @@ var (
 	errEmailArgumentMissing    = errors.New("email argument is missing")
 	errEmailInvalid            = errors.New("email argument is invalid")
 	errPasswordArgumentMissing = errors.New("password argument is missing")
+
+	// ErrHelpOrVersionShown is returned when --help or --version flag is passed.
+	// The caller should treat this as a successful exit (os.Exit(0)).
+	ErrHelpOrVersionShown = errors.New("help or version shown")
 )
 
 type configFile struct {
@@ -83,11 +87,30 @@ func newConfigFile(filename string) *configFile {
 	return &configFile{filename: filename}
 }
 
+// isHelpOrVersion checks if the command line arguments contain help or version flags.
+func isHelpOrVersion(args []string) bool {
+	for _, arg := range args {
+		if arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v" {
+			return true
+		}
+	}
+	return false
+}
+
 func prepareArgs(version string) (Lingualeo, error) {
 	args := Lingualeo{}
 	translate := cli.StringSlice{}
 	defaultCommand := buildDefaultCommand(&args, &translate)
 	app := newLingualeoApp(version, &args, translate, defaultCommand)
+
+	// Check if help/version flags are present - skip validation if so.
+	// urfave/cli handles these flags and shows output, but we need to
+	// prevent checkArgs() from running with empty Words.
+	if isHelpOrVersion(os.Args) {
+		_ = app.Run(os.Args)
+		return args, ErrHelpOrVersionShown
+	}
+
 	return args, app.Run(os.Args)
 }
 

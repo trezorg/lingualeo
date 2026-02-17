@@ -62,7 +62,7 @@ if [ -z "${VERSION}" ]; then
     )
 fi
 DOWNLOAD_URL="https://github.com/trezorg/${NAME}/releases/download/${VERSION}/${NAME}-${OS}-${ARCH}"
-echo "Downloading ${DOWNLOAD_URL}..."
+echo "Downloading ${DOWNLOAD_URL} into ${APP_PATH} ..."
 
 if ! curl -sSL --fail-with-body "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
     err=$?
@@ -71,4 +71,4 @@ if ! curl -sSL --fail-with-body "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
 fi
 
 chmod +x "${APP_PATH}"
-"${APP_PATH}" --help
+"${APP_PATH}" --help || true

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -16,6 +17,10 @@ var version = "0.0.1"
 func main() {
 	args, err := translator.New(version)
 	if err != nil {
+		// Handle help/version as successful exit
+		if errors.Is(err, translator.ErrHelpOrVersionShown) {
+			os.Exit(0)
+		}
 		if msgErr := messages.Message(messages.RED, "Error: %v\n", err); msgErr != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
