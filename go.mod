@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/BourgeoisBear/rasterm v1.1.2
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.6.0
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0
