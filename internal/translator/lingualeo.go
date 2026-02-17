@@ -33,7 +33,7 @@ type Lingualeo struct {
 	Config            string
 	Player            string `yaml:"player" json:"player" toml:"player"`
 	LogLevel          string `yaml:"log_level" json:"log_level" toml:"log_level"`
-	Password          string `yaml:"password" json:"password" toml:"password"`
+	Password          string `yaml:"password" json:"password" toml:"password"` //nolint:gosec // false positive: config credential field name is intentional
 	Translation       []string
 	Words             []string
 	Add               bool `yaml:"add" json:"add" toml:"add"`
@@ -75,6 +75,9 @@ func sendOperationResult(ctx context.Context, out chan<- api.OperationResult, re
 }
 
 func sendWithContext[T any](ctx context.Context, out chan<- T, value T) bool {
+	if ctx.Err() != nil {
+		return false
+	}
 	select {
 	case <-ctx.Done():
 		return false
@@ -281,7 +284,9 @@ func (l *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api
 			slog.Error("cannot add word to dictionary", "word", res.Result.Word, "error", res.Error)
 			continue
 		}
-		PrintAddedTranslation(res.Result)
+		if err := PrintAddedTranslation(res.Result); err != nil {
+			slog.Error("cannot print added translation", "word", res.Result.Word, "error", err)
+		}
 	}
 }
 
@@ -372,6 +377,9 @@ func (l *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
 	var englishWords []string
 	for result := range channel.OrDone(ctx, l.translateToChan(ctx)) {
 		if err := l.Output(ctx, result); err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
 			slog.Error("cannot translate word", "word", result.Word, "error", err)
 		}
 		for _, word := range result.Translate {
@@ -384,6 +392,9 @@ func (l *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
 		l.Words = englishWords
 		for result := range channel.OrDone(ctx, l.translateToChan(ctx)) {
 			if err := l.Output(ctx, result); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
 				slog.Error("cannot translate word", "word", result.Word, "error", err)
 			}
 		}

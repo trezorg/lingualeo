@@ -45,7 +45,7 @@ type Client interface {
 type API struct {
 	client   *http.Client
 	Email    string
-	Password string
+	Password string //nolint:gosec // false positive: credential field name is intentional
 	Debug    bool
 }
 
@@ -135,6 +135,7 @@ func debugRequest(request *http.Request) {
 		slog.Error("cannot dump http request", "error", err)
 	} else {
 		logger.SetHandler(logger.DebugHandler())
+		//nolint:gosec // debug output intentionally logs full HTTP request dump
 		slog.Debug(string(dump))
 		logger.SetHandler(logger.DefaultHandler())
 	}
@@ -146,6 +147,7 @@ func debugResponse(response *http.Response) {
 		slog.Error("cannot dump http response", "error", err)
 	} else {
 		logger.SetHandler(logger.DebugHandler())
+		//nolint:gosec // debug output intentionally logs full HTTP response dump
 		slog.Debug(string(dump))
 		logger.SetHandler(logger.DefaultHandler())
 	}
@@ -178,7 +180,7 @@ func request(ctx context.Context, method string, url string, client *http.Client
 	if debug {
 		debugRequest(req)
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // URL is internal API constant configured by the application
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"strings"
 
@@ -18,6 +17,14 @@ type Outputer interface {
 }
 
 var errParsePictureURL = errors.New("cannot parse picture url")
+var errShowMessage = errors.New("cannot show message")
+
+func messagef(c messages.Color, message string, params ...any) error {
+	if err := messages.Message(c, message, params...); err != nil {
+		return fmt.Errorf("%w: %w", errShowMessage, err)
+	}
+	return nil
+}
 
 func parseURL(s string) (*url.URL, error) {
 	if s == "" {
@@ -33,44 +40,43 @@ func parseURL(s string) (*url.URL, error) {
 	return u, nil
 }
 
-// printTranslation outputs the common translation result formatting.
-// It prints the word status header, word with transcription, and all translations.
-func printTranslation(ctx context.Context, result api.Result) {
+func printTranslation(ctx context.Context, result api.Result) error {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "existing"
 	} else {
 		strTitle = "new"
 	}
-	if err := messages.Message(messages.RED, "Found %s word:\n", strTitle); err != nil {
-		slog.Error("cannot show message", "error", err)
+	if err := messagef(messages.RED, "Found %s word:\n", strTitle); err != nil {
+		return err
 	}
-	if err := messages.Message(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription); err != nil {
-		slog.Error("cannot show message", "error", err)
+	if err := messagef(messages.GREEN, "['%s'] (%s)\n", result.Word, result.Transcription); err != nil {
+		return err
 	}
 	for _, word := range result.Translate {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		default:
 		}
-		if err := messages.Message(messages.YELLOW, "%s", word.Value); err != nil {
-			slog.Error("cannot show message", "error", err)
+		if err := messagef(messages.YELLOW, "%s", word.Value); err != nil {
+			return err
 		}
 		if len(word.Context) > 0 {
-			if err := messages.Message(messages.WHITE, " (%s)", word.Context); err != nil {
-				slog.Error("cannot show message", "error", err)
+			if err := messagef(messages.WHITE, " (%s)", word.Context); err != nil {
+				return err
 			}
 		}
-		if err := messages.Message(messages.YELLOW, "\n"); err != nil {
-			slog.Error("cannot show message", "error", err)
+		if err := messagef(messages.YELLOW, "\n"); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (Output) Output(ctx context.Context, result api.Result) error {
-	printTranslation(ctx, result)
-	return nil
+	return printTranslation(ctx, result)
 }
 
 type OutputVisualizer struct {
@@ -80,42 +86,44 @@ type OutputVisualizer struct {
 type Output struct{}
 
 func (o OutputVisualizer) Output(ctx context.Context, result api.Result) error {
-	printTranslation(ctx, result)
+	if err := printTranslation(ctx, result); err != nil {
+		return err
+	}
+
+	var outErr error
 	for _, word := range result.Translate {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
 		}
 		u, err := parseURL(word.Picture)
 		if err != nil {
-			slog.Error("error processing picture url", "error", err)
+			outErr = errors.Join(outErr, err)
 			continue
 		}
 		if u == nil {
 			continue
 		}
 		if err = o.Show(ctx, u); err != nil {
-			slog.Error("cannot visualize picture", "error", err)
+			outErr = errors.Join(outErr, err)
 			continue
 		}
 	}
-	return nil
+	return outErr
 }
 
 // PrintAddedTranslation prints transcription during adding operation
-func PrintAddedTranslation(result api.Result) {
+func PrintAddedTranslation(result api.Result) error {
 	var strTitle string
 	if result.InDictionary() {
 		strTitle = "Updated existing"
 	} else {
 		strTitle = "Added new"
 	}
-	if err := messages.Message(messages.RED, "%s word: ", strTitle); err != nil {
-		slog.Error("cannot show message", "error", err)
+	if err := messagef(messages.RED, "%s word: ", strTitle); err != nil {
+		return err
 	}
 
-	if err := messages.Message(messages.GREEN, "['%s'] ['%s']\n", result.Word, strings.Join(result.AddWords, ", ")); err != nil {
-		slog.Error("cannot show message", "error", err)
-	}
+	return messagef(messages.GREEN, "['%s'] ['%s']\n", result.Word, strings.Join(result.AddWords, ", "))
 }

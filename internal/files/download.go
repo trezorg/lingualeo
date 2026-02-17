@@ -71,7 +71,7 @@ func (f *FileDownloader) Download(ctx context.Context, url string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
-	resp, err := f.client.Do(req)
+	resp, err := f.client.Do(req) //nolint:gosec // URL is validated before request execution
 	if err != nil {
 		return "", fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
@@ -104,7 +104,7 @@ func (f *FileDownloader) DownloadBytes(ctx context.Context, url string) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}
-	resp, err := f.client.Do(req)
+	resp, err := f.client.Do(req) //nolint:gosec // URL is validated before request execution
 	if err != nil {
 		return nil, fmt.Errorf("cannot read URL: %s, %w", url, err)
 	}

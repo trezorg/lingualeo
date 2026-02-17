@@ -16,7 +16,9 @@ var version = "0.0.1"
 func main() {
 	args, err := translator.New(version)
 	if err != nil {
-		_ = messages.Message(messages.RED, fmt.Sprintf("Error: %v\n", err))
+		if msgErr := messages.Message(messages.RED, "Error: %v\n", err); msgErr != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
 		os.Exit(1)
 	}
 

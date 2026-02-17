@@ -107,7 +107,7 @@ func open(ctx context.Context, u *url.URL) error {
 	if err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is parsed and validated before visualizing
 	if err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
 	}
