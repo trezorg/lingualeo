@@ -70,6 +70,19 @@ func outputer(visualize bool, vt VisualiseType) (Outputer, error) {
 	return OutputVisualizer{Visualizer: viz}, nil
 }
 
+func sendOperationResult(ctx context.Context, out chan<- api.OperationResult, res api.OperationResult) {
+	_ = sendWithContext(ctx, out, res)
+}
+
+func sendWithContext[T any](ctx context.Context, out chan<- T, value T) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case out <- value:
+		return true
+	}
+}
+
 // New initialize lingualeo client
 func New(version string, options ...Option) (Lingualeo, error) {
 	client, err := prepareArgs(version)
@@ -128,7 +141,7 @@ func translateWords(ctx context.Context, translator api.Client, results <-chan s
 	wg.Go(func() {
 		for word := range channel.OrDone(ctx, results) {
 			wg.Go(func() {
-				out <- translator.TranslateWord(ctx, word)
+				sendOperationResult(ctx, out, translator.TranslateWord(ctx, word))
 			})
 		}
 	})
@@ -150,7 +163,7 @@ func addWords(ctx context.Context, translator api.Client, results <-chan api.Res
 				wg.Go(func() {
 					added := translator.AddWord(ctx, res.Word, translation)
 					added.Result.AddWords = []string{translation}
-					out <- added
+					sendOperationResult(ctx, out, added)
 				})
 			}
 		}
@@ -207,7 +220,9 @@ func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResu
 				}
 				continue
 			}
-			results <- res
+			if !sendWithContext(ctx, results, res) {
+				return
+			}
 		}
 	}()
 	return results
@@ -296,15 +311,21 @@ func (l *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
 				continue
 			}
 			if l.Sound {
-				soundChan <- result.Result.SoundURL
+				if !sendWithContext(ctx, soundChan, result.Result.SoundURL) {
+					return
+				}
 			}
 
 			if l.Add {
 				if resultsToAdd := l.prepareResultToAdd(&result.Result); resultsToAdd {
-					addWordChan <- result.Result
+					if !sendWithContext(ctx, addWordChan, result.Result) {
+						return
+					}
 				}
 			}
-			resultsChan <- result.Result
+			if !sendWithContext(ctx, resultsChan, result.Result) {
+				return
+			}
 		}
 	}()
 
@@ -335,7 +356,9 @@ func (l *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
 	go func() {
 		defer close(ch)
 		for result := range channel.OrDone(ctx, channels.results) {
-			ch <- result
+			if !sendWithContext(ctx, ch, result) {
+				return
+			}
 		}
 		wg.Wait()
 	}()
