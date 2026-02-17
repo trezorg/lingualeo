@@ -238,7 +238,7 @@ func (l *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 }
 
 func (l *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string) {
-	fileChannel := files.OrderedChannel(downloadFiles(ctx, urls, l.Downloader), len(urls))
+	fileChannel := files.OrderedChannel(downloadFiles(ctx, urls, l.Downloader), len(l.Words))
 	for res := range channel.OrDone(ctx, fileChannel) {
 		if res.Error != nil {
 			slog.Error("cannot download", "error", res.Error)
