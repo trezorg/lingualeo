@@ -20,19 +20,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		for sig := range stop {
-			_ = messages.Message(messages.RED, "Got OS signal: %s\n", sig)
-			done()
-			return
-		}
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 
 	args.TranslateWithReverseRussian(ctx)
 }
