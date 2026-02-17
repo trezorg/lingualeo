@@ -1,7 +1,10 @@
 name: Go
 
 on:
+  pull_request:
   push:
+    branches:
+      - "**"
     tags:
       - "v*"
 
@@ -25,6 +28,7 @@ jobs:
         run: bash ./build.sh
 
       - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
         id: release
         uses: actions/create-release@latest
         env:
@@ -36,6 +40,7 @@ jobs:
           prerelease: false
 
       - name: Upload Release Asset Linux AMD64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,6 +51,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset Linux ARM64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,6 +62,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset Darwin AMD64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,6 +73,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset Darwin ARM64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,6 +84,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset Windows AMD64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -86,6 +95,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset Windows ARM64
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
