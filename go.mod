@@ -9,7 +9,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0
 	golang.org/x/net v0.48.0
-	golang.org/x/text v0.32.0
+	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
