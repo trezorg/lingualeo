@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/trezorg/lingualeo/internal/files"
 	"github.com/trezorg/lingualeo/internal/slice"
@@ -245,6 +246,13 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Usage:       "Log level",
 			Destination: &args.LogLevel,
 		},
+		&cli.DurationFlag{
+			Name:        "timeout",
+			Aliases:     []string{"t"},
+			Value:       defaultRequestTimeout,
+			Usage:       "HTTP request timeout (e.g., 10s, 30s, 1m)",
+			Destination: &args.RequestTimeout,
+		},
 	}
 }
 
@@ -403,6 +411,7 @@ func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
 	l.LogPrettyPrint = mergeBool(l.LogPrettyPrint, a.LogPrettyPrint)
 	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
 	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
+	l.RequestTimeout = mergeDuration(l.RequestTimeout, a.RequestTimeout)
 }
 
 func mergeString(dst, src string) string {
@@ -414,6 +423,13 @@ func mergeString(dst, src string) string {
 
 func mergeBool(dst, src bool) bool {
 	if !dst && src {
+		return src
+	}
+	return dst
+}
+
+func mergeDuration(dst, src time.Duration) time.Duration {
+	if dst == 0 && src > 0 {
 		return src
 	}
 	return dst

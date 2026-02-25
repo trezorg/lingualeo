@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/channel"
@@ -31,9 +32,10 @@ type Lingualeo struct {
 	Email             string        `yaml:"email" json:"email" toml:"email"`
 	VisualiseType     VisualiseType `yaml:"visualize_type" json:"visualize_type" toml:"visualize_type"`
 	Config            string
-	Player            string `yaml:"player" json:"player" toml:"player"`
-	LogLevel          string `yaml:"log_level" json:"log_level" toml:"log_level"`
-	Password          string `yaml:"password" json:"password" toml:"password"` //nolint:gosec // false positive: config credential field name is intentional
+	Player            string        `yaml:"player" json:"player" toml:"player"`
+	LogLevel          string        `yaml:"log_level" json:"log_level" toml:"log_level"`
+	Password          string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
+	RequestTimeout    time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
 	Translation       []string
 	Words             []string
 	Add               bool `yaml:"add" json:"add" toml:"add"`
@@ -121,7 +123,11 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		}
 	}
 	if client.Client == nil {
-		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug); err != nil {
+		timeout := client.RequestTimeout
+		if timeout == 0 {
+			timeout = defaultRequestTimeout
+		}
+		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug, timeout); err != nil {
 			return client, err
 		}
 	}

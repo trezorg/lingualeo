@@ -23,7 +23,6 @@ const (
 	maxIdleConns        = 10
 	maxIdleConnsPerHost = 10
 	maxRedirects        = 10
-	requestTimeout      = 10 * time.Second
 )
 
 var (
@@ -47,6 +46,14 @@ type API struct {
 	Email    string
 	Password string //nolint:gosec // false positive: credential field name is intentional
 	Debug    bool
+	timeout  time.Duration
+}
+
+type requestParams struct {
+	method string
+	url    string
+	body   []byte
+	query  string
 }
 
 func checkAuthError(body []byte) error {
@@ -64,7 +71,7 @@ func checkAuthError(body []byte) error {
 }
 
 // New constructor
-func New(ctx context.Context, email string, password string, debug bool) (*API, error) {
+func New(ctx context.Context, email string, password string, debug bool, timeout time.Duration) (*API, error) {
 	client, err := prepareClient()
 	if err != nil {
 		return nil, err
@@ -74,6 +81,7 @@ func New(ctx context.Context, email string, password string, debug bool) (*API, 
 		Password: password,
 		Debug:    debug,
 		client:   client,
+		timeout:  timeout,
 	}
 	return api, api.auth(ctx)
 }
@@ -92,7 +100,6 @@ func prepareClient() (*http.Client, error) {
 	}
 
 	client := &http.Client{
-		Timeout:   requestTimeout,
 		Jar:       jar,
 		Transport: netTransport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -122,7 +129,11 @@ func (a *API) auth(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	responseBody, err := request(ctx, "POST", authURL, a.client, jsonValue, "", a.Debug)
+	responseBody, err := a.request(ctx, requestParams{
+		method: "POST",
+		url:    authURL,
+		body:   jsonValue,
+	})
 	if err != nil {
 		return err
 	}
@@ -153,22 +164,25 @@ func debugResponse(response *http.Response) {
 	}
 }
 
-func request(ctx context.Context, method string, url string, client *http.Client, body []byte, query string, debug bool) ([]byte, error) {
+func (a *API) request(ctx context.Context, params requestParams) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, a.timeout)
+	defer cancel()
+
 	var requestBody io.Reader
-	if len(body) > 0 {
-		requestBody = bytes.NewBuffer(body)
+	if len(params.body) > 0 {
+		requestBody = bytes.NewBuffer(params.body)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, url, requestBody)
+	req, err := http.NewRequestWithContext(ctx, params.method, params.url, requestBody)
 	if err != nil {
 		return nil, err
 	}
-	if len(query) > 0 {
-		req.URL.RawQuery = query
+	if len(params.query) > 0 {
+		req.URL.RawQuery = params.query
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	if len(body) > 0 {
-		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+	if len(params.body) > 0 {
+		req.Header.Set("Content-Length", strconv.Itoa(len(params.body)))
 	}
 
 	for key, values := range agentHeaders {
@@ -177,14 +191,14 @@ func request(ctx context.Context, method string, url string, client *http.Client
 		}
 	}
 
-	if debug {
+	if a.Debug {
 		debugRequest(req)
 	}
-	resp, err := client.Do(req) //nolint:gosec // URL is internal API constant configured by the application
+	resp, err := a.client.Do(req) //nolint:gosec // URL is internal API constant configured by the application
 	if err != nil {
 		return nil, err
 	}
-	if debug {
+	if a.Debug {
 		debugResponse(resp)
 	}
 	defer func() {
@@ -224,7 +238,11 @@ func (a *API) translateRequest(ctx context.Context, word string) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	return request(ctx, "POST", translateURL, a.client, jsonValue, "", a.Debug)
+	return a.request(ctx, requestParams{
+		method: "POST",
+		url:    translateURL,
+		body:   jsonValue,
+	})
 }
 
 func (a *API) addRequest(ctx context.Context, word string, translate string) ([]byte, error) {
@@ -234,7 +252,11 @@ func (a *API) addRequest(ctx context.Context, word string, translate string) ([]
 		"port":  "1001",
 	}
 	jsonValue, _ := json.Marshal(values)
-	return request(ctx, "POST", addWordURL, a.client, jsonValue, "", a.Debug)
+	return a.request(ctx, requestParams{
+		method: "POST",
+		url:    addWordURL,
+		body:   jsonValue,
+	})
 }
 
 func (a *API) TranslateWord(ctx context.Context, word string) OperationResult {

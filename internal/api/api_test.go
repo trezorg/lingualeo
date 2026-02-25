@@ -63,7 +63,16 @@ func TestRequest(t *testing.T) {
 			defer server.Close()
 
 			ctx := context.Background()
-			resp, err := request(ctx, tt.method, server.URL, http.DefaultClient, tt.body, "", false)
+			api := &API{
+				client:  http.DefaultClient,
+				Debug:   false,
+				timeout: 10 * time.Second,
+			}
+			resp, err := api.request(ctx, requestParams{
+				method: tt.method,
+				url:    server.URL,
+				body:   tt.body,
+			})
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unexpected response status code")
@@ -82,10 +91,17 @@ func TestRequestWithContextCancellation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
+	ctx := context.Background()
+	api := &API{
+		client:  http.DefaultClient,
+		Debug:   false,
+		timeout: 10 * time.Millisecond,
+	}
 
-	_, err := request(ctx, http.MethodGet, server.URL, http.DefaultClient, nil, "", false)
+	_, err := api.request(ctx, requestParams{
+		method: http.MethodGet,
+		url:    server.URL,
+	})
 	require.Error(t, err)
 	require.True(t, errors.Is(err, context.DeadlineExceeded))
 }
@@ -100,7 +116,16 @@ func TestRequestWithQuery(t *testing.T) {
 	defer server.Close()
 
 	ctx := context.Background()
-	resp, err := request(ctx, http.MethodGet, server.URL, http.DefaultClient, nil, "word=test", false)
+	api := &API{
+		client:  http.DefaultClient,
+		Debug:   false,
+		timeout: 10 * time.Second,
+	}
+	resp, err := api.request(ctx, requestParams{
+		method: http.MethodGet,
+		url:    server.URL,
+		query:  "word=test",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, `{"status": "ok"}`, string(resp))
 }
@@ -110,7 +135,6 @@ func TestPrepareClient(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	assert.Equal(t, requestTimeout, client.Timeout)
 	assert.NotNil(t, client.Jar)
 	assert.NotNil(t, client.Transport)
 }
