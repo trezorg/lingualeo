@@ -71,8 +71,12 @@ ifndef HAS_GOIMPORTS
 	echo "installing goimports"
 	go install golang.org/x/tools/cmd/goimports@latest
 endif
-	goimports -d $(shell find . -path ./.go -prune -o -type f -iname "*.go")
-	find . -iname "*.go"
+	@unformatted="$$(goimports -l $(shell find . -path ./.go -prune -o -type f -iname "*.go"))"; \
+	if [ -n "$$unformatted" ]; then \
+		echo "goimports check failed. Run goimports on:"; \
+		echo "$$unformatted"; \
+		exit 1; \
+	fi
 
 vet:
 	go vet ./...
