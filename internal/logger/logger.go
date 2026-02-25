@@ -24,28 +24,15 @@ func ParseLevel(level string) (slog.Level, error) {
 	}
 }
 
-func SetLevel(level slog.Level) {
+func Prepare(level slog.Level, pretty bool) {
 	levelVar.Set(level)
-}
 
-func Prepare(level slog.Level) {
-	SetLevel(level)
-	SetHandler(DebugHandler())
-}
+	var handler slog.Handler
+	if pretty {
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: levelVar})
+	} else {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: levelVar})
+	}
 
-func SetHandler(handler slog.Handler) {
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-}
-
-func DefaultHandler() slog.Handler {
-	return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: levelVar,
-	})
-}
-
-func DebugHandler() slog.Handler {
-	return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	})
+	slog.SetDefault(slog.New(handler))
 }

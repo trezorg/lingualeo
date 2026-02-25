@@ -1,13 +1,13 @@
 package translator
 
 import (
+	"io"
 	"log/slog"
 	"testing"
 
 	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/api/mock"
 	"github.com/trezorg/lingualeo/internal/fakeapi"
-	"github.com/trezorg/lingualeo/internal/logger"
 )
 
 func translateWordResult(word string) api.OperationResult {
@@ -30,7 +30,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 	translator.EXPECT().TranslateWord(t.Context(), fakeapi.SearchWord).Return(res).Times(count)
 	player.EXPECT().Play(t.Context(), testFile).Return(nil).Times(count)
 
-	logger.Prepare(slog.LevelError + 10)
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError + 10})))
 	searchWords := make([]string, 0, count)
 
 	for range count {

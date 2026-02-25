@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/trezorg/lingualeo/internal/logger"
-
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -145,10 +143,8 @@ func debugRequest(request *http.Request) {
 	if err != nil {
 		slog.Error("cannot dump http request", "error", err)
 	} else {
-		logger.SetHandler(logger.DebugHandler())
 		//nolint:gosec // debug output intentionally logs full HTTP request dump
 		slog.Debug(string(dump))
-		logger.SetHandler(logger.DefaultHandler())
 	}
 }
 
@@ -157,10 +153,8 @@ func debugResponse(response *http.Response) {
 	if err != nil {
 		slog.Error("cannot dump http response", "error", err)
 	} else {
-		logger.SetHandler(logger.DebugHandler())
 		//nolint:gosec // debug output intentionally logs full HTTP response dump
 		slog.Debug(string(dump))
-		logger.SetHandler(logger.DefaultHandler())
 	}
 }
 
@@ -207,7 +201,7 @@ func (a *API) request(ctx context.Context, params requestParams) ([]byte, error)
 			slog.Error("cannot close response body", "error", dErr)
 		}
 	}()
-	responseBody, err := readBody(resp)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("cannot read response body", "error", err)
 		return nil, err

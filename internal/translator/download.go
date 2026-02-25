@@ -26,7 +26,7 @@ func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloade
 			idxCopy := idx
 			wg.Go(func() {
 				filename, err := downloader.Download(ctx, url)
-				out <- files.File{Error: err, Filename: filename, Index: idxCopy}
+				_ = sendWithContext(ctx, out, files.File{Error: err, Filename: filename, Index: idxCopy})
 			})
 			idx++
 		}

@@ -16,7 +16,6 @@ import (
 	"github.com/trezorg/lingualeo/internal/visualizer/browser"
 	"github.com/trezorg/lingualeo/internal/visualizer/term"
 
-	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/internal/player"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -110,11 +109,6 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		client.LogLevel = "DEBUG"
 		client.LogPrettyPrint = true
 	}
-	level, err := logger.ParseLevel(client.LogLevel)
-	if err != nil {
-		return client, err
-	}
-	logger.Prepare(level)
 	client.checkMediaPlayer()
 
 	for _, option := range options {

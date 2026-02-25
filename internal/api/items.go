@@ -4,9 +4,6 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
 	"sort"
 	"strings"
 
@@ -64,16 +61,6 @@ func opResultFromBody(word string, body []byte) OperationResult {
 		Error:  err,
 		Result: res,
 	}
-}
-
-func readBody(resp *http.Response) ([]byte, error) {
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			slog.Error("cannot close response body", "error", err)
-		}
-	}()
-	return io.ReadAll(resp.Body)
 }
 
 // Result represents API response
