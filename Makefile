@@ -119,4 +119,6 @@ clean: work
 version:
 	@echo ${VERSION}
 
-.PHONY: install build cover work fmt fix test version clean prepare generate lint
+check: clean generate lint test
+
+.PHONY: install build cover work fmt fix test version clean prepare generate lint check
