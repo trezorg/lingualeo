@@ -62,11 +62,13 @@ func (h *IndexedHeap) Pull() *IndexedItem {
 func (h *IndexedHeap) PullWithCondition(check func(*IndexedItem) bool) *IndexedItem {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if check(h.peek()) {
-		raw := heap.Pop(h)
-		if message, ok := raw.(IndexedItem); ok {
-			return &message
-		}
+	peeked := h.peek()
+	if peeked == nil || !check(peeked) {
+		return nil
+	}
+	raw := heap.Pop(h)
+	if message, ok := raw.(IndexedItem); ok {
+		return &message
 	}
 	return nil
 }
