@@ -17,8 +17,6 @@ import (
 var version = "0.0.1"
 
 func main() {
-	logger.Prepare(slog.LevelInfo, false)
-
 	args, err := translator.New(version)
 	if err != nil {
 		// Handle help/version as successful exit

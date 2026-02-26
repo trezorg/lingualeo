@@ -4,6 +4,7 @@ import (
 	"cmp"
 )
 
+// Unique preserve ordering
 func Unique[T cmp.Ordered](in []T) []T {
 	keys := make(map[T]struct{}, len(in))
 	var list []T
@@ -16,6 +17,7 @@ func Unique[T cmp.Ordered](in []T) []T {
 	return list
 }
 
+// UniqueFunc preserve ordering
 func UniqueFunc[T cmp.Ordered, E any](in []E, f func(E) T) []E {
 	keys := make(map[T]struct{}, len(in))
 	var list []E
