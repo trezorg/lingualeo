@@ -22,6 +22,7 @@ HAS_MOCKERY := $(shell command -v mockery;)
 HAS_GOVULNCHECK := $(shell command -v govulncheck;)
 GOLANGCI_LINT_VERSION := v2.10.0
 MOCKERY_VERSION := v3.6.4
+GO_RUNTIME_VERSION := $(shell go env GOVERSION)
 
 TARGETS		?= darwin/amd64 linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64le linux/s390x
 DIST_DIRS	= find * -type d -exec
@@ -44,31 +45,31 @@ $(GOBIN):
 	@echo "Creating GOBIN directory"
 	@mkdir -p $(GOBIN)
 
-work: $(GOBIN) ## Ensure working directory is ready
+work: $(GOBIN)
 
-build: ## Build binary for current OS/arch
+build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags $(LDFLAGS) -o build/lingualeo-$(GOOS)-$(GOARCH) $(CMD_PACKAGE)
 
-cache: ## Clean Go build cache
+cache:
 	go clean --cache
 
-install: ## Install binary to GOPATH/bin
+install:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go install -ldflags $(LDFLAGS) $(CMD_PACKAGE)
 
-test: unit ## Run all tests
+test: unit
 
-lint: work tools fmt fix vet goimports golangci govulncheck ## Run all linters
+lint: work tools fmt fix vet goimports golangci govulncheck
 
-unit: work ## Run unit tests
+unit: work
 	go test -count 1 -tags=unit $(TESTARGS) ./...
 
-fmt: ## Format Go code
+fmt:
 	go fmt ./...
 
-fix: ## Apply go fix
+fix:
 	go fix ./...
 
-goimports: ## Check imports formatting
+goimports:
 ifndef HAS_GOIMPORTS
 	@echo "Installing goimports"
 	go install golang.org/x/tools/cmd/goimports@latest
@@ -80,68 +81,86 @@ endif
 		exit 1; \
 	fi
 
-vet: ## Run go vet
+vet:
 	go vet ./...
 
-golangci: ## Run golangci-lint
-ifndef HAS_GOLANGCI
-	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)"
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VERSION)
-endif
+golangci: ensure-golangci
 	golangci-lint run
 
-govulncheck: ## Run vulnerability check
+govulncheck:
 ifndef HAS_GOVULNCHECK
 	@echo "Installing govulncheck"
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 endif
 	govulncheck ./...
 
-generate: ## Generate code (mocks, etc.)
-ifndef HAS_MOCKERY
-	@echo "Installing mockery $(MOCKERY_VERSION)"
-	go install github.com/vektra/mockery/v3@$(MOCKERY_VERSION)
-endif
+generate: ensure-mockery
 	go generate ./...
 
-cover: work ## Run tests with coverage
+cover: work
 	go test $(TESTARGS) -tags=unit -coverprofile=coverage.out -coverpkg=./ ./...
 
-tidy: ## Check go.mod is tidy
+tidy:
 	go mod tidy
 	git diff --exit-code go.mod go.sum
 
-tools: $(GOBIN) ## Install development tools
-ifndef HAS_GOLANGCI
-	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)"
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VERSION)
-endif
+tools: $(GOBIN) ensure-golangci ensure-mockery
 ifndef HAS_GOIMPORTS
 	@echo "Installing goimports"
 	go install golang.org/x/tools/cmd/goimports@latest
-endif
-ifndef HAS_MOCKERY
-	@echo "Installing mockery $(MOCKERY_VERSION)"
-	go install github.com/vektra/mockery/v3@$(MOCKERY_VERSION)
 endif
 ifndef HAS_GOVULNCHECK
 	@echo "Installing govulncheck"
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 endif
 
-shell: ## Start interactive shell
+ensure-golangci:
+	@set -e; \
+	if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)"; \
+		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VERSION); \
+	else \
+		installed_version="$$(golangci-lint version | awk '{for (i=1;i<=NF;i++) if ($$i=="version") {print "v" $$(i+1); exit}}')"; \
+		built_with_go="$$(go version -m "$$(command -v golangci-lint)" | awk 'NR==1 {print $$2}')"; \
+		built_with_go_base="$${built_with_go%%-*}"; \
+		go_runtime_base="$(GO_RUNTIME_VERSION)"; \
+		go_runtime_base="$${go_runtime_base%%-*}"; \
+		if [ "$$installed_version" != "$(GOLANGCI_LINT_VERSION)" ] || [ "$$built_with_go_base" != "$$go_runtime_base" ]; then \
+			echo "Reinstalling golangci-lint $(GOLANGCI_LINT_VERSION) (found $$installed_version built with $$built_with_go, need $(GO_RUNTIME_VERSION))"; \
+			curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VERSION); \
+		fi; \
+	fi
+
+ensure-mockery:
+	@set -e; \
+	if ! command -v mockery >/dev/null 2>&1; then \
+		echo "Installing mockery $(MOCKERY_VERSION)"; \
+		go install github.com/vektra/mockery/v3@$(MOCKERY_VERSION); \
+	else \
+		installed_version="$$(mockery version)"; \
+		built_with_go="$$(go version -m "$$(command -v mockery)" | awk 'NR==1 {print $$2}')"; \
+		built_with_go_base="$${built_with_go%%-*}"; \
+		go_runtime_base="$(GO_RUNTIME_VERSION)"; \
+		go_runtime_base="$${go_runtime_base%%-*}"; \
+		if [ "$$installed_version" != "$(MOCKERY_VERSION)" ] || [ "$$built_with_go_base" != "$$go_runtime_base" ]; then \
+			echo "Reinstalling mockery $(MOCKERY_VERSION) (found $$installed_version built with $$built_with_go, need $(GO_RUNTIME_VERSION))"; \
+			go install github.com/vektra/mockery/v3@$(MOCKERY_VERSION); \
+		fi; \
+	fi
+
+shell:
 	$(SHELL) -i
 
-clean: work ## Clean build artifacts
+clean: work
 	rm -rf $(BINARY)
 	rm -rf build/
 
-version: ## Print version
+version:
 	@echo ${VERSION}
 
-ci: clean cache generate lint test ## Run full CI workflow
+ci: clean cache generate lint test
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: install build cover work fmt fix test version clean tools generate lint check ci tidy help govulncheck
+.PHONY: install build cover work fmt fix test version clean tools generate lint check ci tidy help govulncheck ensure-golangci ensure-mockery
