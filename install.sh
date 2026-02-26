@@ -10,9 +10,18 @@ function usage() {
 INSTALL_DIR="${HOME}/bin"
 VERSION=""
 NAME=lingualeo
-OS=$(uname -o | tr '[:upper:]' '[:lower:]')
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | tr '[:upper:]' '[:lower:]')
-OS="${OS##*/}"
+
+case "${OS}" in
+linux) OS="linux" ;;
+darwin) OS="darwin" ;;
+msys* | mingw* | cygwin* | windows_nt) OS="windows" ;;
+*)
+    echo "Unsupported OS: ${OS}"
+    exit 1
+    ;;
+esac
 
 case "${ARCH}" in
 x86_64) ARCH="amd64" ;;
@@ -56,12 +65,41 @@ trap 'rm -f "${APP_PATH}"' ERR
 echo "Installing into ${APP_PATH}..."
 
 if [ -z "${VERSION}" ]; then
-    VERSION=$(
-        curl -sSL --fail-with-body https://api.github.com/repos/trezorg/${NAME}/releases/latest |
-            awk -F '"' '/tag_name/ { print $4 }'
-    )
+    RELEASE_API_URL="https://api.github.com/repos/trezorg/${NAME}/releases/latest"
+else
+    RELEASE_API_URL="https://api.github.com/repos/trezorg/${NAME}/releases/tags/${VERSION}"
 fi
-DOWNLOAD_URL="https://github.com/trezorg/${NAME}/releases/download/${VERSION}/${NAME}-${OS}-${ARCH}"
+
+RELEASE_JSON=$(curl -sSL --fail-with-body "${RELEASE_API_URL}")
+
+if [ -z "${VERSION}" ]; then
+    VERSION=$(printf '%s\n' "${RELEASE_JSON}" | awk -F '"' '/tag_name/ { print $4; exit }')
+fi
+
+os_pattern="${OS}"
+arch_pattern="${ARCH}"
+
+case "${OS}" in
+linux) os_pattern="linux|Linux" ;;
+darwin) os_pattern="darwin|Darwin" ;;
+windows) os_pattern="windows|Windows" ;;
+esac
+
+case "${ARCH}" in
+amd64) arch_pattern="amd64|x86_64" ;;
+arm64) arch_pattern="arm64|aarch64" ;;
+esac
+
+DOWNLOAD_URL=$(printf '%s\n' "${RELEASE_JSON}" |
+    awk -F '"' '/browser_download_url/ { print $4 }' |
+    grep -E "/${NAME}-(${os_pattern})-(${arch_pattern})(\\.exe)?$" |
+    head -n 1)
+
+if [ -z "${DOWNLOAD_URL}" ]; then
+    echo "Failed to find a matching release asset for ${OS}/${ARCH} in ${VERSION}"
+    exit 1
+fi
+
 echo "Downloading ${DOWNLOAD_URL} into ${APP_PATH} ..."
 
 if ! curl -sSL --fail-with-body "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
