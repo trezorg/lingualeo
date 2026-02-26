@@ -71,6 +71,14 @@ func outputer(visualize bool, vt VisualiseType) (Outputer, error) {
 	return OutputVisualizer{Visualizer: viz}, nil
 }
 
+// sendOperationResult sends a result to the output channel.
+// The return value is intentionally ignored as this is a fire-and-forget
+// operation - if the context is cancelled, the result is simply dropped.
+// sendOperationResult sends a result to the output channel.
+// The return value is intentionally ignored as this is a fire-and-forget
+// operation - if the context is cancelled, the result is simply dropped.
+// This is by design: when the pipeline is shutting down, we don't want to
+// block on sending results that won't be processed anyway.
 func sendOperationResult(ctx context.Context, out chan<- api.OperationResult, res api.OperationResult) {
 	_ = sendWithContext(ctx, out, res)
 }
@@ -109,7 +117,9 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		client.LogLevel = "DEBUG"
 		client.LogPrettyPrint = true
 	}
-	client.checkMediaPlayer()
+	if err = client.checkMediaPlayer(); err != nil {
+		slog.Warn("media player check failed", "error", err)
+	}
 
 	for _, option := range options {
 		if err = option(&client); err != nil {
@@ -178,23 +188,19 @@ func addWords(ctx context.Context, translator api.Client, results <-chan api.Res
 	return out
 }
 
-func (l *Lingualeo) checkMediaPlayer() {
+func (l *Lingualeo) checkMediaPlayer() error {
 	if !l.Sound {
-		return
+		return nil
 	}
 	if len(l.Player) == 0 {
-		err := messages.Message(messages.RED, "Please set player parameter\n")
-		if err != nil {
-			slog.Error("cannot show message", "error", err)
-		}
 		l.Sound = false
-	} else if !isCommandAvailable(l.Player) {
-		err := messages.Message(messages.RED, "Executable file %s is not available on your system\n", l.Player)
-		if err != nil {
-			slog.Error("cannot show message", "error", err)
-		}
-		l.Sound = false
+		return errors.New("player parameter not set, sound disabled")
 	}
+	if !isCommandAvailable(l.Player) {
+		l.Sound = false
+		return fmt.Errorf("player executable %s not available, sound disabled", l.Player)
+	}
+	return nil
 }
 
 func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResult {
