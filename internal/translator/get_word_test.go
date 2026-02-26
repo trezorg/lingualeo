@@ -18,7 +18,7 @@ func translateWordResult(word string) api.OperationResult {
 
 func TestProcessTranslationResponseJson(t *testing.T) {
 	downloader := NewMock_Downloader(t)
-	testFile := "/tmp/test.file"
+	testFile := t.TempDir() + "/test.file"
 	count := 1000 // max for race checking
 	translator := mock.NewMock_Client(t)
 	player := NewMock_Pronouncer(t)

@@ -24,26 +24,27 @@ import (
 var errUnknownVisualiseType = errors.New("unknown visualize type")
 
 type Lingualeo struct {
-	api.Client        `json:"-" yaml:"-" toml:"-"`
-	Downloader        `json:"-" yaml:"-" toml:"-"`
-	Pronouncer        `json:"-" yaml:"-" toml:"-"`
-	Outputer          `json:"-" yaml:"-" toml:"-"`
-	Email             string        `yaml:"email" json:"email" toml:"email"`
-	VisualiseType     VisualiseType `yaml:"visualize_type" json:"visualize_type" toml:"visualize_type"`
-	Config            string
-	Player            string        `yaml:"player" json:"player" toml:"player"`
-	LogLevel          string        `yaml:"log_level" json:"log_level" toml:"log_level"`
-	Password          string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
-	RequestTimeout    time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
-	Translation       []string
-	Words             []string
-	Add               bool `yaml:"add" json:"add" toml:"add"`
-	Sound             bool `yaml:"sound" json:"sound" toml:"sound"`
-	Visualise         bool `yaml:"visualize" json:"visualize" toml:"visualize"`
-	Debug             bool `yaml:"debug" json:"debug" toml:"debug"`
-	DownloadSoundFile bool `yaml:"download" json:"download" toml:"download"`
-	LogPrettyPrint    bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
-	ReverseTranslate  bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
+	api.Client            `json:"-" yaml:"-" toml:"-"`
+	Downloader            `json:"-" yaml:"-" toml:"-"`
+	Pronouncer            `json:"-" yaml:"-" toml:"-"`
+	Outputer              `json:"-" yaml:"-" toml:"-"`
+	Email                 string        `yaml:"email" json:"email" toml:"email"`
+	VisualiseType         VisualiseType `yaml:"visualize_type" json:"visualize_type" toml:"visualize_type"`
+	Config                string
+	Player                string        `yaml:"player" json:"player" toml:"player"`
+	LogLevel              string        `yaml:"log_level" json:"log_level" toml:"log_level"`
+	Password              string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
+	RequestTimeout        time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
+	PlayerShutdownTimeout time.Duration `yaml:"player_shutdown_timeout" json:"player_shutdown_timeout" toml:"player_shutdown_timeout"`
+	Translation           []string
+	Words                 []string
+	Add                   bool `yaml:"add" json:"add" toml:"add"`
+	Sound                 bool `yaml:"sound" json:"sound" toml:"sound"`
+	Visualise             bool `yaml:"visualize" json:"visualize" toml:"visualize"`
+	Debug                 bool `yaml:"debug" json:"debug" toml:"debug"`
+	DownloadSoundFile     bool `yaml:"download" json:"download" toml:"download"`
+	LogPrettyPrint        bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
+	ReverseTranslate      bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
 }
 
 func visualizer(vt VisualiseType) (Visualizer, error) {
@@ -136,7 +137,11 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		}
 	}
 	if client.Pronouncer == nil {
-		client.Pronouncer = player.New(client.Player)
+		opts := make([]player.Option, 0, 1)
+		if client.PlayerShutdownTimeout > 0 {
+			opts = append(opts, player.WithShutdownTimeout(client.PlayerShutdownTimeout))
+		}
+		client.Pronouncer = player.New(client.Player, opts...)
 	}
 	if client.Downloader == nil {
 		client.Downloader = files.New()

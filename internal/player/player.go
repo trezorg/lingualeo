@@ -9,23 +9,37 @@ import (
 )
 
 const (
-	separator       = " "
-	shutdownTimeout = 2 * time.Second
+	separator              = " "
+	defaultShutdownTimeout = 2 * time.Second
 )
 
 type Player struct {
-	player string
-	params []string
+	player          string
+	params          []string
+	shutdownTimeout time.Duration
 }
 
-func New(player string) Player {
-	parts := strings.Split(player, separator)
-	playerExec := parts[0]
-	params := parts[1:]
-	return Player{
-		params: params,
-		player: playerExec,
+// Option is a functional option for Player configuration.
+type Option func(*Player)
+
+// WithShutdownTimeout sets the timeout for graceful shutdown.
+func WithShutdownTimeout(d time.Duration) Option {
+	return func(p *Player) {
+		p.shutdownTimeout = d
 	}
+}
+
+func New(player string, opts ...Option) Player {
+	parts := strings.Split(player, separator)
+	p := Player{
+		player:          parts[0],
+		params:          parts[1:],
+		shutdownTimeout: defaultShutdownTimeout,
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+	return p
 }
 
 func (p Player) Play(ctx context.Context, url string) error {
@@ -54,7 +68,7 @@ func (p Player) Play(ctx context.Context, url string) error {
 		select {
 		case <-done:
 			return ctx.Err()
-		case <-time.After(shutdownTimeout):
+		case <-time.After(p.shutdownTimeout):
 			if cmd.Process != nil {
 				_ = cmd.Process.Kill()
 			}

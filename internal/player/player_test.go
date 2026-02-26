@@ -141,5 +141,16 @@ func TestPlayerStruct(t *testing.T) {
 
 func TestConstants(t *testing.T) {
 	assert.Equal(t, " ", separator)
-	assert.Equal(t, 2*time.Second, shutdownTimeout)
+	assert.Equal(t, 2*time.Second, defaultShutdownTimeout)
+}
+
+func TestWithShutdownTimeout(t *testing.T) {
+	p := New("echo", WithShutdownTimeout(5*time.Second))
+	assert.Equal(t, 5*time.Second, p.shutdownTimeout)
+}
+
+func TestNewWithDefaults(t *testing.T) {
+	p := New("echo")
+	assert.Equal(t, "echo", p.player)
+	assert.Equal(t, defaultShutdownTimeout, p.shutdownTimeout)
 }
