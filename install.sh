@@ -58,9 +58,45 @@ if [ ! -w "${INSTALL_DIR}" ]; then
     exit 1
 fi
 APP_PATH="${INSTALL_DIR}/${NAME}"
+CHECKSUM_FILE=""
 
-# Cleanup on failure
-trap 'rm -f "${APP_PATH}"' ERR
+function checksum_file() {
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$1" | awk '{ print $1 }'
+        return
+    fi
+
+    if command -v shasum &>/dev/null; then
+        shasum -a 256 "$1" | awk '{ print $1 }'
+        return
+    fi
+
+    if command -v openssl &>/dev/null; then
+        openssl dgst -sha256 "$1" | awk '{ print $NF }'
+        return
+    fi
+
+    echo "No SHA256 checksum tool found (sha256sum, shasum, openssl)"
+    exit 1
+}
+
+function cleanup_on_err() {
+    rm -f "${APP_PATH}"
+
+    if [ -n "${CHECKSUM_FILE}" ]; then
+        rm -f "${CHECKSUM_FILE}"
+    fi
+}
+
+function cleanup_on_exit() {
+    if [ -n "${CHECKSUM_FILE}" ]; then
+        rm -f "${CHECKSUM_FILE}"
+    fi
+}
+
+# Cleanup on failure and temporary files
+trap cleanup_on_err ERR
+trap cleanup_on_exit EXIT
 
 echo "Installing into ${APP_PATH}..."
 
@@ -100,6 +136,27 @@ if [ -z "${DOWNLOAD_URL}" ]; then
     exit 1
 fi
 
+CHECKSUM_URL=$(printf '%s\n' "${RELEASE_JSON}" |
+    awk -F '"' '/browser_download_url/ { print $4 }' |
+    grep -E '/checksums.txt$' |
+    head -n 1)
+
+if [ -z "${CHECKSUM_URL}" ]; then
+    echo "Failed to find checksums.txt release asset in ${VERSION}"
+    exit 1
+fi
+
+CHECKSUM_FILE=$(mktemp)
+ASSET_NAME="${DOWNLOAD_URL##*/}"
+
+echo "Downloading ${CHECKSUM_URL} ..."
+
+if ! curl -sSL --fail-with-body "${CHECKSUM_URL}" -o "${CHECKSUM_FILE}"; then
+    err=$?
+    echo "Failed to download ${CHECKSUM_URL}"
+    exit ${err}
+fi
+
 echo "Downloading ${DOWNLOAD_URL} into ${APP_PATH} ..."
 
 if ! curl -sSL --fail-with-body "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
@@ -107,6 +164,32 @@ if ! curl -sSL --fail-with-body "${DOWNLOAD_URL}" -o "${APP_PATH}"; then
     echo "Failed to download ${DOWNLOAD_URL} into ${APP_PATH}"
     exit ${err}
 fi
+
+EXPECTED_CHECKSUM=$(awk -v file="${ASSET_NAME}" '{
+    candidate=$2
+    sub(/^\*/, "", candidate)
+
+    if (candidate == file) {
+        print $1
+        exit
+    }
+}' "${CHECKSUM_FILE}")
+
+if [ -z "${EXPECTED_CHECKSUM}" ]; then
+    echo "Failed to find checksum for ${ASSET_NAME} in checksums.txt"
+    exit 1
+fi
+
+ACTUAL_CHECKSUM=$(checksum_file "${APP_PATH}")
+
+if [ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]; then
+    echo "Checksum mismatch for ${ASSET_NAME}"
+    echo "Expected: ${EXPECTED_CHECKSUM}"
+    echo "Actual:   ${ACTUAL_CHECKSUM}"
+    exit 1
+fi
+
+echo "Checksum verified for ${ASSET_NAME}"
 
 chmod +x "${APP_PATH}"
 "${APP_PATH}" --help || true

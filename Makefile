@@ -160,7 +160,14 @@ version:
 
 ci: clean cache generate lint test
 
+install-verify: ## Verify install.sh checksum flow
+	@set -e; \
+	tmpdir="$$(mktemp -d)"; \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	bash install.sh -d "$$tmpdir"; \
+	"$$tmpdir/lingualeo" --help >/dev/null
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: install build cover work fmt fix test version clean tools generate lint check ci tidy help govulncheck ensure-golangci ensure-mockery
+.PHONY: install build cover work fmt fix test version clean tools generate lint check ci tidy help govulncheck ensure-golangci ensure-mockery install-verify
