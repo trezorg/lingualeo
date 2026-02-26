@@ -7,15 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
+	"github.com/trezorg/lingualeo/internal/httpclient"
 	"github.com/trezorg/lingualeo/internal/validator"
 )
 
-const (
-	fileTemplate       = "lingualeo"
-	defaultHTTPTimeout = 30 * time.Second
-)
+const fileTemplate = "lingualeo"
 
 // File represents file for downloading
 type File struct {
@@ -34,12 +31,10 @@ type FileDownloader struct {
 	client *http.Client
 }
 
-// New initialize new file downloader
+// New initialize new file downloader with connection pooling
 func New() *FileDownloader {
 	return &FileDownloader{
-		client: &http.Client{
-			Timeout: defaultHTTPTimeout,
-		},
+		client: httpclient.New(httpclient.Config{}),
 	}
 }
 

@@ -11,20 +11,21 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/BourgeoisBear/rasterm"
+	"github.com/trezorg/lingualeo/internal/httpclient"
 )
 
 type GraphicMode string
 
 const (
-	Sixel        GraphicMode = "sixel"
-	Iterm        GraphicMode = "iterm"
-	Kitty        GraphicMode = "kitty"
-	Unknown      GraphicMode = "unknown"
-	imageTimeout             = 30 * time.Second
+	Sixel   GraphicMode = "sixel"
+	Iterm   GraphicMode = "iterm"
+	Kitty   GraphicMode = "kitty"
+	Unknown GraphicMode = "unknown"
 )
+
+var httpClient = httpclient.New(httpclient.Config{})
 
 var (
 	errBadStatus       = errors.New("bad status")
@@ -105,14 +106,13 @@ func showImage(w io.Writer, r io.Reader) error {
 }
 
 func open(ctx context.Context, u *url.URL) error {
-	// Use context with timeout to prevent hanging on unresponsive servers
-	ctx, cancel := context.WithTimeout(ctx, imageTimeout)
+	ctx, cancel := context.WithTimeout(ctx, httpclient.DefaultTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
 	}
-	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is parsed and validated before visualizing
+	resp, err := httpClient.Do(req) //nolint:gosec // URL is parsed and validated before visualizing
 	if err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)
 	}
