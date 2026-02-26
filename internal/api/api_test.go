@@ -67,6 +67,9 @@ func TestRequest(t *testing.T) {
 				client:  http.DefaultClient,
 				Debug:   false,
 				timeout: 10 * time.Second,
+				retryConfig: RetryConfig{
+					MaxAttempts: 1, // Only one attempt for tests
+				},
 			}
 			resp, err := api.request(ctx, requestParams{
 				method: tt.method,
@@ -96,6 +99,9 @@ func TestRequestWithContextCancellation(t *testing.T) {
 		client:  http.DefaultClient,
 		Debug:   false,
 		timeout: 10 * time.Millisecond,
+		retryConfig: RetryConfig{
+			MaxAttempts: 1, // Only one attempt for tests
+		},
 	}
 
 	_, err := api.request(ctx, requestParams{
@@ -120,6 +126,9 @@ func TestRequestWithQuery(t *testing.T) {
 		client:  http.DefaultClient,
 		Debug:   false,
 		timeout: 10 * time.Second,
+		retryConfig: RetryConfig{
+			MaxAttempts: 1, // Only one attempt for tests
+		},
 	}
 	resp, err := api.request(ctx, requestParams{
 		method: http.MethodGet,
@@ -131,7 +140,8 @@ func TestRequestWithQuery(t *testing.T) {
 }
 
 func TestPrepareClient(t *testing.T) {
-	client, err := prepareClient()
+	cfg := DefaultConfig()
+	client, err := prepareClient(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, client)
 

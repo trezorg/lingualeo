@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/BourgeoisBear/rasterm v1.1.2
 	github.com/BurntSushi/toml v1.6.0
+	github.com/avast/retry-go/v5 v5.0.0
 	github.com/fatih/color v1.18.0
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7

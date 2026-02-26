@@ -171,8 +171,8 @@ func TestResultFromResponse(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.wantErrorMsg != "" {
-					var resultErr ResultError
-					require.True(t, errors.As(err, &resultErr))
+					resultErr, ok := errors.AsType[ResultError](err)
+					require.True(t, ok)
 					assert.Contains(t, resultErr.Error(), tt.wantErrorMsg)
 				}
 			} else {

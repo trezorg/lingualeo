@@ -14,21 +14,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/avast/retry-go/v5"
 	"golang.org/x/net/publicsuffix"
 )
 
+// Default configuration values
 const (
-	maxIdleConns        = 10
-	maxIdleConnsPerHost = 10
-	maxRedirects        = 10
-)
-
-// Retry configuration defaults
-const (
-	defaultMaxAttempts = 3
-	defaultInitialWait = 500 * time.Millisecond
-	defaultMaxWait     = 5 * time.Second
-	retryMultiplier    = 2.0
+	defaultMaxIdleConns        = 10
+	defaultMaxIdleConnsPerHost = 10
+	defaultMaxRedirects        = 10
+	defaultMaxAttempts         = 3
+	defaultInitialWait         = 500 * time.Millisecond
+	defaultMaxWait             = 5 * time.Second
+	defaultTimeout             = 30 * time.Second
 )
 
 var (
@@ -42,6 +40,30 @@ type RetryConfig struct {
 	MaxAttempts int
 	InitialWait time.Duration
 	MaxWait     time.Duration
+}
+
+// Config holds configuration for API client.
+type Config struct {
+	Timeout             time.Duration
+	MaxRedirects        int
+	MaxIdleConns        int
+	MaxIdleConnsPerHost int
+	Retry               RetryConfig
+}
+
+// DefaultConfig returns a Config with sensible defaults.
+func DefaultConfig() Config {
+	return Config{
+		Timeout:             defaultTimeout,
+		MaxRedirects:        defaultMaxRedirects,
+		MaxIdleConns:        defaultMaxIdleConns,
+		MaxIdleConnsPerHost: defaultMaxIdleConnsPerHost,
+		Retry: RetryConfig{
+			MaxAttempts: defaultMaxAttempts,
+			InitialWait: defaultInitialWait,
+			MaxWait:     defaultMaxWait,
+		},
+	}
 }
 
 // API structure represents API request
@@ -85,41 +107,46 @@ func checkAuthError(body []byte) error {
 }
 
 // New constructor
-func New(ctx context.Context, email string, password string, debug bool, timeout time.Duration) (*API, error) {
-	client, err := prepareClient()
+func New(ctx context.Context, email string, password string, debug bool, cfg Config) (*API, error) {
+	// Apply defaults for zero values
+	if cfg.Timeout == 0 {
+		cfg.Timeout = defaultTimeout
+	}
+	if cfg.MaxRedirects == 0 {
+		cfg.MaxRedirects = defaultMaxRedirects
+	}
+	if cfg.MaxIdleConns == 0 {
+		cfg.MaxIdleConns = defaultMaxIdleConns
+	}
+	if cfg.MaxIdleConnsPerHost == 0 {
+		cfg.MaxIdleConnsPerHost = defaultMaxIdleConnsPerHost
+	}
+	if cfg.Retry.MaxAttempts == 0 {
+		cfg.Retry.MaxAttempts = defaultMaxAttempts
+	}
+	if cfg.Retry.InitialWait == 0 {
+		cfg.Retry.InitialWait = defaultInitialWait
+	}
+	if cfg.Retry.MaxWait == 0 {
+		cfg.Retry.MaxWait = defaultMaxWait
+	}
+
+	client, err := prepareClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 	api := &API{
-		Email:    email,
-		Password: password,
-		Debug:    debug,
-		client:   client,
-		timeout:  timeout,
-		retryConfig: RetryConfig{
-			MaxAttempts: defaultMaxAttempts,
-			InitialWait: defaultInitialWait,
-			MaxWait:     defaultMaxWait,
-		},
+		Email:       email,
+		Password:    password,
+		Debug:       debug,
+		client:      client,
+		timeout:     cfg.Timeout,
+		retryConfig: cfg.Retry,
 	}
 	return api, api.auth(ctx)
 }
 
-// WithRetry sets custom retry configuration.
-func (a *API) WithRetry(cfg RetryConfig) *API {
-	if cfg.MaxAttempts > 0 {
-		a.retryConfig.MaxAttempts = cfg.MaxAttempts
-	}
-	if cfg.InitialWait > 0 {
-		a.retryConfig.InitialWait = cfg.InitialWait
-	}
-	if cfg.MaxWait > 0 {
-		a.retryConfig.MaxWait = cfg.MaxWait
-	}
-	return a
-}
-
-func prepareClient() (*http.Client, error) {
+func prepareClient(cfg Config) (*http.Client, error) {
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
@@ -128,15 +155,15 @@ func prepareClient() (*http.Client, error) {
 		return nil, err
 	}
 	netTransport := &http.Transport{
-		MaxIdleConns:        maxIdleConns,
-		MaxIdleConnsPerHost: maxIdleConnsPerHost,
+		MaxIdleConns:        cfg.MaxIdleConns,
+		MaxIdleConnsPerHost: cfg.MaxIdleConnsPerHost,
 	}
 
 	client := &http.Client{
 		Jar:       jar,
 		Transport: netTransport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= maxRedirects {
+			if len(via) >= cfg.MaxRedirects {
 				return errAPIRedirectLimit
 			}
 			if len(via) == 0 {
@@ -210,74 +237,47 @@ func isRetryable(err error, statusCode int) bool {
 	return false
 }
 
-// calculateBackoff calculates the wait time for the next retry attempt.
-func calculateBackoff(attempt int, initialWait, maxWait time.Duration) time.Duration {
-	wait := min(time.Duration(float64(initialWait)*float64(uint(1)<<attempt)), maxWait)
-	return wait
-}
-
 func (a *API) request(ctx context.Context, params requestParams) ([]byte, error) {
-	return a.requestWithRetry(ctx, params, a.retryConfig)
-}
-
-func (a *API) requestWithRetry(ctx context.Context, params requestParams, cfg RetryConfig) ([]byte, error) {
+	var body []byte
 	var lastErr error
-	var lastBody []byte
-	var lastStatusCode int
 
-	// Use defaults if not configured
-	maxAttempts := cfg.MaxAttempts
-	if maxAttempts == 0 {
-		maxAttempts = 1 // At least one attempt if not configured
-	}
+	retrier := retry.New(
+		retry.Context(ctx),
+		retry.Attempts(uint(a.retryConfig.MaxAttempts)), //nolint:gosec // G115: safe conversion, value is always small positive int
+		retry.Delay(a.retryConfig.InitialWait),
+		retry.MaxDelay(a.retryConfig.MaxWait),
+		retry.DelayType(retry.BackOffDelay),
+		retry.OnRetry(func(n uint, err error) {
+			slog.Debug("retrying request", "attempt", n+1, "error", err, "url", params.url)
+		}),
+	)
 
-	for attempt := range maxAttempts {
-		if attempt > 0 {
-			wait := calculateBackoff(attempt-1, cfg.InitialWait, cfg.MaxWait)
-			slog.Debug("retrying request", "attempt", attempt+1, "wait", wait, "url", params.url)
-
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-time.After(wait):
+	err := retrier.Do(
+		func() error {
+			var statusCode int
+			body, statusCode, lastErr = a.doRequest(ctx, params)
+			if lastErr != nil {
+				return lastErr
 			}
-		}
+			if statusCode != http.StatusOK && isRetryable(nil, statusCode) {
+				return fmt.Errorf("%w: status code: %d", errAPIResponseStatus, statusCode)
+			}
+			if statusCode != http.StatusOK {
+				return retry.Unrecoverable(fmt.Errorf(
+					"%w: status code: %d\nbody:\n%s",
+					errAPIResponseStatus,
+					statusCode,
+					string(body),
+				))
+			}
+			return nil
+		},
+	)
 
-		body, statusCode, err := a.doRequest(ctx, params)
-		if err == nil && statusCode == http.StatusOK {
-			return body, nil
-		}
-
-		lastErr = err
-		lastBody = body
-		lastStatusCode = statusCode
-
-		// Don't retry if not retryable
-		if !isRetryable(err, statusCode) {
-			break
-		}
-
-		// Log retry attempt
-		if err != nil {
-			slog.Debug("request failed, will retry", "attempt", attempt+1, "error", err, "url", params.url)
-		} else {
-			slog.Debug("request failed with status, will retry", "attempt", attempt+1, "status", statusCode, "url", params.url)
-		}
+	if err != nil {
+		return nil, err
 	}
-
-	// Return the last error or construct one from status code
-	if lastErr != nil {
-		return nil, lastErr
-	}
-	if lastStatusCode != http.StatusOK {
-		return nil, fmt.Errorf(
-			"%w: status code: %d\nbody:\n%s",
-			errAPIResponseStatus,
-			lastStatusCode,
-			string(lastBody),
-		)
-	}
-	return lastBody, nil
+	return body, nil
 }
 
 // doRequest performs a single HTTP request without retry logic.

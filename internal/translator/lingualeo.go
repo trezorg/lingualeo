@@ -36,15 +36,22 @@ type Lingualeo struct {
 	Password              string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
 	RequestTimeout        time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
 	PlayerShutdownTimeout time.Duration `yaml:"player_shutdown_timeout" json:"player_shutdown_timeout" toml:"player_shutdown_timeout"`
-	Translation           []string
-	Words                 []string
-	Add                   bool `yaml:"add" json:"add" toml:"add"`
-	Sound                 bool `yaml:"sound" json:"sound" toml:"sound"`
-	Visualise             bool `yaml:"visualize" json:"visualize" toml:"visualize"`
-	Debug                 bool `yaml:"debug" json:"debug" toml:"debug"`
-	DownloadSoundFile     bool `yaml:"download" json:"download" toml:"download"`
-	LogPrettyPrint        bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
-	ReverseTranslate      bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
+	// HTTP connection pool settings
+	MaxIdleConns        int           `yaml:"max_idle_conns" json:"max_idle_conns" toml:"max_idle_conns"`
+	MaxIdleConnsPerHost int           `yaml:"max_idle_conns_per_host" json:"max_idle_conns_per_host" toml:"max_idle_conns_per_host"`
+	MaxRedirects        int           `yaml:"max_redirects" json:"max_redirects" toml:"max_redirects"`
+	RetryMaxAttempts    int           `yaml:"retry_max_attempts" json:"retry_max_attempts" toml:"retry_max_attempts"`
+	RetryInitialWait    time.Duration `yaml:"retry_initial_wait" json:"retry_initial_wait" toml:"retry_initial_wait"`
+	RetryMaxWait        time.Duration `yaml:"retry_max_wait" json:"retry_max_wait" toml:"retry_max_wait"`
+	Translation         []string
+	Words               []string
+	Add                 bool `yaml:"add" json:"add" toml:"add"`
+	Sound               bool `yaml:"sound" json:"sound" toml:"sound"`
+	Visualise           bool `yaml:"visualize" json:"visualize" toml:"visualize"`
+	Debug               bool `yaml:"debug" json:"debug" toml:"debug"`
+	DownloadSoundFile   bool `yaml:"download" json:"download" toml:"download"`
+	LogPrettyPrint      bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
+	ReverseTranslate    bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
 }
 
 func visualizer(vt VisualiseType) (Visualizer, error) {
@@ -132,7 +139,18 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		if timeout == 0 {
 			timeout = defaultRequestTimeout
 		}
-		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug, timeout); err != nil {
+		apiCfg := api.Config{
+			Timeout:             timeout,
+			MaxRedirects:        client.MaxRedirects,
+			MaxIdleConns:        client.MaxIdleConns,
+			MaxIdleConnsPerHost: client.MaxIdleConnsPerHost,
+			Retry: api.RetryConfig{
+				MaxAttempts: client.RetryMaxAttempts,
+				InitialWait: client.RetryInitialWait,
+				MaxWait:     client.RetryMaxWait,
+			},
+		}
+		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug, apiCfg); err != nil {
 			return client, err
 		}
 	}

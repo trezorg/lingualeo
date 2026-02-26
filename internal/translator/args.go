@@ -28,6 +28,13 @@ const (
 	yamlType = configType(1)
 	jsonType = configType(2)
 	tomlType = configType(3)
+	// Default values for HTTP and retry settings
+	defaultMaxIdleConns        = 10
+	defaultMaxIdleConnsPerHost = 10
+	defaultMaxRedirects        = 10
+	defaultRetryMaxAttempts    = 3
+	defaultRetryInitialWait    = 500 * time.Millisecond
+	defaultRetryMaxWait        = 5 * time.Second
 )
 
 var decodeMapping = map[configType]decodeFunc{
@@ -205,6 +212,7 @@ func newLingualeoApp(version string, args *Lingualeo, translate cli.StringSlice,
 
 func buildLingualeoFlags(args *Lingualeo) []cli.Flag {
 	base := baseLingualeoFlags(args)
+	base = append(base, httpAndRetryFlags(args)...)
 	base = append(base, genericLingualeoFlags()...)
 	return append(base, boolLingualeoFlags(args)...)
 }
@@ -252,6 +260,47 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Value:       defaultRequestTimeout,
 			Usage:       "HTTP request timeout (e.g., 10s, 30s, 1m)",
 			Destination: &args.RequestTimeout,
+		},
+	}
+}
+
+func httpAndRetryFlags(args *Lingualeo) []cli.Flag {
+	return []cli.Flag{
+		&cli.IntFlag{
+			Name:        "max-idle-conns",
+			Value:       defaultMaxIdleConns,
+			Usage:       "Maximum number of idle HTTP connections",
+			Destination: &args.MaxIdleConns,
+		},
+		&cli.IntFlag{
+			Name:        "max-idle-conns-per-host",
+			Value:       defaultMaxIdleConnsPerHost,
+			Usage:       "Maximum idle HTTP connections per host",
+			Destination: &args.MaxIdleConnsPerHost,
+		},
+		&cli.IntFlag{
+			Name:        "max-redirects",
+			Value:       defaultMaxRedirects,
+			Usage:       "Maximum HTTP redirects to follow",
+			Destination: &args.MaxRedirects,
+		},
+		&cli.IntFlag{
+			Name:        "retry-max-attempts",
+			Value:       defaultRetryMaxAttempts,
+			Usage:       "Maximum retry attempts for failed requests",
+			Destination: &args.RetryMaxAttempts,
+		},
+		&cli.DurationFlag{
+			Name:        "retry-initial-wait",
+			Value:       defaultRetryInitialWait,
+			Usage:       "Initial wait between retry attempts",
+			Destination: &args.RetryInitialWait,
+		},
+		&cli.DurationFlag{
+			Name:        "retry-max-wait",
+			Value:       defaultRetryMaxWait,
+			Usage:       "Maximum wait between retry attempts",
+			Destination: &args.RetryMaxWait,
 		},
 	}
 }
@@ -412,6 +461,20 @@ func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
 	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
 	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
 	l.RequestTimeout = mergeDuration(l.RequestTimeout, a.RequestTimeout)
+	// HTTP and retry settings
+	l.MaxIdleConns = mergeInt(l.MaxIdleConns, a.MaxIdleConns)
+	l.MaxIdleConnsPerHost = mergeInt(l.MaxIdleConnsPerHost, a.MaxIdleConnsPerHost)
+	l.MaxRedirects = mergeInt(l.MaxRedirects, a.MaxRedirects)
+	l.RetryMaxAttempts = mergeInt(l.RetryMaxAttempts, a.RetryMaxAttempts)
+	l.RetryInitialWait = mergeDuration(l.RetryInitialWait, a.RetryInitialWait)
+	l.RetryMaxWait = mergeDuration(l.RetryMaxWait, a.RetryMaxWait)
+}
+
+func mergeInt(dst, src int) int {
+	if dst == 0 && src > 0 {
+		return src
+	}
+	return dst
 }
 
 func mergeString(dst, src string) string {
