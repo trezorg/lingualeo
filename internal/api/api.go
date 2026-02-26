@@ -23,11 +23,26 @@ const (
 	maxRedirects        = 10
 )
 
+// Retry configuration defaults
+const (
+	defaultMaxAttempts = 3
+	defaultInitialWait = 500 * time.Millisecond
+	defaultMaxWait     = 5 * time.Second
+	retryMultiplier    = 2.0
+)
+
 var (
 	errAPIAuth           = errors.New("api authentication error")
 	errAPIResponseStatus = errors.New("unexpected response status code")
 	errAPIRedirectLimit  = errors.New("too many redirects")
 )
+
+// RetryConfig holds retry configuration for API requests.
+type RetryConfig struct {
+	MaxAttempts int
+	InitialWait time.Duration
+	MaxWait     time.Duration
+}
 
 // API structure represents API request
 // Client interface defines the contract for Lingualeo API operations.
@@ -40,11 +55,12 @@ type Client interface {
 }
 
 type API struct {
-	client   *http.Client
-	Email    string
-	Password string //nolint:gosec // false positive: credential field name is intentional
-	Debug    bool
-	timeout  time.Duration
+	client      *http.Client
+	Email       string
+	Password    string //nolint:gosec // false positive: credential field name is intentional
+	Debug       bool
+	timeout     time.Duration
+	retryConfig RetryConfig
 }
 
 type requestParams struct {
@@ -80,8 +96,27 @@ func New(ctx context.Context, email string, password string, debug bool, timeout
 		Debug:    debug,
 		client:   client,
 		timeout:  timeout,
+		retryConfig: RetryConfig{
+			MaxAttempts: defaultMaxAttempts,
+			InitialWait: defaultInitialWait,
+			MaxWait:     defaultMaxWait,
+		},
 	}
 	return api, api.auth(ctx)
+}
+
+// WithRetry sets custom retry configuration.
+func (a *API) WithRetry(cfg RetryConfig) *API {
+	if cfg.MaxAttempts > 0 {
+		a.retryConfig.MaxAttempts = cfg.MaxAttempts
+	}
+	if cfg.InitialWait > 0 {
+		a.retryConfig.InitialWait = cfg.InitialWait
+	}
+	if cfg.MaxWait > 0 {
+		a.retryConfig.MaxWait = cfg.MaxWait
+	}
+	return a
 }
 
 func prepareClient() (*http.Client, error) {
@@ -158,7 +193,95 @@ func debugResponse(response *http.Response) {
 	}
 }
 
+// isRetryable checks if an error or status code should trigger a retry.
+func isRetryable(err error, statusCode int) bool {
+	// Network errors are retryable
+	if err != nil {
+		return true
+	}
+	// 5xx server errors are retryable
+	if statusCode >= 500 && statusCode < 600 {
+		return true
+	}
+	// 429 Too Many Requests is retryable
+	if statusCode == http.StatusTooManyRequests {
+		return true
+	}
+	return false
+}
+
+// calculateBackoff calculates the wait time for the next retry attempt.
+func calculateBackoff(attempt int, initialWait, maxWait time.Duration) time.Duration {
+	wait := min(time.Duration(float64(initialWait)*float64(uint(1)<<attempt)), maxWait)
+	return wait
+}
+
 func (a *API) request(ctx context.Context, params requestParams) ([]byte, error) {
+	return a.requestWithRetry(ctx, params, a.retryConfig)
+}
+
+func (a *API) requestWithRetry(ctx context.Context, params requestParams, cfg RetryConfig) ([]byte, error) {
+	var lastErr error
+	var lastBody []byte
+	var lastStatusCode int
+
+	// Use defaults if not configured
+	maxAttempts := cfg.MaxAttempts
+	if maxAttempts == 0 {
+		maxAttempts = 1 // At least one attempt if not configured
+	}
+
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			wait := calculateBackoff(attempt-1, cfg.InitialWait, cfg.MaxWait)
+			slog.Debug("retrying request", "attempt", attempt+1, "wait", wait, "url", params.url)
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(wait):
+			}
+		}
+
+		body, statusCode, err := a.doRequest(ctx, params)
+		if err == nil && statusCode == http.StatusOK {
+			return body, nil
+		}
+
+		lastErr = err
+		lastBody = body
+		lastStatusCode = statusCode
+
+		// Don't retry if not retryable
+		if !isRetryable(err, statusCode) {
+			break
+		}
+
+		// Log retry attempt
+		if err != nil {
+			slog.Debug("request failed, will retry", "attempt", attempt+1, "error", err, "url", params.url)
+		} else {
+			slog.Debug("request failed with status, will retry", "attempt", attempt+1, "status", statusCode, "url", params.url)
+		}
+	}
+
+	// Return the last error or construct one from status code
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	if lastStatusCode != http.StatusOK {
+		return nil, fmt.Errorf(
+			"%w: status code: %d\nbody:\n%s",
+			errAPIResponseStatus,
+			lastStatusCode,
+			string(lastBody),
+		)
+	}
+	return lastBody, nil
+}
+
+// doRequest performs a single HTTP request without retry logic.
+func (a *API) doRequest(ctx context.Context, params requestParams) ([]byte, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
 	defer cancel()
 
@@ -168,7 +291,7 @@ func (a *API) request(ctx context.Context, params requestParams) ([]byte, error)
 	}
 	req, err := http.NewRequestWithContext(ctx, params.method, params.url, requestBody)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(params.query) > 0 {
 		req.URL.RawQuery = params.query
@@ -190,7 +313,7 @@ func (a *API) request(ctx context.Context, params requestParams) ([]byte, error)
 	}
 	resp, err := a.client.Do(req) //nolint:gosec // URL is internal API constant configured by the application
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if a.Debug {
 		debugResponse(resp)
@@ -204,17 +327,9 @@ func (a *API) request(ctx context.Context, params requestParams) ([]byte, error)
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("cannot read response body", "error", err)
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(
-			"%w: status code: %d\nbody:\n%s",
-			errAPIResponseStatus,
-			resp.StatusCode,
-			string(responseBody),
-		)
-	}
-	return responseBody, err
+	return responseBody, resp.StatusCode, nil
 }
 
 func (a *API) translateRequest(ctx context.Context, word string) ([]byte, error) {
