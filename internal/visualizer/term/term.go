@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/BourgeoisBear/rasterm"
 )
@@ -18,10 +19,11 @@ import (
 type GraphicMode string
 
 const (
-	Sixel   GraphicMode = "sixel"
-	Iterm   GraphicMode = "iterm"
-	Kitty   GraphicMode = "kitty"
-	Unknown GraphicMode = "unknown"
+	Sixel        GraphicMode = "sixel"
+	Iterm        GraphicMode = "iterm"
+	Kitty        GraphicMode = "kitty"
+	Unknown      GraphicMode = "unknown"
+	imageTimeout             = 30 * time.Second
 )
 
 var (
@@ -103,6 +105,9 @@ func showImage(w io.Writer, r io.Reader) error {
 }
 
 func open(ctx context.Context, u *url.URL) error {
+	// Use context with timeout to prevent hanging on unresponsive servers
+	ctx, cancel := context.WithTimeout(ctx, imageTimeout)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadURL, u.String(), err)

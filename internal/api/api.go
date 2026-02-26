@@ -245,7 +245,10 @@ func (a *API) addRequest(ctx context.Context, word string, translate string) ([]
 		"tword": translate,
 		"port":  "1001",
 	}
-	jsonValue, _ := json.Marshal(values)
+	jsonValue, err := json.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
 	return a.request(ctx, requestParams{
 		method: "POST",
 		url:    addWordURL,
