@@ -53,6 +53,7 @@ type Lingualeo struct {
 	DownloadSoundFile   bool `yaml:"download" json:"download" toml:"download"`
 	LogPrettyPrint      bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
 	ReverseTranslate    bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
+	PromptPassword      bool `yaml:"prompt_password" json:"prompt_password" toml:"prompt_password"`
 }
 
 func visualizer(vt VisualiseType) (Visualizer, error) {
@@ -136,6 +137,9 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		return client, err
 	}
 	client.mergeConfigs(configArgs)
+	if err = client.promptPasswordIfNeeded(); err != nil {
+		return client, err
+	}
 	if err = client.checkArgs(); err != nil {
 		return client, err
 	}

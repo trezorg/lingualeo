@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/trezorg/lingualeo/internal/api"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/term"
 
 	"gopkg.in/yaml.v3"
 )
@@ -44,11 +46,14 @@ var (
 	errEmailArgumentMissing    = errors.New("email argument is missing")
 	errEmailInvalid            = errors.New("email argument is invalid")
 	errPasswordArgumentMissing = errors.New("password argument is missing")
+	errPasswordPromptNonTTY    = errors.New("cannot prompt for password from non-terminal stdin")
 
 	// ErrHelpOrVersionShown is returned when --help or --version flag is passed.
 	// The caller should treat this as a successful exit (os.Exit(0)).
 	ErrHelpOrVersionShown = errors.New("help or version shown")
 )
+
+var passwordPrompt = promptPasswordHidden
 
 type configFile struct {
 	filename string
@@ -150,6 +155,7 @@ func newLingualeoApp(version string, args *Lingualeo, translate cli.StringSlice,
 	app.Description = `
 	It is possible to use config file to set predefined parameters
 	Default config files are: ~/lingualeo.[toml|yml|yaml|json]
+	Credentials can also be provided via LINGUALEO_EMAIL and LINGUALEO_PASSWORD env vars
 
 	Toml format example:
 
@@ -220,6 +226,7 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Aliases:     []string{"e"},
 			Value:       "",
 			Usage:       "Lingualeo email",
+			EnvVars:     []string{"LINGUALEO_EMAIL"},
 			Destination: &args.Email,
 		},
 		&cli.StringFlag{
@@ -227,7 +234,13 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Aliases:     []string{"p"},
 			Value:       "",
 			Usage:       "Lingualeo password",
+			EnvVars:     []string{"LINGUALEO_PASSWORD"},
 			Destination: &args.Password,
+		},
+		&cli.BoolFlag{
+			Name:        "prompt-password",
+			Usage:       "Prompt for Lingualeo password without echo",
+			Destination: &args.PromptPassword,
 		},
 		&cli.StringFlag{
 			Name:        "config",
@@ -451,6 +464,35 @@ func (l *Lingualeo) checkArgs() error {
 	return nil
 }
 
+func (l *Lingualeo) promptPasswordIfNeeded() error {
+	if l.Password != "" || !l.PromptPassword {
+		return nil
+	}
+
+	password, err := passwordPrompt()
+	if err != nil {
+		return err
+	}
+	l.Password = password
+
+	return nil
+}
+
+func promptPasswordHidden() (string, error) {
+	fd := int(os.Stdin.Fd()) //nolint:gosec // required by x/term API
+	if !term.IsTerminal(fd) {
+		return "", errPasswordPromptNonTTY
+	}
+	_, _ = fmt.Fprint(os.Stderr, "Lingualeo password: ")
+	password, err := term.ReadPassword(fd)
+	_, _ = fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(password)), nil
+}
+
 func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
 	l.Email = mergeString(l.Email, a.Email)
 	l.Password = mergeString(l.Password, a.Password)
@@ -463,6 +505,7 @@ func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
 	l.DownloadSoundFile = mergeBool(l.DownloadSoundFile, a.DownloadSoundFile)
 	l.LogPrettyPrint = mergeBool(l.LogPrettyPrint, a.LogPrettyPrint)
 	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
+	l.PromptPassword = mergeBool(l.PromptPassword, a.PromptPassword)
 	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
 	l.Workers = mergeInt(l.Workers, a.Workers)
 	l.RequestTimeout = mergeDuration(l.RequestTimeout, a.RequestTimeout)
