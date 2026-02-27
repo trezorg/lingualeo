@@ -200,22 +200,26 @@ func TestIndexedHeap_Concurrency(t *testing.T) {
 
 	t.Run("concurrent add and pull", func(t *testing.T) {
 		h := NewIndexedHeap()
-		var wg sync.WaitGroup
+		var addWg sync.WaitGroup
 
-		// Add items
+		// Add items first
 		for i := range 50 {
-			wg.Add(1)
-			go func(idx int) {
-				defer wg.Done()
-				h.Add(newTestItem(idx, idx))
-			}(i)
+			addWg.Go(func(idx int) func() {
+				return func() {
+					h.Add(newTestItem(idx, idx))
+				}
+			}(i))
 		}
 
-		// Pull items
+		// Wait for all adds to complete
+		addWg.Wait()
+
+		// Now pull items concurrently
+		var pullWg sync.WaitGroup
 		pulled := make([]int, 0, 50)
 		var pullMu sync.Mutex
 		for range 50 {
-			wg.Go(func() {
+			pullWg.Go(func() {
 				item := h.Pull()
 				if item != nil {
 					pullMu.Lock()
@@ -225,7 +229,7 @@ func TestIndexedHeap_Concurrency(t *testing.T) {
 			})
 		}
 
-		wg.Wait()
+		pullWg.Wait()
 		assert.Len(t, pulled, 50)
 	})
 
