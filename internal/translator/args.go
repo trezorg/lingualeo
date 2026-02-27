@@ -310,7 +310,7 @@ func genericLingualeoFlags() []cli.Flag {
 		&cli.GenericFlag{
 			Name:    "visualize-type",
 			Aliases: []string{"vst"},
-			Usage:   "Open picture either with default xgd-open or terminal graphic protocol (kitty, iterm, sizel)",
+			Usage:   "Open picture either with default xdg-open or terminal graphic protocol. Allowed values: default, term",
 			Value:   &VisualiseTypeDefault,
 		},
 	}
