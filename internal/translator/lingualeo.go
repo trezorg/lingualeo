@@ -141,7 +141,6 @@ func New(version string, options ...Option) (Lingualeo, error) {
 	}
 	if client.Debug {
 		client.LogLevel = "DEBUG"
-		client.LogPrettyPrint = true
 	}
 	if err = client.checkMediaPlayer(); err != nil {
 		slog.Warn("media player check failed", "error", err)
