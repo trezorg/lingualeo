@@ -48,7 +48,7 @@ func TestTranslateWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 	words <- "word"
 	close(words)
 
-	ch := translateWords(ctx, client, words)
+	ch := translateWords(ctx, client, words, 1)
 
 	select {
 	case <-client.translateStarted:
@@ -84,7 +84,7 @@ func TestAddWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 	}
 	close(words)
 
-	ch := addWords(ctx, client, words)
+	ch := addWords(ctx, client, words, 1)
 
 	select {
 	case <-client.addStarted:

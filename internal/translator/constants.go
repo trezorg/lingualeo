@@ -1,5 +1,7 @@
 package translator
 
+const defaultWorkers = 4
+
 var (
 	defaultConfigFiles = []string{
 		"lingualeo.toml",

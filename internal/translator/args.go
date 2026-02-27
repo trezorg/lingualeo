@@ -257,6 +257,12 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Usage:       "HTTP request timeout (e.g., 10s, 30s, 1m)",
 			Destination: &args.RequestTimeout,
 		},
+		&cli.IntFlag{
+			Name:        "workers",
+			Value:       defaultWorkers,
+			Usage:       "Maximum number of concurrent workers for translate/add pipelines",
+			Destination: &args.Workers,
+		},
 	}
 }
 
@@ -458,6 +464,7 @@ func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
 	l.LogPrettyPrint = mergeBool(l.LogPrettyPrint, a.LogPrettyPrint)
 	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
 	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
+	l.Workers = mergeInt(l.Workers, a.Workers)
 	l.RequestTimeout = mergeDuration(l.RequestTimeout, a.RequestTimeout)
 	// HTTP and retry settings
 	l.MaxIdleConns = mergeInt(l.MaxIdleConns, a.MaxIdleConns)

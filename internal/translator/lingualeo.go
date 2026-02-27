@@ -34,6 +34,7 @@ type Lingualeo struct {
 	Player                string        `yaml:"player" json:"player" toml:"player"`
 	LogLevel              string        `yaml:"log_level" json:"log_level" toml:"log_level"`
 	Password              string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
+	Workers               int           `yaml:"workers" json:"workers" toml:"workers"`
 	RequestTimeout        time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
 	PlayerShutdownTimeout time.Duration `yaml:"player_shutdown_timeout" json:"player_shutdown_timeout" toml:"player_shutdown_timeout"`
 	// HTTP connection pool settings
@@ -101,6 +102,23 @@ func sendWithContext[T any](ctx context.Context, out chan<- T, value T) bool {
 	case out <- value:
 		return true
 	}
+}
+
+func workerCount(workers int) int {
+	if workers <= 0 {
+		return defaultWorkers
+	}
+
+	return workers
+}
+
+func workerCountForItems(workers int, items int) int {
+	count := workerCount(workers)
+	if items > 0 && count > items {
+		return items
+	}
+
+	return count
 }
 
 // New initialize lingualeo client
@@ -171,16 +189,24 @@ func New(version string, options ...Option) (Lingualeo, error) {
 }
 
 // translateWords translate words from string channel
-func translateWords(ctx context.Context, translator api.Client, results <-chan string) <-chan api.OperationResult {
+func translateWords(ctx context.Context, translator api.Client, results <-chan string, workers int) <-chan api.OperationResult {
 	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
-	wg.Go(func() {
-		for word := range channel.OrDone(ctx, results) {
-			wg.Go(func() {
-				sendOperationResult(ctx, out, translator.TranslateWord(ctx, word))
-			})
-		}
-	})
+	for range workerCount(workers) {
+		wg.Go(func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case word, ok := <-results:
+					if !ok {
+						return
+					}
+					sendOperationResult(ctx, out, translator.TranslateWord(ctx, word))
+				}
+			}
+		})
+	}
 	go func() {
 		wg.Wait()
 		close(out)
@@ -189,21 +215,28 @@ func translateWords(ctx context.Context, translator api.Client, results <-chan s
 }
 
 // addWords add words
-func addWords(ctx context.Context, translator api.Client, results <-chan api.Result) <-chan api.OperationResult {
+func addWords(ctx context.Context, translator api.Client, results <-chan api.Result, workers int) <-chan api.OperationResult {
 	out := make(chan api.OperationResult)
 	var wg sync.WaitGroup
-	wg.Go(func() {
-		for res := range channel.OrDone(ctx, results) {
-			for _, translate := range res.AddWords {
-				translation := translate
-				wg.Go(func() {
-					added := translator.AddWord(ctx, res.Word, translation)
-					added.Result.AddWords = []string{translation}
-					sendOperationResult(ctx, out, added)
-				})
+	for range workerCount(workers) {
+		wg.Go(func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case res, ok := <-results:
+					if !ok {
+						return
+					}
+					for _, translate := range res.AddWords {
+						added := translator.AddWord(ctx, res.Word, translate)
+						added.Result.AddWords = []string{translate}
+						sendOperationResult(ctx, out, added)
+					}
+				}
 			}
-		}
-	})
+		})
+	}
 	go func() {
 		wg.Wait()
 		close(out)
@@ -229,9 +262,10 @@ func (l *Lingualeo) checkMediaPlayer() error {
 func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResult {
 	results := make(chan api.OperationResult, len(l.Words))
 	input := channel.ToChannel(ctx, l.Words...)
+	workers := workerCountForItems(l.Workers, len(l.Words))
 	go func() {
 		defer close(results)
-		ch := translateWords(ctx, l.Client, input)
+		ch := translateWords(ctx, l.Client, input, workers)
 		for res := range channel.OrDone(ctx, ch) {
 			if res.Error != nil {
 				err := messages.Message(
@@ -307,7 +341,8 @@ func (l *Lingualeo) Pronounce(ctx context.Context, urls <-chan string) {
 
 // AddToDictionary adds words to dictionary
 func (l *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result) {
-	ch := addWords(ctx, l.Client, resultsToAdd)
+	workers := workerCountForItems(l.Workers, len(l.Words))
+	ch := addWords(ctx, l.Client, resultsToAdd, workers)
 	for res := range ch {
 		if res.Error != nil {
 			slog.Error("cannot add word to dictionary", "word", res.Result.Word, "error", res.Error)
