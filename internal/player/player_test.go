@@ -35,6 +35,12 @@ func TestNew(t *testing.T) {
 			wantParams: []string{"--really-quiet", "--no-video"},
 		},
 		{
+			name:       "player with quoted params",
+			player:     "mpv --title \"My Song\" --profile='music profile'",
+			wantExec:   "mpv",
+			wantParams: []string{"--title", "My Song", "--profile=music profile"},
+		},
+		{
 			name:       "empty player",
 			player:     "",
 			wantExec:   "",
@@ -140,7 +146,6 @@ func TestPlayerStruct(t *testing.T) {
 }
 
 func TestConstants(t *testing.T) {
-	assert.Equal(t, " ", separator)
 	assert.Equal(t, 2*time.Second, defaultShutdownTimeout)
 }
 

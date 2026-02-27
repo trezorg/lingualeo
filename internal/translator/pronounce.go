@@ -3,7 +3,8 @@ package translator
 import (
 	"context"
 	"os/exec"
-	"strings"
+
+	"github.com/trezorg/lingualeo/internal/player"
 )
 
 // Pronouncer interface
@@ -14,7 +15,10 @@ type Pronouncer interface {
 }
 
 func isCommandAvailable(name string) bool {
-	execName := strings.Split(name, " ")[0]
+	execName, _ := player.ParseCommand(name)
+	if execName == "" {
+		return false
+	}
 	_, err := exec.LookPath(execName)
 	return err == nil
 }

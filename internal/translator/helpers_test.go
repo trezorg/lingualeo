@@ -8,8 +8,10 @@ import (
 
 func TestCheckEitherCommandIsAvailableOnSystem(t *testing.T) {
 	assert.True(t, isCommandAvailable("bash -c 'oops'"))
+	assert.True(t, isCommandAvailable("bash -c \"echo test\""))
 	assert.True(t, isCommandAvailable("bash"))
 	assert.False(t, isCommandAvailable("xxxxxxxxxxx"))
+	assert.False(t, isCommandAvailable("bash -c \"oops"))
 }
 
 func TestRussianWord(t *testing.T) {

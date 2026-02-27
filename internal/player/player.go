@@ -3,13 +3,13 @@ package player
 import (
 	"context"
 	"os/exec"
-	"strings"
 	"syscall"
 	"time"
+
+	"github.com/google/shlex"
 )
 
 const (
-	separator              = " "
 	defaultShutdownTimeout = 2 * time.Second
 )
 
@@ -29,11 +29,20 @@ func WithShutdownTimeout(d time.Duration) Option {
 	}
 }
 
+func ParseCommand(command string) (string, []string) {
+	parts, err := shlex.Split(command)
+	if err != nil || len(parts) == 0 {
+		return "", []string{}
+	}
+
+	return parts[0], parts[1:]
+}
+
 func New(player string, opts ...Option) Player {
-	parts := strings.Split(player, separator)
+	execName, params := ParseCommand(player)
 	p := Player{
-		player:          parts[0],
-		params:          parts[1:],
+		player:          execName,
+		params:          params,
 		shutdownTimeout: defaultShutdownTimeout,
 	}
 	for _, opt := range opts {

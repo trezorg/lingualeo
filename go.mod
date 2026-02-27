@@ -7,6 +7,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/avast/retry-go/v5 v5.0.0
 	github.com/fatih/color v1.18.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
 	golang.org/x/net v0.51.0
