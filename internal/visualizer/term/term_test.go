@@ -88,7 +88,7 @@ func TestOpenWithInvalidURL(t *testing.T) {
 	testURL, err := url.Parse("http://localhost:1/invalid")
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100)
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 100, context.DeadlineExceeded)
 	defer cancel()
 
 	err = open(ctx, testURL)

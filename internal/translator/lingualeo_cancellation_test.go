@@ -37,7 +37,7 @@ func (c *blockingClient) AddWord(_ context.Context, word string, translate strin
 func TestTranslateWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancelCause(t.Context())
 	client := &blockingClient{
 		translateStarted: make(chan struct{}),
 		translateRelease: make(chan struct{}),
@@ -56,7 +56,7 @@ func TestTranslateWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 		t.Fatal("translate worker was not started")
 	}
 
-	cancel()
+	cancel(context.Canceled)
 	close(client.translateRelease)
 
 	select {
@@ -70,7 +70,7 @@ func TestTranslateWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 func TestAddWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancelCause(t.Context())
 	client := &blockingClient{
 		translateStarted: make(chan struct{}),
 		translateRelease: make(chan struct{}),
@@ -92,7 +92,7 @@ func TestAddWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 		t.Fatal("add worker was not started")
 	}
 
-	cancel()
+	cancel(context.Canceled)
 	close(client.addRelease)
 
 	select {

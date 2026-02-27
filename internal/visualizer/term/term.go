@@ -32,6 +32,7 @@ var (
 	errCannotReadURL   = errors.New("cannot read URL")
 	errCannotReadImage = errors.New("cannot read image from url")
 	errNotPaletted     = errors.New("not paletted image, skipping")
+	errReadURLTimeout  = errors.New("visualizer url read timeout")
 )
 
 func Mode() GraphicMode {
@@ -106,7 +107,7 @@ func showImage(w io.Writer, r io.Reader) error {
 }
 
 func open(ctx context.Context, u *url.URL) error {
-	ctx, cancel := context.WithTimeout(ctx, httpclient.DefaultTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, httpclient.DefaultTimeout, errReadURLTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {

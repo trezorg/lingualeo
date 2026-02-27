@@ -109,7 +109,7 @@ func TestRequestWithContextCancellation(t *testing.T) {
 		url:    server.URL,
 	})
 	require.Error(t, err)
-	require.True(t, errors.Is(err, context.DeadlineExceeded))
+	require.True(t, errors.Is(err, errAPIRequestTimeout))
 }
 
 func TestRequestWithQuery(t *testing.T) {

@@ -32,6 +32,7 @@ var (
 	errAPIAuth           = errors.New("api authentication error")
 	errAPIResponseStatus = errors.New("unexpected response status code")
 	errAPIRedirectLimit  = errors.New("too many redirects")
+	errAPIRequestTimeout = errors.New("api request timeout")
 )
 
 // RetryConfig holds retry configuration for API requests.
@@ -281,7 +282,7 @@ func (a *API) request(ctx context.Context, params requestParams) ([]byte, error)
 
 // doRequest performs a single HTTP request without retry logic.
 func (a *API) doRequest(ctx context.Context, params requestParams) ([]byte, int, error) {
-	ctx, cancel := context.WithTimeout(ctx, a.timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, a.timeout, errAPIRequestTimeout)
 	defer cancel()
 
 	var requestBody io.Reader

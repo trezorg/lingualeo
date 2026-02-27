@@ -28,8 +28,8 @@ func TestToChannel(t *testing.T) {
 	})
 
 	t.Run("context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel() // Cancel immediately
+		ctx, cancel := context.WithCancelCause(t.Context())
+		cancel(context.Canceled) // Cancel immediately
 		ch := ToChannel(ctx, 1, 2, 3)
 		// Give goroutine time to process
 		time.Sleep(10 * time.Millisecond)
@@ -66,7 +66,7 @@ func TestOrDone(t *testing.T) {
 	})
 
 	t.Run("context cancellation mid-stream", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
+		ctx, cancel := context.WithCancelCause(t.Context())
 		input := make(chan int)
 
 		// Start a goroutine that will send items slowly
@@ -84,7 +84,7 @@ func TestOrDone(t *testing.T) {
 		assert.Equal(t, 1, val)
 
 		// Cancel context
-		cancel()
+		cancel(context.Canceled)
 		time.Sleep(20 * time.Millisecond)
 
 		// Channel should close after context cancellation
@@ -105,8 +105,8 @@ func TestOrDone(t *testing.T) {
 	})
 
 	t.Run("already canceled context", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
+		ctx, cancel := context.WithCancelCause(t.Context())
+		cancel(context.Canceled)
 		input := make(chan int, 1)
 		input <- 1
 		close(input)

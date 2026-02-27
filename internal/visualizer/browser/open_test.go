@@ -34,7 +34,7 @@ func TestOpenCommand(t *testing.T) {
 	testURL, err := url.Parse("https://example.com")
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100)
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 100, context.DeadlineExceeded)
 	defer cancel()
 
 	// The open function may fail in CI environments without a display
@@ -51,7 +51,7 @@ func TestOpenWithValidURL(t *testing.T) {
 	testURL, err := url.Parse("https://example.com/image.png")
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100)
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 100, context.DeadlineExceeded)
 	defer cancel()
 
 	// The function may return an error if no display is available,
@@ -68,7 +68,7 @@ func TestVisualizerShow(t *testing.T) {
 	testURL, err := url.Parse("https://example.com/image.png")
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100)
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 100, context.DeadlineExceeded)
 	defer cancel()
 
 	visualizer := New()

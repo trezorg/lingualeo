@@ -2,9 +2,12 @@ package httpclient
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 )
+
+var errRequestTimeout = errors.New("http request timeout")
 
 const (
 	DefaultTimeout          = 30 * time.Second
@@ -37,6 +40,6 @@ func New(cfg Config) *http.Client {
 // WithTimeout wraps a request with context timeout.
 // Returns the new request and cancel function that must be called.
 func WithTimeout(ctx context.Context, req *http.Request, timeout time.Duration) (*http.Request, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, timeout, errRequestTimeout)
 	return req.WithContext(ctx), cancel
 }

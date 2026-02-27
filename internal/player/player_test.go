@@ -102,7 +102,7 @@ func TestPlayerPlayWithCancellation(t *testing.T) {
 	// Use sleep command that runs for a while, then cancel
 	p := New("sleep 10")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 100*time.Millisecond, context.DeadlineExceeded)
 	defer cancel()
 
 	start := time.Now()
