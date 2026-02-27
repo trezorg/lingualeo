@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/files"
 	"github.com/trezorg/lingualeo/internal/slice"
 	"github.com/trezorg/lingualeo/internal/validator"
@@ -28,13 +29,6 @@ const (
 	yamlType = configType(1)
 	jsonType = configType(2)
 	tomlType = configType(3)
-	// Default values for HTTP and retry settings
-	defaultMaxIdleConns        = 10
-	defaultMaxIdleConnsPerHost = 10
-	defaultMaxRedirects        = 10
-	defaultRetryMaxAttempts    = 3
-	defaultRetryInitialWait    = 500 * time.Millisecond
-	defaultRetryMaxWait        = 5 * time.Second
 )
 
 var decodeMapping = map[configType]decodeFunc{
@@ -218,6 +212,8 @@ func buildLingualeoFlags(args *Lingualeo) []cli.Flag {
 }
 
 func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
+	defaultAPICfg := api.DefaultConfig()
+
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "email",
@@ -257,7 +253,7 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 		&cli.DurationFlag{
 			Name:        "timeout",
 			Aliases:     []string{"t"},
-			Value:       defaultRequestTimeout,
+			Value:       defaultAPICfg.Timeout,
 			Usage:       "HTTP request timeout (e.g., 10s, 30s, 1m)",
 			Destination: &args.RequestTimeout,
 		},
@@ -265,40 +261,42 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 }
 
 func httpAndRetryFlags(args *Lingualeo) []cli.Flag {
+	defaultAPICfg := api.DefaultConfig()
+
 	return []cli.Flag{
 		&cli.IntFlag{
 			Name:        "max-idle-conns",
-			Value:       defaultMaxIdleConns,
+			Value:       defaultAPICfg.MaxIdleConns,
 			Usage:       "Maximum number of idle HTTP connections",
 			Destination: &args.MaxIdleConns,
 		},
 		&cli.IntFlag{
 			Name:        "max-idle-conns-per-host",
-			Value:       defaultMaxIdleConnsPerHost,
+			Value:       defaultAPICfg.MaxIdleConnsPerHost,
 			Usage:       "Maximum idle HTTP connections per host",
 			Destination: &args.MaxIdleConnsPerHost,
 		},
 		&cli.IntFlag{
 			Name:        "max-redirects",
-			Value:       defaultMaxRedirects,
+			Value:       defaultAPICfg.MaxRedirects,
 			Usage:       "Maximum HTTP redirects to follow",
 			Destination: &args.MaxRedirects,
 		},
 		&cli.IntFlag{
 			Name:        "retry-max-attempts",
-			Value:       defaultRetryMaxAttempts,
+			Value:       defaultAPICfg.Retry.MaxAttempts,
 			Usage:       "Maximum retry attempts for failed requests",
 			Destination: &args.RetryMaxAttempts,
 		},
 		&cli.DurationFlag{
 			Name:        "retry-initial-wait",
-			Value:       defaultRetryInitialWait,
+			Value:       defaultAPICfg.Retry.InitialWait,
 			Usage:       "Initial wait between retry attempts",
 			Destination: &args.RetryInitialWait,
 		},
 		&cli.DurationFlag{
 			Name:        "retry-max-wait",
-			Value:       defaultRetryMaxWait,
+			Value:       defaultAPICfg.Retry.MaxWait,
 			Usage:       "Maximum wait between retry attempts",
 			Destination: &args.RetryMaxWait,
 		},

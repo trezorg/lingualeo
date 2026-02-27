@@ -137,7 +137,7 @@ func New(version string, options ...Option) (Lingualeo, error) {
 	if client.Client == nil {
 		timeout := client.RequestTimeout
 		if timeout == 0 {
-			timeout = defaultRequestTimeout
+			timeout = api.DefaultConfig().Timeout
 		}
 		apiCfg := api.Config{
 			Timeout:             timeout,

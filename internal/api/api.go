@@ -14,19 +14,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/trezorg/lingualeo/internal/httpclient"
+
 	"github.com/avast/retry-go/v5"
 	"golang.org/x/net/publicsuffix"
 )
 
 // Default configuration values
 const (
-	defaultMaxIdleConns        = 10
-	defaultMaxIdleConnsPerHost = 10
-	defaultMaxRedirects        = 10
-	defaultMaxAttempts         = 3
-	defaultInitialWait         = 500 * time.Millisecond
-	defaultMaxWait             = 5 * time.Second
-	defaultTimeout             = 30 * time.Second
+	defaultMaxRedirects = 10
+	defaultMaxAttempts  = 3
+	defaultInitialWait  = 500 * time.Millisecond
+	defaultMaxWait      = 5 * time.Second
 )
 
 var (
@@ -54,10 +53,10 @@ type Config struct {
 // DefaultConfig returns a Config with sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		Timeout:             defaultTimeout,
+		Timeout:             httpclient.DefaultTimeout,
 		MaxRedirects:        defaultMaxRedirects,
-		MaxIdleConns:        defaultMaxIdleConns,
-		MaxIdleConnsPerHost: defaultMaxIdleConnsPerHost,
+		MaxIdleConns:        httpclient.DefaultMaxIdleConns,
+		MaxIdleConnsPerHost: httpclient.DefaultMaxIdleConnsHost,
 		Retry: RetryConfig{
 			MaxAttempts: defaultMaxAttempts,
 			InitialWait: defaultInitialWait,
@@ -110,16 +109,16 @@ func checkAuthError(body []byte) error {
 func New(ctx context.Context, email string, password string, debug bool, cfg Config) (*API, error) {
 	// Apply defaults for zero values
 	if cfg.Timeout == 0 {
-		cfg.Timeout = defaultTimeout
+		cfg.Timeout = httpclient.DefaultTimeout
 	}
 	if cfg.MaxRedirects == 0 {
 		cfg.MaxRedirects = defaultMaxRedirects
 	}
 	if cfg.MaxIdleConns == 0 {
-		cfg.MaxIdleConns = defaultMaxIdleConns
+		cfg.MaxIdleConns = httpclient.DefaultMaxIdleConns
 	}
 	if cfg.MaxIdleConnsPerHost == 0 {
-		cfg.MaxIdleConnsPerHost = defaultMaxIdleConnsPerHost
+		cfg.MaxIdleConnsPerHost = httpclient.DefaultMaxIdleConnsHost
 	}
 	if cfg.Retry.MaxAttempts == 0 {
 		cfg.Retry.MaxAttempts = defaultMaxAttempts
