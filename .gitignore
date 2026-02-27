@@ -3,3 +3,4 @@
 .idea
 /build
 .serena
+coverage.out
