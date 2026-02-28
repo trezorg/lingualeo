@@ -84,9 +84,6 @@ func outputer(visualize bool, vt VisualiseType) (Outputer, error) {
 // sendOperationResult sends a result to the output channel.
 // The return value is intentionally ignored as this is a fire-and-forget
 // operation - if the context is cancelled, the result is simply dropped.
-// sendOperationResult sends a result to the output channel.
-// The return value is intentionally ignored as this is a fire-and-forget
-// operation - if the context is cancelled, the result is simply dropped.
 // This is by design: when the pipeline is shutting down, we don't want to
 // block on sending results that won't be processed anyway.
 func sendOperationResult(ctx context.Context, out chan<- api.OperationResult, res api.OperationResult) {
