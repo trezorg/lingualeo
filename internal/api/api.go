@@ -27,6 +27,7 @@ const (
 	defaultMaxAttempts  = 3
 	defaultInitialWait  = 500 * time.Millisecond
 	defaultMaxWait      = 5 * time.Second
+	addWordPort         = "1001"
 )
 
 var (
@@ -345,7 +346,7 @@ func (a *API) addRequest(ctx context.Context, word string, translate string) ([]
 	values := map[string]string{
 		"word":  word,
 		"tword": translate,
-		"port":  "1001",
+		"port":  addWordPort,
 	}
 	jsonValue, err := json.Marshal(values)
 	if err != nil {
