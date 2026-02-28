@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json/v2"
 	"errors"
@@ -109,27 +110,13 @@ func checkAuthError(body []byte) error {
 // New constructor
 func New(ctx context.Context, email string, password string, debug bool, cfg Config) (*API, error) {
 	// Apply defaults for zero values
-	if cfg.Timeout == 0 {
-		cfg.Timeout = httpclient.DefaultTimeout
-	}
-	if cfg.MaxRedirects == 0 {
-		cfg.MaxRedirects = defaultMaxRedirects
-	}
-	if cfg.MaxIdleConns == 0 {
-		cfg.MaxIdleConns = httpclient.DefaultMaxIdleConns
-	}
-	if cfg.MaxIdleConnsPerHost == 0 {
-		cfg.MaxIdleConnsPerHost = httpclient.DefaultMaxIdleConnsHost
-	}
-	if cfg.Retry.MaxAttempts == 0 {
-		cfg.Retry.MaxAttempts = defaultMaxAttempts
-	}
-	if cfg.Retry.InitialWait == 0 {
-		cfg.Retry.InitialWait = defaultInitialWait
-	}
-	if cfg.Retry.MaxWait == 0 {
-		cfg.Retry.MaxWait = defaultMaxWait
-	}
+	cfg.Timeout = cmp.Or(cfg.Timeout, httpclient.DefaultTimeout)
+	cfg.MaxRedirects = cmp.Or(cfg.MaxRedirects, defaultMaxRedirects)
+	cfg.MaxIdleConns = cmp.Or(cfg.MaxIdleConns, httpclient.DefaultMaxIdleConns)
+	cfg.MaxIdleConnsPerHost = cmp.Or(cfg.MaxIdleConnsPerHost, httpclient.DefaultMaxIdleConnsHost)
+	cfg.Retry.MaxAttempts = cmp.Or(cfg.Retry.MaxAttempts, defaultMaxAttempts)
+	cfg.Retry.InitialWait = cmp.Or(cfg.Retry.InitialWait, defaultInitialWait)
+	cfg.Retry.MaxWait = cmp.Or(cfg.Retry.MaxWait, defaultMaxWait)
 
 	client, err := prepareClient(cfg)
 	if err != nil {
