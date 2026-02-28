@@ -62,7 +62,7 @@ func TestRequest(t *testing.T) {
 			}))
 			defer server.Close()
 
-			ctx := context.Background()
+			ctx := t.Context()
 			api := &API{
 				client:  http.DefaultClient,
 				Debug:   false,
@@ -94,7 +94,7 @@ func TestRequestWithContextCancellation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	api := &API{
 		client:  http.DefaultClient,
 		Debug:   false,
@@ -121,7 +121,7 @@ func TestRequestWithQuery(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	api := &API{
 		client:  http.DefaultClient,
 		Debug:   false,
@@ -205,7 +205,7 @@ func TestMockClientTranslate(t *testing.T) {
 		},
 	}
 
-	result := mock.TranslateWord(context.Background(), "hello")
+	result := mock.TranslateWord(t.Context(), "hello")
 	require.NoError(t, result.Error)
 	assert.Equal(t, "hello", result.Result.Word)
 	assert.Len(t, result.Result.Translate, 1)
@@ -218,6 +218,6 @@ func TestMockClientAddWord(t *testing.T) {
 		},
 	}
 
-	result := mock.AddWord(context.Background(), "hello", "привет")
+	result := mock.AddWord(t.Context(), "hello", "привет")
 	require.NoError(t, result.Error)
 }

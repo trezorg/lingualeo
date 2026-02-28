@@ -55,7 +55,7 @@ func TestVisualizerShow(t *testing.T) {
 	testURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	visualizer := New()
 
 	// The function may or may not display the image depending on terminal support,
@@ -77,7 +77,7 @@ func TestOpenWithBadURL(t *testing.T) {
 	testURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	err = open(ctx, testURL)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bad status")
@@ -88,7 +88,7 @@ func TestOpenWithInvalidURL(t *testing.T) {
 	testURL, err := url.Parse("http://localhost:1/invalid")
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 100, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(t.Context(), 100, context.DeadlineExceeded)
 	defer cancel()
 
 	err = open(ctx, testURL)
@@ -121,6 +121,6 @@ func TestVisualizerType(t *testing.T) {
 	require.NotNil(t, v)
 
 	// Verify Show method
-	err := v.Show(context.Background(), &url.URL{})
+	err := v.Show(t.Context(), &url.URL{})
 	require.NoError(t, err)
 }

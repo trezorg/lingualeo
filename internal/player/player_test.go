@@ -86,7 +86,7 @@ func TestPlayerPlay(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := New(tt.player)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			err := p.Play(ctx, tt.url)
 			if tt.wantErr {
@@ -102,7 +102,7 @@ func TestPlayerPlayWithCancellation(t *testing.T) {
 	// Use sleep command that runs for a while, then cancel
 	p := New("sleep 10")
 
-	ctx, cancel := context.WithTimeoutCause(context.Background(), 100*time.Millisecond, context.DeadlineExceeded)
+	ctx, cancel := context.WithTimeoutCause(t.Context(), 100*time.Millisecond, context.DeadlineExceeded)
 	defer cancel()
 
 	start := time.Now()
@@ -117,7 +117,7 @@ func TestPlayerPlayWithCancellation(t *testing.T) {
 
 func TestPlayerPlayWithEmptyPlayer(t *testing.T) {
 	p := New("")
-	ctx := context.Background()
+	ctx := t.Context()
 
 	err := p.Play(ctx, "https://example.com/audio.mp3")
 	require.Error(t, err)
@@ -128,7 +128,7 @@ func TestPlayerPlayParamsAreNotModified(t *testing.T) {
 	originalParams := make([]string, len(p.params))
 	copy(originalParams, p.params)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_ = p.Play(ctx, "https://example.com/audio.mp3")
 
 	// Verify params are not modified

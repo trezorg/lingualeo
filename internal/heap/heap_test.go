@@ -187,11 +187,9 @@ func TestIndexedHeap_Concurrency(t *testing.T) {
 		var wg sync.WaitGroup
 
 		for i := range 100 {
-			wg.Add(1)
-			go func(idx int) {
-				defer wg.Done()
-				h.Add(newTestItem(idx, idx))
-			}(i)
+			wg.Go(func() {
+				h.Add(newTestItem(i, i))
+			})
 		}
 
 		wg.Wait()
@@ -204,11 +202,9 @@ func TestIndexedHeap_Concurrency(t *testing.T) {
 
 		// Add items first
 		for i := range 50 {
-			addWg.Go(func(idx int) func() {
-				return func() {
-					h.Add(newTestItem(idx, idx))
-				}
-			}(i))
+			addWg.Go(func() {
+				h.Add(newTestItem(i, i))
+			})
 		}
 
 		// Wait for all adds to complete
@@ -238,15 +234,13 @@ func TestIndexedHeap_Concurrency(t *testing.T) {
 		var wg sync.WaitGroup
 
 		for i := range 10 {
-			wg.Add(1)
-			go func(base int) {
-				defer wg.Done()
+			wg.Go(func() {
 				items := make([]IndexedItem, 10)
 				for j := range 10 {
-					items[j] = newTestItem(base*10+j, base*10+j)
+					items[j] = newTestItem(i*10+j, i*10+j)
 				}
 				h.AddMany(items...)
-			}(i)
+			})
 		}
 
 		// Concurrent picks
