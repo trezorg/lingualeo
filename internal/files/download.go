@@ -39,7 +39,12 @@ func New() *FileDownloader {
 }
 
 // Writer prepares WriteCloser for temporary file
-func (*FileDownloader) Writer() (io.WriteCloser, string, error) {
+func (*FileDownloader) Writer(ctx context.Context) (io.WriteCloser, string, error) {
+	select {
+	case <-ctx.Done():
+		return nil, "", ctx.Err()
+	default:
+	}
 	fd, err := os.CreateTemp(os.TempDir(), fileTemplate)
 	if err != nil {
 		return nil, "", err
@@ -52,7 +57,7 @@ func (f *FileDownloader) Download(ctx context.Context, url string) (string, erro
 	if err := validator.ValidateURL(url); err != nil {
 		return "", fmt.Errorf("invalid download URL: %w", err)
 	}
-	fd, filename, err := f.Writer()
+	fd, filename, err := f.Writer(ctx)
 	if err != nil {
 		return "", err
 	}

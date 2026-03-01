@@ -54,11 +54,18 @@ func Mode() GraphicMode {
 	return Unknown
 }
 
-func showImage(w io.Writer, r io.Reader) error {
+func showImage(ctx context.Context, w io.Writer, r io.Reader) error {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	reader := bytes.NewReader(data)
 	ln := int64(len(data))
 
@@ -125,7 +132,7 @@ func open(ctx context.Context, u *url.URL) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%w: %s", errBadStatus, resp.Status)
 	}
-	if err = showImage(os.Stdout, resp.Body); err != nil {
+	if err = showImage(ctx, os.Stdout, resp.Body); err != nil {
 		return fmt.Errorf("%w: %s, %w", errCannotReadImage, u.String(), err)
 	}
 	return nil
