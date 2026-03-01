@@ -1,10 +1,11 @@
 package api
 
 import (
+	"cmp"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/trezorg/lingualeo/internal/slice"
@@ -115,8 +116,8 @@ func (r *Result) FromResponse(body []byte) error {
 
 func (r *Result) parse() {
 	r.Translate = slice.UniqueFunc(r.Translate, func(w Word) string { return w.Value })
-	sort.Slice(r.Translate, func(i, j int) bool {
-		return r.Translate[i].Votes > r.Translate[j].Votes
+	slices.SortFunc(r.Translate, func(a, b Word) int {
+		return cmp.Compare(b.Votes, a.Votes)
 	})
 }
 
