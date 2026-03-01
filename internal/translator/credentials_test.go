@@ -52,7 +52,9 @@ func TestPromptPasswordIfNeeded(t *testing.T) {
 		{
 			name: "prompts when enabled and password missing",
 			args: Lingualeo{
-				PromptPassword: true,
+				Config: Config{
+					PromptPassword: true,
+				},
 			},
 			promptResult:       "prompted-secret",
 			expectPromptCalled: true,
@@ -62,8 +64,10 @@ func TestPromptPasswordIfNeeded(t *testing.T) {
 		{
 			name: "skips prompt when password already set",
 			args: Lingualeo{
-				PromptPassword: true,
-				Password:       "from-config",
+				Config: Config{
+					PromptPassword: true,
+					Password:       "from-config",
+				},
 			},
 			expectPromptCalled: false,
 			expectedPassword:   "from-config",
@@ -72,7 +76,9 @@ func TestPromptPasswordIfNeeded(t *testing.T) {
 		{
 			name: "skips prompt when option is disabled",
 			args: Lingualeo{
-				PromptPassword: false,
+				Config: Config{
+					PromptPassword: false,
+				},
 			},
 			expectPromptCalled: false,
 			expectedPassword:   "",
@@ -81,7 +87,9 @@ func TestPromptPasswordIfNeeded(t *testing.T) {
 		{
 			name: "returns prompt error",
 			args: Lingualeo{
-				PromptPassword: true,
+				Config: Config{
+					PromptPassword: true,
+				},
 			},
 			promptErr:          errors.New("prompt failed"),
 			expectPromptCalled: true,

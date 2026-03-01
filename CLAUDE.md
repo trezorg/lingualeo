@@ -5,8 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Lingualeo CLI helper - a console application for translating words via the Lingualeo API. Supports word pronunciation, dictionary management, and image visualization.
+Module: `github.com/trezorg/lingualeo`
 
 ## Build and Test Commands
+
+Tests use Go's `testing` package with `testify` assertions.
 
 ```bash
 # Build binary
@@ -31,6 +34,15 @@ make generate
 
 # Full CI workflow (used in GitHub Actions)
 make clean cache generate lint test
+
+# Run tests with coverage
+make cover
+
+# Verify go.mod is tidy
+make tidy
+
+# Recommended before PR (same as CI)
+make ci
 ```
 
 ## Environment
@@ -38,6 +50,16 @@ make clean cache generate lint test
 - Go 1.26 with `GOEXPERIMENT=jsonv2` enabled (required for json v2 encoding)
 - golangci-lint v2.10.0 for linting
 - mockery v3 for mock generation
+
+## Directory Structure
+
+- `cmd/lingualeo/` - CLI entrypoint
+- `internal/api/` - Lingualeo API client
+- `internal/translator/` - Core translation logic
+- `internal/files/` - File download utilities
+- `internal/player/` - Audio playback
+- `internal/visualizer/` - Output visualization (browser/terminal)
+- `internal/channel/` - Channel utilities (OrDone, ToChannel)
 
 ## Key Patterns
 

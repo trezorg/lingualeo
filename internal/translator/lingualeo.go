@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/channel"
@@ -24,36 +23,20 @@ import (
 var errUnknownVisualiseType = errors.New("unknown visualize type")
 
 type Lingualeo struct {
-	api.Client            `json:"-" yaml:"-" toml:"-"`
-	Downloader            `json:"-" yaml:"-" toml:"-"`
-	Pronouncer            `json:"-" yaml:"-" toml:"-"`
-	Outputer              `json:"-" yaml:"-" toml:"-"`
-	Email                 string        `yaml:"email" json:"email" toml:"email"`
-	VisualiseType         VisualiseType `yaml:"visualize_type" json:"visualize_type" toml:"visualize_type"`
-	Config                string
-	Player                string        `yaml:"player" json:"player" toml:"player"`
-	LogLevel              string        `yaml:"log_level" json:"log_level" toml:"log_level"`
-	Password              string        `yaml:"password" json:"password" toml:"password"` //nolint:gosec // credential field
-	Workers               int           `yaml:"workers" json:"workers" toml:"workers"`
-	RequestTimeout        time.Duration `yaml:"request_timeout" json:"request_timeout" toml:"request_timeout"`
-	PlayerShutdownTimeout time.Duration `yaml:"player_shutdown_timeout" json:"player_shutdown_timeout" toml:"player_shutdown_timeout"`
-	// HTTP connection pool settings
-	MaxIdleConns        int           `yaml:"max_idle_conns" json:"max_idle_conns" toml:"max_idle_conns"`
-	MaxIdleConnsPerHost int           `yaml:"max_idle_conns_per_host" json:"max_idle_conns_per_host" toml:"max_idle_conns_per_host"`
-	MaxRedirects        int           `yaml:"max_redirects" json:"max_redirects" toml:"max_redirects"`
-	RetryMaxAttempts    int           `yaml:"retry_max_attempts" json:"retry_max_attempts" toml:"retry_max_attempts"`
-	RetryInitialWait    time.Duration `yaml:"retry_initial_wait" json:"retry_initial_wait" toml:"retry_initial_wait"`
-	RetryMaxWait        time.Duration `yaml:"retry_max_wait" json:"retry_max_wait" toml:"retry_max_wait"`
-	Translation         []string
-	Words               []string
-	Add                 bool `yaml:"add" json:"add" toml:"add"`
-	Sound               bool `yaml:"sound" json:"sound" toml:"sound"`
-	Visualise           bool `yaml:"visualize" json:"visualize" toml:"visualize"`
-	Debug               bool `yaml:"debug" json:"debug" toml:"debug"`
-	DownloadSoundFile   bool `yaml:"download" json:"download" toml:"download"`
-	LogPrettyPrint      bool `yaml:"log_pretty_print" json:"log_pretty_print" toml:"log_pretty_print"`
-	ReverseTranslate    bool `yaml:"reverse_translate" json:"reverse_translate" toml:"reverse_translate"`
-	PromptPassword      bool `yaml:"prompt_password" json:"prompt_password" toml:"prompt_password"`
+	// Embedded interfaces (dependencies)
+	api.Client `json:"-" yaml:"-" toml:"-"`
+	Downloader `json:"-" yaml:"-" toml:"-"`
+	Pronouncer `json:"-" yaml:"-" toml:"-"`
+	Outputer   `json:"-" yaml:"-" toml:"-"`
+
+	// Embedded config - inline tags preserve flat access for config file parsing
+	//nolint:revive // inline tags required for yaml/toml/json v2 embedding
+	Config `yaml:",inline" json:",inline" toml:",inline"`
+
+	// Runtime inputs (not serialized)
+	ConfigPath  string   // Path to config file (renamed from Config to avoid collision)
+	Words       []string // Words to translate
+	Translation []string // Custom translation override
 }
 
 func visualizer(vt VisualiseType) (Visualizer, error) {
@@ -129,11 +112,11 @@ func New(version string, options ...Option) (Lingualeo, error) {
 	if err != nil {
 		return client, err
 	}
-	configArgs, err := fromConfigs(&client.Config)
+	configArgs, err := fromConfigs(&client.ConfigPath)
 	if err != nil {
 		return client, err
 	}
-	client.mergeConfigs(configArgs)
+	client.Merge(&configArgs.Config)
 	if err = client.promptPasswordIfNeeded(); err != nil {
 		return client, err
 	}
@@ -153,21 +136,7 @@ func New(version string, options ...Option) (Lingualeo, error) {
 		}
 	}
 	if client.Client == nil {
-		timeout := client.RequestTimeout
-		if timeout == 0 {
-			timeout = api.DefaultConfig().Timeout
-		}
-		apiCfg := api.Config{
-			Timeout:             timeout,
-			MaxRedirects:        client.MaxRedirects,
-			MaxIdleConns:        client.MaxIdleConns,
-			MaxIdleConnsPerHost: client.MaxIdleConnsPerHost,
-			Retry: api.RetryConfig{
-				MaxAttempts: client.RetryMaxAttempts,
-				InitialWait: client.RetryInitialWait,
-				MaxWait:     client.RetryMaxWait,
-			},
-		}
+		apiCfg := client.APIClientConfig()
 		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug, apiCfg); err != nil {
 			return client, err
 		}

@@ -8,7 +8,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/trezorg/lingualeo/internal/api"
 	"github.com/trezorg/lingualeo/internal/files"
@@ -247,7 +246,7 @@ func baseLingualeoFlags(args *Lingualeo) []cli.Flag {
 			Aliases:     []string{"c"},
 			Value:       "",
 			Usage:       "Config file. Either in toml, yaml or json format",
-			Destination: &args.Config,
+			Destination: &args.ConfigPath,
 		},
 		&cli.StringFlag{
 			Name:        "player",
@@ -439,8 +438,8 @@ func fromConfigs(filename *string) (*Lingualeo, error) {
 }
 
 func (l *Lingualeo) checkConfig() error {
-	if len(l.Config) > 0 {
-		filename, _ := filepath.Abs(l.Config)
+	if len(l.ConfigPath) > 0 {
+		filename, _ := filepath.Abs(l.ConfigPath)
 		if !files.Exists(filename) {
 			return fmt.Errorf("%w: %s", errConfigFileMissing, filename)
 		}
@@ -491,57 +490,4 @@ func promptPasswordHidden() (string, error) {
 	}
 
 	return strings.TrimSpace(string(password)), nil
-}
-
-func (l *Lingualeo) mergeConfigs(a *Lingualeo) {
-	l.Email = mergeString(l.Email, a.Email)
-	l.Password = mergeString(l.Password, a.Password)
-	l.Player = mergeString(l.Player, a.Player)
-	l.Add = mergeBool(l.Add, a.Add)
-	l.Debug = mergeBool(l.Debug, a.Debug)
-	l.Sound = mergeBool(l.Sound, a.Sound)
-	l.Visualise = mergeBool(l.Visualise, a.Visualise)
-	l.VisualiseType = VisualiseType(mergeString(string(l.VisualiseType), string(a.VisualiseType)))
-	l.DownloadSoundFile = mergeBool(l.DownloadSoundFile, a.DownloadSoundFile)
-	l.LogPrettyPrint = mergeBool(l.LogPrettyPrint, a.LogPrettyPrint)
-	l.ReverseTranslate = mergeBool(l.ReverseTranslate, a.ReverseTranslate)
-	l.PromptPassword = mergeBool(l.PromptPassword, a.PromptPassword)
-	l.LogLevel = mergeString(l.LogLevel, a.LogLevel)
-	l.Workers = mergeInt(l.Workers, a.Workers)
-	l.RequestTimeout = mergeDuration(l.RequestTimeout, a.RequestTimeout)
-	// HTTP and retry settings
-	l.MaxIdleConns = mergeInt(l.MaxIdleConns, a.MaxIdleConns)
-	l.MaxIdleConnsPerHost = mergeInt(l.MaxIdleConnsPerHost, a.MaxIdleConnsPerHost)
-	l.MaxRedirects = mergeInt(l.MaxRedirects, a.MaxRedirects)
-	l.RetryMaxAttempts = mergeInt(l.RetryMaxAttempts, a.RetryMaxAttempts)
-	l.RetryInitialWait = mergeDuration(l.RetryInitialWait, a.RetryInitialWait)
-	l.RetryMaxWait = mergeDuration(l.RetryMaxWait, a.RetryMaxWait)
-}
-
-func mergeInt(dst, src int) int {
-	if dst == 0 && src > 0 {
-		return src
-	}
-	return dst
-}
-
-func mergeString(dst, src string) string {
-	if len(dst) == 0 && len(src) > 0 {
-		return src
-	}
-	return dst
-}
-
-func mergeBool(dst, src bool) bool {
-	if !dst && src {
-		return src
-	}
-	return dst
-}
-
-func mergeDuration(dst, src time.Duration) time.Duration {
-	if dst == 0 && src > 0 {
-		return src
-	}
-	return dst
 }

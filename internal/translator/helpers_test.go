@@ -117,42 +117,52 @@ func TestCheckArgs(t *testing.T) {
 		{
 			name: "valid args",
 			args: Lingualeo{
-				Email:    "user@example.com",
-				Password: "password",
-				Words:    []string{"test"},
+				Config: Config{
+					Email:    "user@example.com",
+					Password: "password",
+				},
+				Words: []string{"test"},
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing email",
 			args: Lingualeo{
-				Password: "password",
-				Words:    []string{"test"},
+				Config: Config{
+					Password: "password",
+				},
+				Words: []string{"test"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid email - no @",
 			args: Lingualeo{
-				Email:    "userexample.com",
-				Password: "password",
-				Words:    []string{"test"},
+				Config: Config{
+					Email:    "userexample.com",
+					Password: "password",
+				},
+				Words: []string{"test"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid email - no domain",
 			args: Lingualeo{
-				Email:    "user@",
-				Password: "password",
-				Words:    []string{"test"},
+				Config: Config{
+					Email:    "user@",
+					Password: "password",
+				},
+				Words: []string{"test"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing password",
 			args: Lingualeo{
-				Email: "user@example.com",
+				Config: Config{
+					Email: "user@example.com",
+				},
 				Words: []string{"test"},
 			},
 			wantErr: true,
@@ -160,8 +170,10 @@ func TestCheckArgs(t *testing.T) {
 		{
 			name: "missing words",
 			args: Lingualeo{
-				Email:    "user@example.com",
-				Password: "password",
+				Config: Config{
+					Email:    "user@example.com",
+					Password: "password",
+				},
 			},
 			wantErr: true,
 		},

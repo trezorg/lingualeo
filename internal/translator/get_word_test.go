@@ -37,15 +37,17 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		searchWords = append(searchWords, fakeapi.SearchWord)
 	}
 	args := Lingualeo{
-		Sound:             true,
-		Words:             searchWords,
-		Add:               false,
-		Visualise:         true,
-		DownloadSoundFile: true,
-		Client:            translator,
-		Downloader:        downloader,
-		Pronouncer:        player,
-		Outputer:          outputer,
+		Config: Config{
+			Sound:             true,
+			Add:               false,
+			Visualise:         true,
+			DownloadSoundFile: true,
+		},
+		Words:      searchWords,
+		Client:     translator,
+		Downloader: downloader,
+		Pronouncer: player,
+		Outputer:   outputer,
 	}
 
 	ch := args.translateToChan(t.Context())

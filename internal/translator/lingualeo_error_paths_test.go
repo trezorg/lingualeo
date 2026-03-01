@@ -39,7 +39,7 @@ func TestCheckMediaPlayer(t *testing.T) {
 	t.Run("sound disabled", func(t *testing.T) {
 		t.Parallel()
 
-		l := Lingualeo{Sound: false}
+		l := Lingualeo{Config: Config{Sound: false}}
 		require.NoError(t, l.checkMediaPlayer())
 		require.False(t, l.Sound)
 	})
@@ -47,7 +47,7 @@ func TestCheckMediaPlayer(t *testing.T) {
 	t.Run("empty player disables sound", func(t *testing.T) {
 		t.Parallel()
 
-		l := Lingualeo{Sound: true}
+		l := Lingualeo{Config: Config{Sound: true}}
 		err := l.checkMediaPlayer()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "player parameter not set")
@@ -57,7 +57,7 @@ func TestCheckMediaPlayer(t *testing.T) {
 	t.Run("unavailable player disables sound", func(t *testing.T) {
 		t.Parallel()
 
-		l := Lingualeo{Sound: true, Player: "definitely-not-existing-command-123456"}
+		l := Lingualeo{Config: Config{Sound: true, Player: "definitely-not-existing-command-123456"}}
 		err := l.checkMediaPlayer()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "not available")
