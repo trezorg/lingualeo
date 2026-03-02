@@ -22,7 +22,7 @@ archives:
   - formats:
       - binary
     name_template: >-
-      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if eq .Os "windows" }}.exe{{ end }}
+      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
 
 checksum:
   name_template: "checksums.txt"
