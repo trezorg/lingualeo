@@ -4,7 +4,19 @@ import "github.com/trezorg/lingualeo/internal/api"
 
 type Option func(*Lingualeo) error
 
-func WithTranslator(t api.Client) Option {
+// WithClient sets the API client for the translator.
+// This is the preferred option name for injecting the API client.
+func WithClient(t api.Client) Option {
+	return func(l *Lingualeo) error {
+		l.Client = t
+		return nil
+	}
+}
+
+// WithAPIClient sets the API client for the translator.
+//
+// Deprecated: Use WithClient instead.
+func WithAPIClient(t api.Client) Option {
 	return func(l *Lingualeo) error {
 		l.Client = t
 		return nil

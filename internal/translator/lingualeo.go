@@ -15,7 +15,6 @@ import (
 	"github.com/trezorg/lingualeo/internal/visualizer/browser"
 	"github.com/trezorg/lingualeo/internal/visualizer/term"
 
-	"github.com/trezorg/lingualeo/internal/player"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -64,6 +63,12 @@ func outputer(visualize bool, vt VisualiseType) (Outputer, error) {
 	return OutputVisualizer{Visualizer: viz}, nil
 }
 
+// NewOutputer creates an outputer based on visualize setting.
+// Exported for use in main.go for explicit dependency injection.
+func NewOutputer(visualize bool, vt VisualiseType) (Outputer, error) {
+	return outputer(visualize, vt)
+}
+
 // sendOperationResult sends a result to the output channel.
 // The return value is intentionally ignored as this is a fire-and-forget
 // operation - if the context is cancelled, the result is simply dropped.
@@ -102,8 +107,9 @@ func workerCountForItems(workers int, items int) int {
 	return count
 }
 
-// New initialize lingualeo client
-func New(version string, options ...Option) (Lingualeo, error) {
+// Parse parses CLI args and config files, returning config without initializing dependencies.
+// Use functional options to inject dependencies after calling Parse.
+func Parse(version string, options ...Option) (Lingualeo, error) {
 	client, err := prepareArgs(version)
 	if err != nil {
 		return client, err
@@ -135,39 +141,16 @@ func New(version string, options ...Option) (Lingualeo, error) {
 			return client, err
 		}
 	}
-	if err = client.initializeDependencies(); err != nil {
-		return client, err
-	}
 	return client, nil
 }
 
-// initializeDependencies sets up the API client, pronouncer, downloader, and outputer.
-// It uses injected mocks from options if provided, otherwise creates real implementations.
-func (l *Lingualeo) initializeDependencies() error {
-	var err error
+// Validate ensures required dependencies are set.
+// Call this after applying all options with dependency injection.
+func (l *Lingualeo) Validate() error {
 	if l.Client == nil {
-		apiCfg := l.APIClientConfig()
-		var apiClient *api.API
-		apiClient, err = api.New(l.Email, l.Password, l.Debug, apiCfg)
-		if err != nil {
-			return err
-		}
-		l.Client = apiClient
+		return errors.New("api client is required: use WithClient or WithAPIClient option")
 	}
-	if l.Pronouncer == nil {
-		opts := make([]player.Option, 0, 1)
-		if l.PlayerShutdownTimeout > 0 {
-			opts = append(opts, player.WithShutdownTimeout(l.PlayerShutdownTimeout))
-		}
-		l.Pronouncer = player.New(l.Player, opts...)
-	}
-	if l.Downloader == nil {
-		l.Downloader = files.New()
-	}
-	if l.Outputer == nil {
-		l.Outputer, err = outputer(l.Visualise, l.VisualiseType)
-	}
-	return err
+	return nil
 }
 
 // translateWords translate words from string channel
