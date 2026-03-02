@@ -107,7 +107,7 @@ func prepareArgs(version string) (Lingualeo, error) {
 	args := Lingualeo{}
 	translate := cli.StringSlice{}
 	defaultCommand := buildDefaultCommand(&args, &translate)
-	app := newLingualeoApp(version, &args, translate, defaultCommand)
+	app := newLingualeoApp(version, &args, &translate, defaultCommand)
 
 	// Check if help/version flags are present - skip validation if so.
 	// urfave/cli handles these flags and shows output, but we need to
@@ -138,7 +138,7 @@ func buildDefaultCommand(args *Lingualeo, translate *cli.StringSlice) func(*cli.
 	}
 }
 
-func newLingualeoApp(version string, args *Lingualeo, translate cli.StringSlice, defaultCommand func(*cli.Context) error) *cli.App {
+func newLingualeoApp(version string, args *Lingualeo, translate *cli.StringSlice, defaultCommand func(*cli.Context) error) *cli.App {
 	app := cli.NewApp()
 	app.Version = version
 	app.HideHelp = false
@@ -196,8 +196,7 @@ func newLingualeoApp(version string, args *Lingualeo, translate cli.StringSlice,
 					Name:        "translate",
 					Aliases:     []string{"t"},
 					Usage:       "Custom translation: lingualeo add -t word1 -t word2 word",
-					Destination: &translate,
-					Required:    true,
+					Destination: translate,
 				},
 			},
 			Action: func(c *cli.Context) error {

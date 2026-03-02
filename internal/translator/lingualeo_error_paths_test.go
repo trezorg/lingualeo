@@ -15,7 +15,7 @@ func TestSendWithContext(t *testing.T) {
 		t.Parallel()
 
 		out := make(chan int, 1)
-		ok := sendWithContext(context.Background(), out, 7)
+		ok := sendToChanWithContext(context.Background(), out, 7)
 		require.True(t, ok)
 		require.Equal(t, 7, <-out)
 	})
@@ -27,7 +27,7 @@ func TestSendWithContext(t *testing.T) {
 		cancel(context.Canceled)
 
 		out := make(chan int, 1)
-		ok := sendWithContext(ctx, out, 7)
+		ok := sendToChanWithContext(ctx, out, 7)
 		require.False(t, ok)
 		require.Empty(t, out)
 	})

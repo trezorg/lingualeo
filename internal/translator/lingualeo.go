@@ -70,10 +70,10 @@ func outputer(visualize bool, vt VisualiseType) (Outputer, error) {
 // This is by design: when the pipeline is shutting down, we don't want to
 // block on sending results that won't be processed anyway.
 func sendOperationResult(ctx context.Context, out chan<- api.OperationResult, res api.OperationResult) {
-	_ = sendWithContext(ctx, out, res)
+	_ = sendToChanWithContext(ctx, out, res)
 }
 
-func sendWithContext[T any](ctx context.Context, out chan<- T, value T) bool {
+func sendToChanWithContext[T any](ctx context.Context, out chan<- T, value T) bool {
 	if ctx.Err() != nil {
 		return false
 	}
@@ -268,7 +268,7 @@ func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResu
 				}
 				continue
 			}
-			if !sendWithContext(ctx, results, res) {
+			if !sendToChanWithContext(ctx, results, res) {
 				return
 			}
 		}
@@ -280,6 +280,15 @@ func (l *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	// Custom translation
 	if len(l.Translation) > 0 {
 		result.SetTranslation(l.Translation)
+		return true
+	}
+	// Use top translation from API if available
+	if len(result.Translate) > 0 {
+		translations := make([]string, 0, len(result.Translate))
+		for _, item := range result.Translate {
+			translations = append(translations, item.Value)
+		}
+		result.SetTranslation(translations)
 		return true
 	}
 	return false
@@ -362,19 +371,19 @@ func (l *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
 				continue
 			}
 			if l.Sound {
-				if !sendWithContext(ctx, soundChan, result.Result.SoundURL) {
+				if !sendToChanWithContext(ctx, soundChan, result.Result.SoundURL) {
 					return
 				}
 			}
 
 			if l.Add {
 				if resultsToAdd := l.prepareResultToAdd(&result.Result); resultsToAdd {
-					if !sendWithContext(ctx, addWordChan, result.Result) {
+					if !sendToChanWithContext(ctx, addWordChan, result.Result) {
 						return
 					}
 				}
 			}
-			if !sendWithContext(ctx, resultsChan, result.Result) {
+			if !sendToChanWithContext(ctx, resultsChan, result.Result) {
 				return
 			}
 		}
@@ -407,7 +416,7 @@ func (l *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
 	go func() {
 		defer close(ch)
 		for result := range channel.OrDone(ctx, channels.results) {
-			if !sendWithContext(ctx, ch, result) {
+			if !sendToChanWithContext(ctx, ch, result) {
 				return
 			}
 		}
