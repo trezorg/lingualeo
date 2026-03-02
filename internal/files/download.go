@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/trezorg/lingualeo/internal/httpclient"
 	"github.com/trezorg/lingualeo/internal/validator"
 )
 
@@ -31,10 +30,10 @@ type FileDownloader struct {
 	client *http.Client
 }
 
-// New initialize new file downloader with connection pooling
-func New() *FileDownloader {
+// New creates a new file downloader with the provided HTTP client.
+func New(client *http.Client) *FileDownloader {
 	return &FileDownloader{
-		client: httpclient.New(httpclient.Config{}),
+		client: client,
 	}
 }
 

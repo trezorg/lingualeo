@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trezorg/lingualeo/internal/httpclient"
 )
 
 func TestRequest(t *testing.T) {
@@ -139,14 +140,21 @@ func TestRequestWithQuery(t *testing.T) {
 	assert.Equal(t, `{"status": "ok"}`, string(resp))
 }
 
-func TestPrepareClient(t *testing.T) {
+func TestNewAPI(t *testing.T) {
 	cfg := DefaultConfig()
-	client, err := prepareClient(cfg)
+	httpClient, err := httpclient.NewWithJar(
+		httpclient.Config{
+			MaxIdleConns:        cfg.MaxIdleConns,
+			MaxIdleConnsPerHost: cfg.MaxIdleConnsPerHost,
+		},
+		cfg.MaxRedirects,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, client)
 
-	assert.NotNil(t, client.Jar)
-	assert.NotNil(t, client.Transport)
+	api := New("test@example.com", "password", false, cfg, httpClient)
+	require.NotNil(t, api)
+	assert.Equal(t, "test@example.com", api.Email)
+	assert.Equal(t, "password", api.Password)
 }
 
 func TestAPIStructFields(t *testing.T) {

@@ -10,7 +10,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/cookiejar"
 	"net/http/httputil"
 	"strconv"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"github.com/trezorg/lingualeo/internal/httpclient"
 
 	"github.com/avast/retry-go/v5"
-	"golang.org/x/net/publicsuffix"
 )
 
 // Default configuration values
@@ -33,7 +31,6 @@ const (
 var (
 	errAPIAuth           = errors.New("api authentication error")
 	errAPIResponseStatus = errors.New("unexpected response status code")
-	errAPIRedirectLimit  = errors.New("too many redirects")
 	errAPIRequestTimeout = errors.New("api request timeout")
 )
 
@@ -109,8 +106,9 @@ func checkAuthError(body []byte) error {
 	return nil
 }
 
-// New constructor
-func New(email string, password string, debug bool, cfg Config) (*API, error) {
+// New creates an API client with the provided HTTP client.
+// The HTTP client should be created with httpclient.NewWithJar for proper cookie handling.
+func New(email string, password string, debug bool, cfg Config, client *http.Client) *API {
 	// Apply defaults for zero values
 	cfg.Timeout = cmp.Or(cfg.Timeout, httpclient.DefaultTimeout)
 	cfg.MaxRedirects = cmp.Or(cfg.MaxRedirects, defaultMaxRedirects)
@@ -120,10 +118,6 @@ func New(email string, password string, debug bool, cfg Config) (*API, error) {
 	cfg.Retry.InitialWait = cmp.Or(cfg.Retry.InitialWait, defaultInitialWait)
 	cfg.Retry.MaxWait = cmp.Or(cfg.Retry.MaxWait, defaultMaxWait)
 
-	client, err := prepareClient(cfg)
-	if err != nil {
-		return nil, err
-	}
 	return &API{
 		Email:       email,
 		Password:    password,
@@ -131,41 +125,7 @@ func New(email string, password string, debug bool, cfg Config) (*API, error) {
 		client:      client,
 		timeout:     cfg.Timeout,
 		retryConfig: cfg.Retry,
-	}, nil
-}
-
-func prepareClient(cfg Config) (*http.Client, error) {
-	options := cookiejar.Options{
-		PublicSuffixList: publicsuffix.List,
 	}
-	jar, err := cookiejar.New(&options)
-	if err != nil {
-		return nil, err
-	}
-	netTransport := &http.Transport{
-		MaxIdleConns:        cfg.MaxIdleConns,
-		MaxIdleConnsPerHost: cfg.MaxIdleConnsPerHost,
-	}
-
-	client := &http.Client{
-		Jar:       jar,
-		Transport: netTransport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= cfg.MaxRedirects {
-				return errAPIRedirectLimit
-			}
-			if len(via) == 0 {
-				return nil
-			}
-			for attr, val := range via[0].Header {
-				if _, ok := req.Header[attr]; !ok {
-					req.Header[attr] = val
-				}
-			}
-			return nil
-		},
-	}
-	return client, nil
 }
 
 func (a *API) Auth(ctx context.Context) error {
