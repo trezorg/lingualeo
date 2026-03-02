@@ -34,6 +34,10 @@ func (c *blockingClient) AddWord(_ context.Context, word string, translate strin
 	}
 }
 
+func (c *blockingClient) Auth(_ context.Context) error {
+	return nil
+}
+
 func TestTranslateWordsStopsOnCancelWithoutConsumer(t *testing.T) {
 	t.Parallel()
 

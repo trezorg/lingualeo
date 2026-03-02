@@ -101,6 +101,57 @@ func (_c *Mock_Client_AddWord_Call) RunAndReturn(run func(ctx context.Context, w
 	return _c
 }
 
+// Auth provides a mock function for the type Mock_Client
+func (_mock *Mock_Client) Auth(ctx context.Context) error {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Auth")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// Mock_Client_Auth_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Auth'
+type Mock_Client_Auth_Call struct {
+	*mock.Call
+}
+
+// Auth is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *Mock_Client_Expecter) Auth(ctx interface{}) *Mock_Client_Auth_Call {
+	return &Mock_Client_Auth_Call{Call: _e.mock.On("Auth", ctx)}
+}
+
+func (_c *Mock_Client_Auth_Call) Run(run func(ctx context.Context)) *Mock_Client_Auth_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Mock_Client_Auth_Call) Return(err error) *Mock_Client_Auth_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *Mock_Client_Auth_Call) RunAndReturn(run func(ctx context.Context) error) *Mock_Client_Auth_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // TranslateWord provides a mock function for the type Mock_Client
 func (_mock *Mock_Client) TranslateWord(ctx context.Context, word string) api.OperationResult {
 	ret := _mock.Called(ctx, word)

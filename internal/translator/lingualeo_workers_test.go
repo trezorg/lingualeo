@@ -40,6 +40,10 @@ func (*translateConcurrencyClient) AddWord(_ context.Context, _, _ string) api.O
 	return api.OperationResult{}
 }
 
+func (*translateConcurrencyClient) Auth(_ context.Context) error {
+	return nil
+}
+
 type addConcurrencyClient struct {
 	started chan struct{}
 	release chan struct{}
@@ -72,6 +76,10 @@ func (c *addConcurrencyClient) AddWord(_ context.Context, word string, translati
 			AddWords: []string{translation},
 		},
 	}
+}
+
+func (*addConcurrencyClient) Auth(_ context.Context) error {
+	return nil
 }
 
 func TestTranslateWordsRespectsWorkersLimit(t *testing.T) {

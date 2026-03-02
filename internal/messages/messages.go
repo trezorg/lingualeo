@@ -18,19 +18,18 @@ const (
 	WHITE
 )
 
+// Pre-initialized color instances to avoid creating them on each call
+var colors = map[Color]*color.Color{
+	RED:    color.New(color.FgRed),
+	GREEN:  color.New(color.FgGreen),
+	YELLOW: color.New(color.FgYellow),
+	WHITE:  color.New(color.FgWhite),
+}
+
 // Message shows a message with color package
 func Message(c Color, message string, params ...any) error {
-	var col *color.Color
-	switch c {
-	case RED:
-		col = color.New(color.FgRed)
-	case GREEN:
-		col = color.New(color.FgGreen)
-	case YELLOW:
-		col = color.New(color.FgYellow)
-	case WHITE:
-		col = color.New(color.FgWhite)
-	default:
+	col, ok := colors[c]
+	if !ok {
 		col = color.New(color.Reset)
 	}
 	_, err := col.Printf(message, params...)

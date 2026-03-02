@@ -76,6 +76,7 @@ func DefaultConfig() Config {
 type Client interface {
 	TranslateWord(ctx context.Context, word string) OperationResult
 	AddWord(ctx context.Context, word string, translate string) OperationResult
+	Auth(ctx context.Context) error
 }
 
 type API struct {
@@ -109,7 +110,7 @@ func checkAuthError(body []byte) error {
 }
 
 // New constructor
-func New(ctx context.Context, email string, password string, debug bool, cfg Config) (*API, error) {
+func New(email string, password string, debug bool, cfg Config) (*API, error) {
 	// Apply defaults for zero values
 	cfg.Timeout = cmp.Or(cfg.Timeout, httpclient.DefaultTimeout)
 	cfg.MaxRedirects = cmp.Or(cfg.MaxRedirects, defaultMaxRedirects)
@@ -123,15 +124,14 @@ func New(ctx context.Context, email string, password string, debug bool, cfg Con
 	if err != nil {
 		return nil, err
 	}
-	api := &API{
+	return &API{
 		Email:       email,
 		Password:    password,
 		Debug:       debug,
 		client:      client,
 		timeout:     cfg.Timeout,
 		retryConfig: cfg.Retry,
-	}
-	return api, api.auth(ctx)
+	}, nil
 }
 
 func prepareClient(cfg Config) (*http.Client, error) {
@@ -168,7 +168,7 @@ func prepareClient(cfg Config) (*http.Client, error) {
 	return client, nil
 }
 
-func (a *API) auth(ctx context.Context) error {
+func (a *API) Auth(ctx context.Context) error {
 	values := map[string]string{
 		"email":    a.Email,
 		"password": a.Password,

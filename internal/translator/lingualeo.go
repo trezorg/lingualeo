@@ -135,26 +135,39 @@ func New(version string, options ...Option) (Lingualeo, error) {
 			return client, err
 		}
 	}
-	if client.Client == nil {
-		apiCfg := client.APIClientConfig()
-		if client.Client, err = api.New(context.Background(), client.Email, client.Password, client.Debug, apiCfg); err != nil {
-			return client, err
-		}
+	if err = client.initializeDependencies(); err != nil {
+		return client, err
 	}
-	if client.Pronouncer == nil {
+	return client, nil
+}
+
+// initializeDependencies sets up the API client, pronouncer, downloader, and outputer.
+// It uses injected mocks from options if provided, otherwise creates real implementations.
+func (l *Lingualeo) initializeDependencies() error {
+	var err error
+	if l.Client == nil {
+		apiCfg := l.APIClientConfig()
+		var apiClient *api.API
+		apiClient, err = api.New(l.Email, l.Password, l.Debug, apiCfg)
+		if err != nil {
+			return err
+		}
+		l.Client = apiClient
+	}
+	if l.Pronouncer == nil {
 		opts := make([]player.Option, 0, 1)
-		if client.PlayerShutdownTimeout > 0 {
-			opts = append(opts, player.WithShutdownTimeout(client.PlayerShutdownTimeout))
+		if l.PlayerShutdownTimeout > 0 {
+			opts = append(opts, player.WithShutdownTimeout(l.PlayerShutdownTimeout))
 		}
-		client.Pronouncer = player.New(client.Player, opts...)
+		l.Pronouncer = player.New(l.Player, opts...)
 	}
-	if client.Downloader == nil {
-		client.Downloader = files.New()
+	if l.Downloader == nil {
+		l.Downloader = files.New()
 	}
-	if client.Outputer == nil {
-		client.Outputer, err = outputer(client.Visualise, client.VisualiseType)
+	if l.Outputer == nil {
+		l.Outputer, err = outputer(l.Visualise, l.VisualiseType)
 	}
-	return client, err
+	return err
 }
 
 // translateWords translate words from string channel

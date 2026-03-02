@@ -188,6 +188,10 @@ func (m *MockClient) AddWord(_ context.Context, _, _ string) OperationResult {
 	return m.AddResult
 }
 
+func (m *MockClient) Auth(_ context.Context) error {
+	return nil
+}
+
 func TestMockClientImplementsInterface(t *testing.T) {
 	var _ Client = &MockClient{}
 }
