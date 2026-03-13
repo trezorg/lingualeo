@@ -9,12 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/trezorg/lingualeo/internal/api"
-	"github.com/trezorg/lingualeo/internal/files"
-	"github.com/trezorg/lingualeo/internal/httpclient"
 	"github.com/trezorg/lingualeo/internal/logger"
 	"github.com/trezorg/lingualeo/internal/messages"
-	"github.com/trezorg/lingualeo/internal/player"
 	"github.com/trezorg/lingualeo/internal/translator"
 )
 
@@ -22,39 +18,6 @@ var version = "0.0.1"
 
 func main() {
 	os.Exit(run())
-}
-
-// setupDependencies creates and injects all dependencies into the translator.
-func setupDependencies(app *translator.Lingualeo) error {
-	httpClient, err := httpclient.NewWithJar(
-		httpclient.Config{
-			MaxIdleConns:        app.MaxIdleConns,
-			MaxIdleConnsPerHost: app.MaxIdleConnsPerHost,
-		},
-		app.MaxRedirects,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create HTTP client: %w", err)
-	}
-
-	apiClient := api.New(app.Email, app.Password, app.Debug, app.APIClientConfig(), httpClient)
-	translator.WithClient(apiClient)(app)
-
-	if app.Sound {
-		pronouncer := player.New(app.Player, player.WithShutdownTimeout(app.PlayerShutdownTimeout))
-		translator.WithPronouncer(pronouncer)(app)
-	}
-
-	downloader := files.New(httpClient)
-	translator.WithDownloader(downloader)(app)
-
-	outputer, err := translator.NewOutputer(app.Visualise, app.VisualiseType)
-	if err != nil {
-		return fmt.Errorf("failed to create outputer: %w", err)
-	}
-	translator.WithOutputer(outputer)(app)
-
-	return nil
 }
 
 func run() int {
@@ -78,7 +41,7 @@ func run() int {
 	}
 	logger.Prepare(level, app.LogPrettyPrint)
 
-	if err = setupDependencies(&app); err != nil {
+	if err = translator.Bootstrap(&app); err != nil {
 		slog.Error("failed to setup dependencies", "error", err)
 		return 1
 	}
