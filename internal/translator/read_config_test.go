@@ -27,7 +27,7 @@ player: %s
 		logLevel,
 		player,
 	)
-	args := &Lingualeo{}
+	args := &Config{}
 	decoder := newConfigFile("test.yaml")
 	require.Equal(t, yamlType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
@@ -58,7 +58,7 @@ func TestReadJsonConfig(t *testing.T) {
 		logLevel,
 		player,
 	)
-	args := &Lingualeo{}
+	args := &Config{}
 	decoder := newConfigFile("test.json")
 	require.Equal(t, jsonType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
@@ -89,7 +89,7 @@ player = "%s"
 		logLevel,
 		player,
 	)
-	args := &Lingualeo{}
+	args := &Config{}
 	decoder := newConfigFile("test.ini")
 	require.Equal(t, tomlType, decoder.filenameType())
 	err := decoder.decode([]byte(config), args)
@@ -126,7 +126,7 @@ player: "%s"
 		logLevel,
 		player,
 	)
-	args := &Lingualeo{}
+	args := &Config{}
 
 	decoder := newConfigFile("test.ini")
 	require.Equal(t, tomlType, decoder.filenameType())

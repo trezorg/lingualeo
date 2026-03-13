@@ -44,12 +44,15 @@ type Config struct {
 	RetryMaxWait        time.Duration `yaml:"retry_max_wait" json:"retry_max_wait" toml:"retry_max_wait"`
 }
 
+const defaultLogLevel = "INFO"
+
 // APIClientConfig converts Config to api.Config for the HTTP client.
 func (c *Config) APIClientConfig() api.Config {
 	timeout := c.RequestTimeout
 	if timeout == 0 {
 		timeout = api.DefaultConfig().Timeout
 	}
+
 	return api.Config{
 		Timeout:             timeout,
 		MaxRedirects:        c.MaxRedirects,
@@ -63,28 +66,16 @@ func (c *Config) APIClientConfig() api.Config {
 	}
 }
 
-// Merge merges non-zero values from src into dst, preserving dst's non-zero values.
-func (c *Config) Merge(src *Config) {
-	c.Email = cmp.Or(c.Email, src.Email)
-	c.Password = cmp.Or(c.Password, src.Password)
-	c.Player = cmp.Or(c.Player, src.Player)
-	c.Add = cmp.Or(c.Add, src.Add)
-	c.Debug = cmp.Or(c.Debug, src.Debug)
-	c.Sound = cmp.Or(c.Sound, src.Sound)
-	c.Visualise = cmp.Or(c.Visualise, src.Visualise)
-	c.VisualiseType = VisualiseType(cmp.Or(string(c.VisualiseType), string(src.VisualiseType)))
-	c.DownloadSoundFile = cmp.Or(c.DownloadSoundFile, src.DownloadSoundFile)
-	c.LogPrettyPrint = cmp.Or(c.LogPrettyPrint, src.LogPrettyPrint)
-	c.ReverseTranslate = cmp.Or(c.ReverseTranslate, src.ReverseTranslate)
-	c.PromptPassword = cmp.Or(c.PromptPassword, src.PromptPassword)
-	c.LogLevel = cmp.Or(c.LogLevel, src.LogLevel)
-	c.Workers = cmp.Or(c.Workers, src.Workers)
-	c.RequestTimeout = cmp.Or(c.RequestTimeout, src.RequestTimeout)
-	c.PlayerShutdownTimeout = cmp.Or(c.PlayerShutdownTimeout, src.PlayerShutdownTimeout)
-	c.MaxIdleConns = cmp.Or(c.MaxIdleConns, src.MaxIdleConns)
-	c.MaxIdleConnsPerHost = cmp.Or(c.MaxIdleConnsPerHost, src.MaxIdleConnsPerHost)
-	c.MaxRedirects = cmp.Or(c.MaxRedirects, src.MaxRedirects)
-	c.RetryMaxAttempts = cmp.Or(c.RetryMaxAttempts, src.RetryMaxAttempts)
-	c.RetryInitialWait = cmp.Or(c.RetryInitialWait, src.RetryInitialWait)
-	c.RetryMaxWait = cmp.Or(c.RetryMaxWait, src.RetryMaxWait)
+func (c *Config) ApplyDefaults() {
+	defaults := api.DefaultConfig()
+	c.LogLevel = cmp.Or(c.LogLevel, defaultLogLevel)
+	c.Workers = cmp.Or(c.Workers, defaultWorkers)
+	c.VisualiseType = VisualiseType(cmp.Or(string(c.VisualiseType), string(VisualiseTypeDefault)))
+	c.RequestTimeout = cmp.Or(c.RequestTimeout, defaults.Timeout)
+	c.MaxIdleConns = cmp.Or(c.MaxIdleConns, defaults.MaxIdleConns)
+	c.MaxIdleConnsPerHost = cmp.Or(c.MaxIdleConnsPerHost, defaults.MaxIdleConnsPerHost)
+	c.MaxRedirects = cmp.Or(c.MaxRedirects, defaults.MaxRedirects)
+	c.RetryMaxAttempts = cmp.Or(c.RetryMaxAttempts, defaults.Retry.MaxAttempts)
+	c.RetryInitialWait = cmp.Or(c.RetryInitialWait, defaults.Retry.InitialWait)
+	c.RetryMaxWait = cmp.Or(c.RetryMaxWait, defaults.Retry.MaxWait)
 }
