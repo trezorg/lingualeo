@@ -50,7 +50,7 @@ func TestProcessTranslationResponseJson(t *testing.T) {
 		Outputer:   outputer,
 	}
 
-	ch := args.translateToChan(t.Context())
+	ch := args.translateToChan(t.Context(), searchWords)
 
 	for result := range ch {
 		fakeapi.CheckResult(t, result, searchWords[0], fakeapi.Expected)

@@ -18,7 +18,7 @@ func TestDownloadWordFile(t *testing.T) {
 
 	close(inChan)
 
-	out := downloadFiles(t.Context(), inChan, downloader)
+	out := downloadFiles(t.Context(), inChan, downloader, 1)
 	fileName := (<-out).Filename
 	assert.Equal(t, fileName, testFile)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/trezorg/lingualeo/internal/channel"
 	"github.com/trezorg/lingualeo/internal/files"
 	"github.com/trezorg/lingualeo/internal/messages"
+	"github.com/trezorg/lingualeo/internal/slice"
 	"github.com/trezorg/lingualeo/internal/visualizer/browser"
 	"github.com/trezorg/lingualeo/internal/visualizer/term"
 
@@ -110,19 +111,10 @@ func workerCountForItems(workers int, items int) int {
 // Parse parses CLI args and config files, returning config without initializing dependencies.
 // Use functional options to inject dependencies after calling Parse.
 func Parse(version string, options ...Option) (Lingualeo, error) {
-	client, err := prepareArgs(version)
+	client, err := prepareTranslator(version)
 	if err != nil {
 		return client, err
 	}
-	err = client.checkConfig()
-	if err != nil {
-		return client, err
-	}
-	configArgs, err := fromConfigs(&client.ConfigPath)
-	if err != nil {
-		return client, err
-	}
-	client.Merge(&configArgs.Config)
 	if err = client.promptPasswordIfNeeded(); err != nil {
 		return client, err
 	}
@@ -147,10 +139,21 @@ func Parse(version string, options ...Option) (Lingualeo, error) {
 // Validate ensures required dependencies are set.
 // Call this after applying all options with dependency injection.
 func (l *Lingualeo) Validate() error {
+	var err error
 	if l.Client == nil {
-		return errors.New("api client is required: use WithClient or WithAPIClient option")
+		err = errors.Join(err, errMissingClient)
 	}
-	return nil
+	if l.Outputer == nil {
+		err = errors.Join(err, errMissingOutputer)
+	}
+	if l.Sound && l.Pronouncer == nil {
+		err = errors.Join(err, errMissingPronouncer)
+	}
+	if l.Sound && l.DownloadSoundFile && l.Downloader == nil {
+		err = errors.Join(err, errMissingDownloader)
+	}
+
+	return err
 }
 
 // translateWords translate words from string channel
@@ -224,10 +227,10 @@ func (l *Lingualeo) checkMediaPlayer() error {
 	return nil
 }
 
-func (l *Lingualeo) translateWords(ctx context.Context) <-chan api.OperationResult {
-	results := make(chan api.OperationResult, len(l.Words))
-	input := channel.ToChannel(ctx, l.Words...)
-	workers := workerCountForItems(l.Workers, len(l.Words))
+func (l *Lingualeo) translateWords(ctx context.Context, words []string) <-chan api.OperationResult {
+	results := make(chan api.OperationResult, len(words))
+	input := channel.ToChannel(ctx, words...)
+	workers := workerCountForItems(l.Workers, len(words))
 	go func() {
 		defer close(results)
 		ch := translateWords(ctx, l.Client, input, workers)
@@ -277,8 +280,9 @@ func (l *Lingualeo) prepareResultToAdd(result *api.Result) bool {
 	return false
 }
 
-func (l *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string) {
-	fileChannel := files.OrderedChannel(downloadFiles(ctx, urls, l.Downloader), len(l.Words))
+func (l *Lingualeo) downloadAndPronounce(ctx context.Context, urls <-chan string, wordCount int) {
+	workers := workerCountForItems(l.Workers, wordCount)
+	fileChannel := files.OrderedChannel(downloadFiles(ctx, urls, l.Downloader, workers), wordCount)
 	for res := range channel.OrDone(ctx, fileChannel) {
 		if res.Error != nil {
 			slog.Error("cannot download", "error", res.Error)
@@ -305,17 +309,16 @@ func (l *Lingualeo) playURLs(ctx context.Context, urls <-chan string) {
 }
 
 // Pronounce downloads and pronounce words
-func (l *Lingualeo) Pronounce(ctx context.Context, urls <-chan string) {
+func (l *Lingualeo) Pronounce(ctx context.Context, urls <-chan string, wordCount int) {
 	if l.DownloadSoundFile {
-		l.downloadAndPronounce(ctx, urls)
+		l.downloadAndPronounce(ctx, urls, wordCount)
 		return
 	}
 	l.playURLs(ctx, urls)
 }
 
-// AddToDictionary adds words to dictionary
-func (l *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result) {
-	workers := workerCountForItems(l.Workers, len(l.Words))
+func (l *Lingualeo) AddToDictionary(ctx context.Context, resultsToAdd <-chan api.Result, wordCount int) {
+	workers := workerCountForItems(l.Workers, wordCount)
 	ch := addWords(ctx, l.Client, resultsToAdd, workers)
 	for res := range ch {
 		if res.Error != nil {
@@ -334,11 +337,10 @@ type Channels struct {
 	results <-chan api.Result
 }
 
-// Process starts translation process
-func (l *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
-	soundChan := make(chan string, len(l.Words))
-	addWordChan := make(chan api.Result, len(l.Translation))
-	resultsChan := make(chan api.Result, len(l.Words))
+func (l *Lingualeo) Process(ctx context.Context, words []string, wg *sync.WaitGroup) Channels {
+	soundChan := make(chan string, len(words))
+	addWordChan := make(chan api.Result, len(words))
+	resultsChan := make(chan api.Result, len(words))
 
 	go func() {
 		defer func() {
@@ -348,7 +350,7 @@ func (l *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
 			close(resultsChan)
 		}()
 
-		for result := range l.translateWords(ctx) {
+		for result := range l.translateWords(ctx, words) {
 			if result.Error != nil {
 				slog.Error("cannot translate word", "word", result.Result.Word, "error", result.Error)
 				continue
@@ -379,22 +381,22 @@ func (l *Lingualeo) Process(ctx context.Context, wg *sync.WaitGroup) Channels {
 	}
 }
 
-func (l *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
+func (l *Lingualeo) translateToChan(ctx context.Context, words []string) <-chan api.Result {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	channels := l.Process(ctx, &wg)
+	channels := l.Process(ctx, words, &wg)
 	if l.Sound {
 		wg.Go(func() {
-			l.Pronounce(ctx, channels.sound)
+			l.Pronounce(ctx, channels.sound, len(words))
 		})
 	}
 	if l.Add {
 		wg.Go(func() {
-			l.AddToDictionary(ctx, channels.add)
+			l.AddToDictionary(ctx, channels.add, len(words))
 		})
 	}
 
-	ch := make(chan api.Result, len(l.Words))
+	ch := make(chan api.Result, len(words))
 
 	go func() {
 		defer close(ch)
@@ -409,32 +411,32 @@ func (l *Lingualeo) translateToChan(ctx context.Context) <-chan api.Result {
 	return ch
 }
 
-func (l *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
-	// TranslateWithReverseRussian translates russian words,
-	// gets english translations and translates them once more
-	var englishWords []string
-	for result := range channel.OrDone(ctx, l.translateToChan(ctx)) {
+func (l *Lingualeo) translateAndOutput(ctx context.Context, words []string, collectReverse bool) ([]string, error) {
+	englishWords := make([]string, 0, len(words))
+	for result := range channel.OrDone(ctx, l.translateToChan(ctx, words)) {
 		if err := l.Output(ctx, result); err != nil {
 			if errors.Is(err, context.Canceled) {
-				return
+				return nil, err
 			}
 			slog.Error("cannot translate word", "word", result.Word, "error", err)
 		}
 		for _, word := range result.Translate {
-			if l.ReverseTranslate && isEnglishWord(word.Value) {
+			if collectReverse && isEnglishWord(word.Value) {
 				englishWords = append(englishWords, word.Value)
 			}
 		}
 	}
-	if len(englishWords) > 0 {
-		l.Words = englishWords
-		for result := range channel.OrDone(ctx, l.translateToChan(ctx)) {
-			if err := l.Output(ctx, result); err != nil {
-				if errors.Is(err, context.Canceled) {
-					return
-				}
-				slog.Error("cannot translate word", "word", result.Word, "error", err)
-			}
-		}
+
+	return slice.Unique(englishWords), nil
+}
+
+func (l *Lingualeo) TranslateWithReverseRussian(ctx context.Context) {
+	englishWords, err := l.translateAndOutput(ctx, l.Words, l.ReverseTranslate)
+	if err != nil || len(englishWords) == 0 {
+		return
+	}
+	_, err = l.translateAndOutput(ctx, englishWords, false)
+	if err != nil {
+		return
 	}
 }

@@ -16,21 +16,43 @@ type Downloader interface {
 	Remove(path string) error
 }
 
-// downloadFiles download files from URLs channel
-func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloader) <-chan files.File {
+type downloadJob struct {
+	url   string
+	index int
+}
+
+func downloadFiles(ctx context.Context, urls <-chan string, downloader Downloader, workers int) <-chan files.File {
 	out := make(chan files.File)
+	jobs := make(chan downloadJob)
 	var wg sync.WaitGroup
 	wg.Go(func() {
+		defer close(jobs)
 		idx := 0
 		for url := range channel.OrDone(ctx, urls) {
-			idxCopy := idx
-			wg.Go(func() {
-				filename, err := downloader.Download(ctx, url)
-				_ = sendToChanWithContext(ctx, out, files.File{Error: err, Filename: filename, Index: idxCopy})
-			})
+			if !sendToChanWithContext(ctx, jobs, downloadJob{url: url, index: idx}) {
+				return
+			}
 			idx++
 		}
 	})
+	for range workerCount(workers) {
+		wg.Go(func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case job, ok := <-jobs:
+					if !ok {
+						return
+					}
+					filename, err := downloader.Download(ctx, job.url)
+					if !sendToChanWithContext(ctx, out, files.File{Error: err, Filename: filename, Index: job.index}) {
+						return
+					}
+				}
+			}
+		})
+	}
 	go func() {
 		wg.Wait()
 		close(out)
