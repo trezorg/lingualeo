@@ -140,6 +140,64 @@ func TestRequestWithQuery(t *testing.T) {
 	assert.Equal(t, `{"status": "ok"}`, string(resp))
 }
 
+func TestRequestRetriesRetryableStatusCodes(t *testing.T) {
+	t.Parallel()
+
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error": "retry"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status": "ok"}`))
+	}))
+	defer server.Close()
+
+	api := &API{
+		client:  server.Client(),
+		timeout: time.Second,
+		retryConfig: RetryConfig{
+			MaxAttempts: 2,
+			InitialWait: time.Millisecond,
+			MaxWait:     time.Millisecond,
+		},
+	}
+
+	resp, err := api.request(t.Context(), requestParams{method: http.MethodGet, url: server.URL})
+	require.NoError(t, err)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, `{"status": "ok"}`, string(resp))
+}
+
+func TestRequestDoesNotRetryUnrecoverableStatusCodes(t *testing.T) {
+	t.Parallel()
+
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		attempts++
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error": "not found"}`))
+	}))
+	defer server.Close()
+
+	api := &API{
+		client:  server.Client(),
+		timeout: time.Second,
+		retryConfig: RetryConfig{
+			MaxAttempts: 3,
+			InitialWait: time.Millisecond,
+			MaxWait:     time.Millisecond,
+		},
+	}
+
+	_, err := api.request(t.Context(), requestParams{method: http.MethodGet, url: server.URL})
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts)
+}
+
 func TestNewAPI(t *testing.T) {
 	cfg := DefaultConfig()
 	httpClient, err := httpclient.NewWithJar(
