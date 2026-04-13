@@ -2,7 +2,7 @@ module github.com/trezorg/lingualeo
 
 go 1.26
 
-toolchain go1.26.1
+toolchain go1.26.2
 
 require (
 	github.com/BourgeoisBear/rasterm v1.1.2

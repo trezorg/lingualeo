@@ -13,7 +13,7 @@ permissions:
 
 env:
   GOEXPERIMENT: jsonv2
-  GO_VERSION: "1.26.1"
+  GO_VERSION: "1.26"
 
 jobs:
   lint:
